@@ -118,10 +118,36 @@ jobs:
           Write-Host "Relative path: $relativePath"
           Write-Host "File size: $($installer.Length) bytes"
 
+      - name: Rename installer
+        id: rename_installer
+        working-directory: desktop
+        run: |
+          $installerPath = "${{ steps.find_installer.outputs.installer_path }}"
+          $workspaceRoot = $env:GITHUB_WORKSPACE
+          $fullPath = Join-Path $workspaceRoot $installerPath
+          
+          if (-not (Test-Path $fullPath)) {
+            Write-Error "Installer not found at: $fullPath"
+            exit 1
+          }
+          
+          # Rename to the desired name
+          $newName = "Keyboard-Sounds-Pro-Installer-Windows-amd64.exe"
+          $newPath = Join-Path (Split-Path $fullPath -Parent) $newName
+          
+          Move-Item -Path $fullPath -Destination $newPath -Force
+          
+          # Calculate relative path for upload
+          $relativePath = $newPath.Replace($workspaceRoot, "").TrimStart('\').Replace('\', '/')
+          
+          echo "installer_path=$relativePath" >> $env:GITHUB_OUTPUT
+          Write-Host "Renamed installer to: $newName"
+          Write-Host "New path: $relativePath"
+
       - name: Upload installer to release
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ steps.find_installer.outputs.installer_path }}
+          files: ${{ steps.rename_installer.outputs.installer_path }}
           tag_name: ${{ github.event.release.tag_name }}
           name: ${{ github.event.release.name }}
           body: ${{ github.event.release.body }}
