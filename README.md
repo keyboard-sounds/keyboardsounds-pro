@@ -5,11 +5,14 @@
 
 Keyboard Sounds Pro is a desktop application that will play customizable keyboard and mouse sounds while you work.
 
-![Keyboard Sounds Pro](./screenshots/application-rules.png)
-
 ## Download
 
+> [!WARNING]\
+> Keyboard Sounds Pro is currently in beta. If you have issues, please report them [here](https://github.com/keyboard-sounds/keyboardsounds-pro/issues).
+
 Download the latest release from the [releases page](https://github.com/keyboard-sounds/keyboardsounds-pro/releases/latest).
+
+![Keyboard Sounds Pro](./screenshots/application-rules.png)
 
 ## Features
 
