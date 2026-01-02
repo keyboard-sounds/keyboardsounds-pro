@@ -1,0 +1,226 @@
+/* Theme CSS Variables */
+:root {
+  /* Dark Theme (Default) */
+  --bg-primary: rgba(15, 23, 42, 1);
+  --bg-secondary: rgba(2, 6, 23, 1);
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #16213e 100%);
+  --bg-gradient-subtle: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
+  
+  --sidebar-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(2, 6, 23, 0.98) 100%);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
+  
+  --titlebar-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(2, 6, 23, 0.85) 100%);
+  --titlebar-border: rgba(255, 255, 255, 0.12);
+  --titlebar-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  
+  --card-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.5) 0%, rgba(2, 6, 23, 0.6) 100%);
+  --card-border: rgba(255, 255, 255, 0.18);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --card-highlight: rgba(255, 255, 255, 0.15);
+  
+  --status-box-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(2, 6, 23, 0.5) 100%);
+  --menu-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(2, 6, 23, 0.7) 100%);
+  
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-tertiary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  --text-gradient: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+  
+  --accent-primary: #10b981;
+  --accent-secondary: #059669;
+  --accent-light: #34d399;
+  --accent-bg: rgba(16, 185, 129, 0.25);
+  --accent-bg-hover: rgba(16, 185, 129, 0.35);
+  --accent-border: rgba(16, 185, 129, 0.4);
+  --accent-shadow: rgba(16, 185, 129, 0.4);
+  
+  --input-bg: rgba(255, 255, 255, 0.12);
+  --input-border: rgba(255, 255, 255, 0.25);
+  --input-border-hover: rgba(255, 255, 255, 0.4);
+  
+  --hover-bg: rgba(255, 255, 255, 0.15);
+  --hover-bg-light: rgba(255, 255, 255, 0.12);
+  
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+  
+  --danger: rgba(239, 68, 68, 0.9);
+  --danger-bg: rgba(239, 68, 68, 0.25);
+  
+  --icon-color: #e0e7ff;
+  --resize-handle: rgba(255, 255, 255, 0.5);
+  
+  --dropdown-bg: rgba(15, 23, 42, 0.95);
+  --dropdown-border: rgba(255, 255, 255, 0.1);
+  --dropdown-item-hover: rgba(16, 185, 129, 0.2);
+  --dropdown-item-selected: rgba(16, 185, 129, 0.3);
+  
+  --control-button-color: rgba(255, 255, 255, 0.7);
+  --control-button-color-hover: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] {
+  /* Light Theme */
+  --bg-primary: rgba(248, 250, 252, 1);
+  --bg-secondary: rgba(241, 245, 249, 1);
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+  --bg-gradient-subtle: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+  
+  --sidebar-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.98) 100%);
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
+  
+  --titlebar-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.95) 100%);
+  --titlebar-border: rgba(0, 0, 0, 0.1);
+  --titlebar-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  
+  --card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+  --card-border: rgba(0, 0, 0, 0.1);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --card-highlight: rgba(255, 255, 255, 0.8);
+  
+  --status-box-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.85) 100%);
+  --menu-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.9) 100%);
+  
+  --text-primary: #1e293b;
+  --text-secondary: rgba(30, 41, 59, 0.8);
+  --text-tertiary: rgba(30, 41, 59, 0.7);
+  --text-muted: rgba(30, 41, 59, 0.5);
+  --text-gradient: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  
+  --accent-primary: #059669;
+  --accent-secondary: #047857;
+  --accent-light: #10b981;
+  --accent-bg: rgba(5, 150, 105, 0.15);
+  --accent-bg-hover: rgba(5, 150, 105, 0.25);
+  --accent-border: rgba(5, 150, 105, 0.4);
+  --accent-shadow: rgba(5, 150, 105, 0.3);
+  
+  --input-bg: rgba(0, 0, 0, 0.04);
+  --input-border: rgba(0, 0, 0, 0.15);
+  --input-border-hover: rgba(0, 0, 0, 0.25);
+  
+  --hover-bg: rgba(0, 0, 0, 0.08);
+  --hover-bg-light: rgba(0, 0, 0, 0.05);
+  
+  --scrollbar-track: rgba(0, 0, 0, 0.03);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+  
+  --danger: rgba(220, 38, 38, 0.9);
+  --danger-bg: rgba(220, 38, 38, 0.15);
+  
+  --icon-color: #475569;
+  --resize-handle: rgba(0, 0, 0, 0.3);
+  
+  --dropdown-bg: rgba(255, 255, 255, 0.98);
+  --dropdown-border: rgba(0, 0, 0, 0.1);
+  --dropdown-item-hover: rgba(5, 150, 105, 0.12);
+  --dropdown-item-selected: rgba(5, 150, 105, 0.2);
+  
+  --control-button-color: rgba(30, 41, 59, 0.7);
+  --control-button-color-hover: rgba(30, 41, 59, 0.9);
+}
+
+html {
+  background-color: transparent;
+  text-align: left;
+  color: var(--text-secondary);
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--text-secondary);
+  font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  overflow: hidden;
+  background: transparent;
+}
+
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 400;
+  src: local(""),
+    url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Rule Card Animations */
+@keyframes ruleSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(4px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ruleSlideOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    max-height: 120px;
+    margin-bottom: 12px;
+  }
+  40% {
+    opacity: 0.6;
+    transform: translateX(30px) scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100px) scale(0.9);
+    max-height: 0;
+    margin-bottom: 0;
+    padding: 0;
+  }
+}
+
+@keyframes ruleHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.rule-card-enter {
+  animation: ruleSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+             ruleHighlight 0.8s ease-out 0.3s forwards;
+}
+
+.rule-card-exit {
+  animation: ruleSlideOut 0.35s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Prevent non-animating rule cards from having transform transitions */
+/* This overrides the global * { transition: transform ... } rule so only */
+/* cards with enter/exit animations actually animate their transforms */
+.MuiCard-root:not(.rule-card-enter):not(.rule-card-exit) {
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}

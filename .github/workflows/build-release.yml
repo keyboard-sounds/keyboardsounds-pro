@@ -1,0 +1,131 @@
+name: Build Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up build environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.4'
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: desktop/frontend/package-lock.json
+
+      - name: Install NSIS
+        run: |
+          Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+          scoop bucket add extras
+          scoop install nsis
+          # Add Scoop shims to PATH so makensis is available
+          $scoopShims = "$env:USERPROFILE\scoop\shims"
+          echo "$scoopShims" >> $env:GITHUB_PATH
+          Write-Host "Added $scoopShims to PATH"
+          # Verify makensis is available (will be in PATH in next steps)
+          $makensisPath = "$env:USERPROFILE\scoop\apps\nsis\current\makensis.exe"
+          if (Test-Path $makensisPath) {
+            Write-Host "NSIS installed at: $makensisPath"
+          } else {
+            Write-Warning "makensis.exe not found at expected path, but shims should make it available"
+          }
+
+      - name: Install Wails CLI
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          echo "$env:USERPROFILE\go\bin" >> $env:GITHUB_PATH
+
+      - name: Extract version from release tag
+        id: get_version
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          # Remove 'v' prefix if present
+          $version = $tag -replace '^v', ''
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "Extracted version: $version"
+
+      - name: Update version in wails.json
+        working-directory: desktop
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          $json = Get-Content wails.json | ConvertFrom-Json
+          $json.info.productVersion = $version
+          $json | ConvertTo-Json -Depth 10 | Set-Content wails.json
+          Write-Host "Updated version to: $version"
+
+      - name: Install frontend dependencies
+        working-directory: desktop/frontend
+        run: npm ci
+
+      - name: Build application and installer
+        working-directory: desktop
+        run: |
+          # Verify makensis is in PATH
+          $makensis = Get-Command makensis -ErrorAction SilentlyContinue
+          if ($makensis) {
+            Write-Host "makensis found at: $($makensis.Source)"
+          } else {
+            Write-Error "makensis not found in PATH"
+            Write-Host "Current PATH: $env:PATH"
+            exit 1
+          }
+          wails build --nsis
+
+      - name: Find installer
+        id: find_installer
+        working-directory: desktop
+        run: |
+          # List all files in build/bin for debugging
+          Write-Host "Files in build/bin:"
+          Get-ChildItem -Path "build\bin" -Recurse | Format-Table Name, FullName, Length
+          
+          # The installer is created in build/bin with pattern: "Keyboard Sounds Pro-{ARCH}-installer.exe"
+          # Exclude the main application executable (which doesn't have "installer" in the name)
+          $allExes = Get-ChildItem -Path "build\bin" -Filter "*.exe" -Recurse
+          Write-Host "All .exe files found:"
+          $allExes | Format-Table Name, FullName, Length
+          
+          # Find installer - it should contain "installer" in the name
+          $installer = $allExes | Where-Object { $_.Name -like "*installer*" } | Select-Object -First 1
+          
+          if (-not $installer) {
+            Write-Error "Installer not found in build/bin. Expected pattern: *installer*.exe"
+            Write-Host "Available .exe files:"
+            $allExes | ForEach-Object { Write-Host "  - $($_.Name)" }
+            exit 1
+          }
+          
+          # Convert to relative path from workspace root (action expects this)
+          $workspaceRoot = $env:GITHUB_WORKSPACE
+          $fullPath = $installer.FullName
+          $relativePath = $fullPath.Replace($workspaceRoot, "").TrimStart('\').Replace('\', '/')
+          
+          echo "installer_path=$relativePath" >> $env:GITHUB_OUTPUT
+          echo "installer_name=$($installer.Name)" >> $env:GITHUB_OUTPUT
+          Write-Host "Found installer: $fullPath"
+          Write-Host "Relative path: $relativePath"
+          Write-Host "File size: $($installer.Length) bytes"
+
+      - name: Upload installer to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.find_installer.outputs.installer_path }}
+          tag_name: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}
+          body: ${{ github.event.release.body }}
+          draft: false
+          prerelease: ${{ github.event.release.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

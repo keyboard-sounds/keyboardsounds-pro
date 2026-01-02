@@ -1,0 +1,85 @@
+/* Custom title bar styling */
+#root {
+  height: 100vh;
+  overflow: hidden;
+  border-radius: 0;
+}
+
+/* Remove default browser styling */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable transform transition on MUI Tooltips to prevent fly-in animation */
+.MuiTooltip-popper,
+.MuiTooltip-popper * {
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Disable transform transition on MUI Autocomplete popper to prevent fly-in animation */
+.MuiAutocomplete-popper,
+.MuiAutocomplete-popper * {
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Title bar drag region - Wails uses --wails-draggable CSS variable */
+.title-bar-drag {
+  --wails-draggable: drag !important;
+  user-select: none !important;
+}
+
+.title-bar-drag *:not(.title-bar-controls):not(.title-bar-controls *) {
+  --wails-draggable: drag !important;
+}
+
+.title-bar-controls {
+  --wails-draggable: no-drag !important;
+}
+
+.title-bar-controls * {
+  --wails-draggable: no-drag !important;
+}
+
+.sidebar-resize-handle {
+  --wails-draggable: no-drag !important;
+}
+
+.sidebar-resize-handle * {
+  --wails-draggable: no-drag !important;
+}
