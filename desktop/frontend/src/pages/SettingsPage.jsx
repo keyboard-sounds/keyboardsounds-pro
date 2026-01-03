@@ -11,6 +11,7 @@ import { greenSwitchStyle } from '../constants';
 import { useTheme } from '../context';
 import { GetVersion } from '../../wailsjs/go/main/wailsConfig';
 import { IsUpdateAvailable, GetLatestVersion, GetDownloadURL, CheckForUpdate } from '../../wailsjs/go/main/updateDetails';
+import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 
 function SettingsPage({
   audioDevice,
@@ -369,7 +370,7 @@ function SettingsPage({
               <Chip
                 icon={<DownloadIcon sx={{ fontSize: '16px !important' }} />}
                 label={`Update Available (${latestVersion})`}
-                onClick={() => window.open(downloadURL, '_blank', 'noopener,noreferrer')}
+                onClick={() => BrowserOpenURL(downloadURL)}
                 sx={{
                   backgroundColor: 'var(--accent-bg)',
                   color: 'var(--accent-primary)',
@@ -472,10 +473,7 @@ function SettingsPage({
             Website
           </Typography>
           <Box
-            component="a"
-            href="https://keyboardsounds.net"
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={() => BrowserOpenURL('https://keyboardsounds.net')}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -484,6 +482,7 @@ function SettingsPage({
               fontSize: '14px',
               fontWeight: 500,
               textDecoration: 'none',
+              cursor: 'pointer',
               '&:hover': {
                 color: 'var(--accent-light)',
                 textDecoration: 'underline',
@@ -507,10 +506,7 @@ function SettingsPage({
             GitHub
           </Typography>
           <Box
-            component="a"
-            href="https://github.com/keyboard-sounds/keyboardsounds-pro"
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={() => BrowserOpenURL('https://github.com/keyboard-sounds/keyboardsounds-pro')}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -519,6 +515,7 @@ function SettingsPage({
               fontSize: '14px',
               fontWeight: 500,
               textDecoration: 'none',
+              cursor: 'pointer',
               '&:hover': {
                 color: 'var(--accent-light)',
                 textDecoration: 'underline',

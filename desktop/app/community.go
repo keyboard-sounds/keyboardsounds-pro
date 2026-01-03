@@ -11,14 +11,21 @@ import (
 
 const (
 	DISCORD_INVITE_ID = "gysskqts6z"
+	GITHUB_REPO_OWNER = "keyboard-sounds"
+	GITHUB_REPO_NAME  = "keyboardsounds-pro"
 )
 
 type Community struct {
 	onlineCount int
 	totalCount  int
+	starCount   int
+	forkCount   int
+	issueCount  int
 
-	statsLock   sync.RWMutex
-	statsLoaded bool
+	statsLock      sync.RWMutex
+	statsLoaded    bool
+	githubStatsLock sync.RWMutex
+	githubStatsLoaded bool
 }
 
 func NewCommunity() *Community {
@@ -52,6 +59,21 @@ func (cb *CommunityBinding) GetTotalCount() int {
 	return cb.community.GetTotalCount()
 }
 
+// GetStarCount returns the number of stars on the GitHub repository
+func (cb *CommunityBinding) GetStarCount() int {
+	return cb.community.GetStarCount()
+}
+
+// GetForkCount returns the number of forks on the GitHub repository
+func (cb *CommunityBinding) GetForkCount() int {
+	return cb.community.GetForkCount()
+}
+
+// GetIssueCount returns the number of open issues on the GitHub repository
+func (cb *CommunityBinding) GetIssueCount() int {
+	return cb.community.GetIssueCount()
+}
+
 func (c *Community) GetOnlineCount() int {
 	if err := c.loadStats(); err != nil {
 		slog.Error("Failed to load community stats", "error", err)
@@ -66,6 +88,30 @@ func (c *Community) GetTotalCount() int {
 	}
 
 	return c.totalCount
+}
+
+func (c *Community) GetStarCount() int {
+	if err := c.loadGitHubStats(); err != nil {
+		slog.Error("Failed to load GitHub stats", "error", err)
+	}
+
+	return c.starCount
+}
+
+func (c *Community) GetForkCount() int {
+	if err := c.loadGitHubStats(); err != nil {
+		slog.Error("Failed to load GitHub stats", "error", err)
+	}
+
+	return c.forkCount
+}
+
+func (c *Community) GetIssueCount() int {
+	if err := c.loadGitHubStats(); err != nil {
+		slog.Error("Failed to load GitHub stats", "error", err)
+	}
+
+	return c.issueCount
 }
 
 func (c *Community) GetInviteURL() string {
@@ -105,6 +151,43 @@ func (c *Community) loadStats() error {
 	c.onlineCount = stats.Profile.OnlineCount
 	c.totalCount = stats.Profile.MemberCount
 	c.statsLoaded = true
+
+	return nil
+}
+
+func (c *Community) loadGitHubStats() error {
+	c.githubStatsLock.Lock()
+	defer c.githubStatsLock.Unlock()
+	if c.githubStatsLoaded {
+		return nil
+	}
+
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s", GITHUB_REPO_OWNER, GITHUB_REPO_NAME)
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	type githubResponse struct {
+		StargazersCount int `json:"stargazers_count"`
+		ForksCount      int `json:"forks_count"`
+		OpenIssuesCount int `json:"open_issues_count"`
+	}
+
+	var repo githubResponse
+	if err := json.Unmarshal(body, &repo); err != nil {
+		return err
+	}
+
+	c.starCount = repo.StargazersCount
+	c.forkCount = repo.ForksCount
+	c.issueCount = repo.OpenIssuesCount
+	c.githubStatsLoaded = true
 
 	return nil
 }
