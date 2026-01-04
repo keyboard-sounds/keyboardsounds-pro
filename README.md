@@ -5,14 +5,14 @@
 
 Keyboard Sounds Pro is a desktop application that will play customizable keyboard and mouse sounds while you work.
 
+![Keyboard Sounds Pro](./screenshots/application-rules.png)
+
 ## Download
 
 > [!WARNING]\
 > Keyboard Sounds Pro is currently in beta. If you have issues, please report them [here](https://github.com/keyboard-sounds/keyboardsounds-pro/issues).
 
 Download the latest release from the [releases page](https://github.com/keyboard-sounds/keyboardsounds-pro/releases/latest).
-
-![Keyboard Sounds Pro](./screenshots/application-rules.png)
 
 ## Features
 
@@ -22,13 +22,44 @@ Download the latest release from the [releases page](https://github.com/keyboard
 - Import and export sound profiles to share with others.
 - Customize and build your own sound profiles and share them with others.
 
-## Screenshots
+## Use the Keyboard Sounds Backend
 
-![Application Rules](./screenshots/application-rules.png)
-![Audio Effects](./screenshots/audio-effects.png)
-![Library](./screenshots/library.png)
-![Profile Builder](./screenshots/profile-builder.png)
-![Profile Builder: Mouse](./screenshots/profile-builder-mouse.png)
-![Profile Builder: Keyboard](./screenshots/profile-builder-keyboard.png)
-![Settings](./screenshots/settings.png)
-![Community](./screenshots/community.png)
+Keyboard Sounds Pro uses the Keyboard Sounds backend to manage profiles, audio, keyboard and mouse events, and application rules. This backend is made entirely public and is free to use to develop your own applications.
+
+For detailed documentation, see the [API documentation](https://pkg.go.dev/github.com/keyboard-sounds/keyboardsounds-pro/pkg) and [examples](https://github.com/keyboard-sounds/keyboardsounds-pro/tree/main/internal/cmd/example).
+
+```sh
+$ go get github.com/keyboard-sounds/keyboardsounds-pro
+```
+
+```go
+package main
+
+import (
+    "os"
+    "log"
+
+	kbs "github.com/keyboard-sounds/keyboardsounds-pro/pkg"
+)
+
+func main() {
+    cwd, err := os.Getwd()
+    if err != nil{
+        log.Fatalf("Failed to get current working directory: %v", err)
+    }
+
+    // Look for the `profiles` directory in the current working directory.
+	mgr, err := kbs.NewManager(cwd)
+    if err != nil{
+        log.Fatalf("Failed to create manager: %v", err)
+    }
+
+    err = mgr.Enable()
+    if err != nil{
+        log.Fatalf("Failed to enable manager: %v", err)
+    }
+
+    // Wait indefinitely.
+    select {}
+}
+```
