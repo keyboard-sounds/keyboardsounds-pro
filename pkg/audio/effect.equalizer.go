@@ -9,6 +9,7 @@ func init() {
 	registerEffect("equalizer", &EqualizerEffect{})
 }
 
+// EqualizerConfig represents the configuration for the equalizer effect.
 type EqualizerConfig struct {
 	Hz60  float64 `json:"hz60"`
 	Hz170 float64 `json:"hz170"`
@@ -22,6 +23,7 @@ type EqualizerConfig struct {
 	Hz16k float64 `json:"hz16k"`
 }
 
+// Copy copies the equalizer configuration.
 func (c *EqualizerConfig) Copy() *EqualizerConfig {
 	return &EqualizerConfig{
 		Hz60:  c.Hz60,
@@ -37,8 +39,10 @@ func (c *EqualizerConfig) Copy() *EqualizerConfig {
 	}
 }
 
+// EqualizerEffect represents the equalizer effect.
 type EqualizerEffect struct{}
 
+// Apply applies the equalizer effect to the given streamer.
 func (e *EqualizerEffect) Apply(cfg EffectsConfig, streamer beep.Streamer) beep.Streamer {
 	if cfg.Equalizer == nil {
 		return streamer

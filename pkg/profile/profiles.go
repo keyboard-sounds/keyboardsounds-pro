@@ -21,6 +21,7 @@ var (
 	profilesLock sync.RWMutex
 )
 
+// SetProfilesDir sets the directory where profiles are stored.
 func SetProfilesDir(dir string) {
 	profilesLock.Lock()
 	defer profilesLock.Unlock()
@@ -35,7 +36,7 @@ func SetProfilesDir(dir string) {
 	profilesDir = &dir
 }
 
-// LoadProfiles loads all profiles from the given directory
+// LoadProfiles loads all profiles from the current profiles directory.
 func LoadProfiles() error {
 	profilesLock.Lock()
 	defer profilesLock.Unlock()
@@ -90,14 +91,14 @@ func LoadProfiles() error {
 	return nil
 }
 
-// GetKeyboardProfiles returns a list of keyboard profiles.
+// GetKeyboardProfiles returns a list of all keyboard profiles.
 func GetKeyboardProfiles() []*Profile {
 	return lo.Filter(profiles, func(profile *Profile, _ int) bool {
 		return profile.Details.DeviceType == DeviceTypeKeyboard
 	})
 }
 
-// GetMouseProfiles returns a list of mouse profiles.
+// GetMouseProfiles returns a list of all mouse profiles.
 func GetMouseProfiles() []*Profile {
 	return lo.Filter(profiles, func(profile *Profile, _ int) bool {
 		return profile.Details.DeviceType == DeviceTypeMouse
@@ -136,6 +137,7 @@ func DeleteProfile(name string) error {
 	return nil
 }
 
+// ExportProfile exports a profile to a zip file.
 func ExportProfile(name string, zipPath string) error {
 	profile, found := FindProfileByName(name)
 	if !found {
@@ -216,6 +218,7 @@ func ExportProfile(name string, zipPath string) error {
 	return nil
 }
 
+// ImportProfile imports a profile from a zip file.
 func ImportProfile(zipPath string) error {
 	if profilesDir == nil {
 		return fmt.Errorf("profiles directory not set")

@@ -14,6 +14,7 @@ import (
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/listener/listenertypes"
 )
 
+// WindowsMouseDevice represents a device that generates mouse events. On Windows, this is the WH_MOUSE_LL hook.
 var WindowsMouseDevice = listenertypes.Device{
 	Name: "Windows (WH_MOUSE_LL Hook)",
 }
@@ -42,10 +43,12 @@ type windowsMouseListener struct {
 	workerDone   chan struct{} // Signal when worker is done
 }
 
+// Events returns a channel of button events.
 func (l *windowsMouseListener) Events() chan listenertypes.ButtonEvent {
 	return l.events
 }
 
+// Listen starts the listener.
 func (l *windowsMouseListener) Listen(ctx context.Context) error {
 	l.mu.Lock()
 
@@ -108,9 +111,9 @@ func (l *windowsMouseListener) Listen(ctx context.Context) error {
 		slog.Info("Hook/message loop goroutine locked to OS thread")
 
 		// Set the hook on this thread
-		slog.Info("Setting Windows hook", "hook_type", WH_MOUSE_LL)
+		slog.Info("Setting Windows hook", "hook_type", wh_mouse_ll)
 		h, _, err := procSetWindowsHookEx.Call(
-			uintptr(WH_MOUSE_LL),
+			uintptr(wh_mouse_ll),
 			syscall.NewCallback(l.hook(messageLoopCtx)),
 			0,
 			0,
@@ -208,24 +211,24 @@ func (l *windowsMouseListener) Listen(ctx context.Context) error {
 // parseMouseMessage converts a Windows mouse message (wParam) to Button and Action
 func parseMouseMessage(message uint32) (button listenertypes.Button, action listenertypes.Action, ok bool) {
 	switch message {
-	case WM_LBUTTONDOWN:
+	case wm_lbuttondown:
 		return listenertypes.ButtonLeft, listenertypes.ActionPress, true
-	case WM_LBUTTONUP:
+	case wm_lbuttonup:
 		return listenertypes.ButtonLeft, listenertypes.ActionRelease, true
-	case WM_RBUTTONDOWN:
+	case wm_rbuttondown:
 		return listenertypes.ButtonRight, listenertypes.ActionPress, true
-	case WM_RBUTTONUP:
+	case wm_rbuttonup:
 		return listenertypes.ButtonRight, listenertypes.ActionRelease, true
-	case WM_MBUTTONDOWN:
+	case wm_mbuttondown:
 		return listenertypes.ButtonMiddle, listenertypes.ActionPress, true
-	case WM_MBUTTONUP:
+	case wm_mbuttonup:
 		return listenertypes.ButtonMiddle, listenertypes.ActionRelease, true
 	default:
 		return "", "", false
 	}
 }
 
-func (l *windowsMouseListener) hook(ctx context.Context) HookFunc {
+func (l *windowsMouseListener) hook(ctx context.Context) hookFunc {
 	return func(nCode int, wParam, lParam uintptr) uintptr {
 		// CRITICAL: This hook procedure must return IMMEDIATELY to avoid blocking
 		// the entire system's mouse input.
@@ -255,7 +258,7 @@ func (l *windowsMouseListener) hook(ctx context.Context) HookFunc {
 			// Copy the hook struct data immediately (lParam is only valid during this call)
 			// ignore "possible misuse of unsafe.Pointer" warning, lParam is guaranteed by
 			// the Windows API to be a pointer to a msDLLHOOKSTRUCT.
-			msStruct := (*msDLLHOOKSTRUCT)(unsafe.Pointer(lParam))
+			msStruct := (*msdllhookstruct)(unsafe.Pointer(lParam))
 			msTime := msStruct.Time // Copy the time
 
 			// Write to ring buffer using atomic operations (lock-free, no blocking)
@@ -371,7 +374,7 @@ func (l *windowsMouseListener) executeMessageLoop(ctx context.Context) {
 	go func() {
 		<-ctx.Done()
 		slog.Info("Context cancelled, posting WM_QUIT to thread", "threadId", threadId)
-		ret, _, err := procPostThreadMessageW.Call(threadId, WM_QUIT, 0, 0)
+		ret, _, err := procPostThreadMessageW.Call(threadId, wm_quit, 0, 0)
 		if ret == 0 {
 			slog.Warn("Failed to post WM_QUIT", "error", err, "threadId", threadId)
 		} else {

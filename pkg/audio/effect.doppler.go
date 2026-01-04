@@ -9,15 +9,19 @@ func init() {
 	registerEffect("doppler", &DopplerEffect{})
 }
 
+// DopplerQuality represents the quality of the doppler effect.
 type DopplerQuality int
 
 const (
-	DopplerQualityLow  DopplerQuality = 1
+	// DopplerQualityLow is the low quality of the doppler effect.
+	DopplerQualityLow DopplerQuality = 1
+	// DopplerQualityHigh is the high quality of the doppler effect.
 	DopplerQualityHigh DopplerQuality = 2
 )
 
+// DopplerConfig represents the configuration for the doppler effect.
 type DopplerConfig struct {
-	// The quality (either 1 or 2)
+	// The quality of the doppler effect.
 	Quality DopplerQuality
 	// Distance in meters (0.1m to 50m)
 	Distance float64
@@ -38,18 +42,13 @@ type DopplerEffect struct{}
 // speedOfSound is the speed of sound in m/s at 20°C
 const speedOfSound = 343.0
 
+// Apply applies the doppler effect to the given streamer.
 func (e *DopplerEffect) Apply(cfg EffectsConfig, streamer beep.Streamer) beep.Streamer {
 	if cfg.Doppler == nil {
 		return streamer
 	}
 
-	quality := int(cfg.Doppler.Quality)
-	if quality < 1 {
-		quality = 1
-	}
-	if quality > 2 {
-		quality = 2
-	}
+	quality := min(max(int(cfg.Doppler.Quality), 1), 2)
 
 	// Calculate samples per meter: sampleRate / speed of sound
 	samplesPerMeter := float64(sampleRate) / speedOfSound

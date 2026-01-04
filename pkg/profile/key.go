@@ -2,16 +2,18 @@ package profile
 
 // Key represents a key definition in the Other section of a profile.
 type Key struct {
-	// The sound to play when the key is pressed. This should correspond to the source ID in the profile sources.
+	// The source to play for events corresponding to the keys listed in the Keys field.
+	// This should correspond to the source ID in the profile sources.
 	Sound any `yaml:"sound"`
-	// The keys that trigger the sound.
+	// The keys that trigger this sound source.
 	Keys *[]string `yaml:"keys,omitempty"`
 }
 
 // Keys represents a list of keys in a profile.
 type Keys struct {
-	// The default sources to use for keys that are not defined in the Other section.
+	// The default source to use for any key that is not defined in the Other section.
+	// This should correspond to the source ID in the profile sources.
 	Default []string `yaml:"default"`
-	// The other keys that trigger the sound.
+	// The other keys that trigger a specific sound source.
 	Other []Key `yaml:"other"`
 }

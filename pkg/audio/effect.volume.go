@@ -11,12 +11,15 @@ func init() {
 	registerEffect("volume", &VolumeEffect{})
 }
 
+// VolumeConfig represents the configuration for the volume effect.
 type VolumeConfig struct {
 	Volume float64 `json:"volume"`
 }
 
+// VolumeEffect represents the volume effect.
 type VolumeEffect struct{}
 
+// Apply applies the volume effect to the given streamer.
 func (v *VolumeEffect) Apply(cfg EffectsConfig, streamer beep.Streamer) beep.Streamer {
 	if cfg.Volume == nil {
 		return streamer

@@ -17,16 +17,20 @@ import (
 )
 
 var (
-	ErrNoProfileSet           = fmt.Errorf("no profile set")
-	ErrAlreadyEnabled         = fmt.Errorf("manager is already enabled")
-	ErrNotEnabled             = fmt.Errorf("manager is not enabled")
+	// ErrNoProfileSet is returned when no profile is set.
+	ErrNoProfileSet = fmt.Errorf("no profile set")
+	// ErrAlreadyEnabled is returned when the manager is already enabled.
+	ErrAlreadyEnabled = fmt.Errorf("manager is already enabled")
+	// ErrNotEnabled is returned when the manager is not enabled.
+	ErrNotEnabled = fmt.Errorf("manager is not enabled")
+	// ErrListenerNotImplemented is returned when the listener is not implemented for the current platform.
 	ErrListenerNotImplemented = fmt.Errorf("listener not implemented for this platform")
 )
 
 // Manager is the main manager for the Keyboard Sounds backend.
-// When enabled, the manager will asynchronously listen for keyboard events.
-// When a key event is received, the manager will play the corresponding audio
-// file based on the current profile and configured application rules.
+// When enabled, the manager will asynchronously listen for keyboard and mouse events.
+// When an event is received, the manager will play the corresponding audio
+// file based on the current profile, configured application rules and effects.
 type Manager struct {
 	// The root directory for the manager
 	rootDir string
@@ -97,8 +101,8 @@ type Manager struct {
 	currentProfilesLock sync.RWMutex
 }
 
-// NewManager creates a new manager.
-// It initializes the audio player and keyboard listener.
+// NewManager creates a new manager. It initializes the audio player, keyboard listener, mouse listener, and focus detector.
+// It also loads the profiles and rules from the configuration directory.
 func NewManager(cfgDir string) (*Manager, error) {
 	profile.SetProfilesDir(filepath.Join(cfgDir, "profiles"))
 
@@ -270,6 +274,9 @@ func (m *Manager) GetRootDir() string {
 	return m.rootDir
 }
 
+// SetDefaultProfiles sets the default profiles for the manager. If the manager is currently using the default profiles,
+// the in memory values will be updated immediately. Otherwise, they will be updated the next time that the focus listener
+// is triggered by an app being focused.
 func (m *Manager) SetDefaultProfiles(profiles rules.Profiles) error {
 	err := rules.SetDefaultProfiles(profiles)
 	if err != nil {

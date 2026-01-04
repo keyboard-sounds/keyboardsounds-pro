@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	// ErrPlatformNotSupported is returned when the platform is not supported.
 	ErrPlatformNotSupported = errors.New("platform not supported")
 )
 
@@ -36,10 +37,12 @@ type rules struct {
 	filePath string
 }
 
-// ProfilesDiff is the difference between two profiles.
-type ProfilesDiff struct {
+// profilesDiff is the difference between two profiles.
+type profilesDiff struct {
+	// ShouldUpdateKeyboard is whether the keyboard profile should be updated.
 	ShouldUpdateKeyboard bool
-	ShouldUpdateMouse    bool
+	// ShouldUpdateMouse is whether the mouse profile should be updated.
+	ShouldUpdateMouse bool
 }
 
 // Profiles is a collection of profiles for mouse and keyboard.
@@ -52,8 +55,9 @@ type Profiles struct {
 	IsDefault bool `json:"-"`
 }
 
-func (p *Profiles) Diff(new Profiles) ProfilesDiff {
-	diff := ProfilesDiff{}
+// Diff checks if the profiles have changed.
+func (p *Profiles) Diff(new Profiles) profilesDiff {
+	diff := profilesDiff{}
 
 	// Non nil to non nil transition
 	if p.Keyboard != nil && new.Keyboard != nil {
@@ -93,7 +97,7 @@ var (
 	}
 )
 
-// LoadRules loads the rules.json file from the given directory.
+// LoadRules loads the rules.json file from the given directory. On Linux, this returns ErrPlatformNotSupported.
 func LoadRules(dir string) error {
 	// Application rules are currently only supported on Windows.
 	if runtime.GOOS != "windows" {
@@ -163,6 +167,7 @@ func GetDefaultProfiles() Profiles {
 	return rulesCache.Default
 }
 
+// SetDefaultProfiles sets the default profiles.
 func SetDefaultProfiles(profiles Profiles) error {
 	rulesCacheLock.Lock()
 	defer rulesCacheLock.Unlock()
@@ -187,7 +192,10 @@ func SetDefaultProfiles(profiles Profiles) error {
 	return nil
 }
 
-// GetActionForAppPath gets the action for a given app path.
+// GetProfilesForPath gets the profiles for a given app path.
+// If no rule is found for the app, the default profiles are returned.
+// If the rule is not enabled, the default profiles are returned.
+// Otherwise, the profiles for the rule are returned.
 func GetProfilesForPath(appPath string) Profiles {
 	rulesCacheLock.RLock()
 	defer rulesCacheLock.RUnlock()
@@ -213,7 +221,7 @@ func GetProfilesForPath(appPath string) Profiles {
 	return rule.Profiles
 }
 
-// UpsertRule adds or updates a rule for a given app path.
+// UpsertRule adds or updates a rule.
 func UpsertRule(rule Rule) error {
 	rulesCacheLock.Lock()
 	defer rulesCacheLock.Unlock()

@@ -14,6 +14,8 @@ func registerEffect(name string, effect Effect) {
 	registeredEffects = append(registeredEffects, effect)
 }
 
+// Effect is an interface for an audio effect.
 type Effect interface {
+	// Apply applies the effect to the given streamer.
 	Apply(config EffectsConfig, streamer beep.Streamer) beep.Streamer
 }

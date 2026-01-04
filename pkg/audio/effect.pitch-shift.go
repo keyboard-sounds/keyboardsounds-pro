@@ -11,12 +11,15 @@ func init() {
 	registerEffect("pitch-shift", &PitchShiftEffect{})
 }
 
+// PitchConfig represents the configuration for the pitch shift effect.
 type PitchConfig struct {
 	SemitoneRange [2]float64 `json:"semitones"`
 }
 
+// PitchShiftEffect represents the pitch shift effect.
 type PitchShiftEffect struct{}
 
+// Apply applies the pitch shift effect to the given streamer.
 func (e *PitchShiftEffect) Apply(cfg EffectsConfig, streamer beep.Streamer) beep.Streamer {
 	if cfg.Pitch == nil {
 		return streamer

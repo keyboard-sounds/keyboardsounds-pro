@@ -33,10 +33,12 @@ func NewKeyboardListener() KeyboardListener {
 	}
 }
 
+// Events returns a channel of key events.
 func (l *linuxKeyboardListener) Events() chan listenertypes.KeyEvent {
 	return l.events
 }
 
+// Listen starts the listener.
 func (l *linuxKeyboardListener) Listen(ctx context.Context) error {
 	devices, err := listKeyboards()
 	if err != nil {
@@ -64,7 +66,7 @@ func (l *linuxKeyboardListener) Listen(ctx context.Context) error {
 			defer l.wg.Done()
 			for event := range channel {
 				// Only process EV_KEY events, ignore SYN and other event types
-				if event.Type != EV_TYPE_KEY {
+				if event.Type != ev_type_key {
 					continue
 				}
 
@@ -128,36 +130,16 @@ type event struct {
 type eventFlag int
 
 const (
-	EV_SYN       eventFlag = 0x0001
-	EV_KEY       eventFlag = 0x0002
-	EV_REL       eventFlag = 0x0004
-	EV_ABS       eventFlag = 0x0008
-	EV_MSC       eventFlag = 0x0010
-	EV_SW        eventFlag = 0x0020
-	EV_LED       eventFlag = 0x0100
-	EV_SND       eventFlag = 0x0200
-	EV_REP       eventFlag = 0x0400
-	EV_FF        eventFlag = 0x0800
-	EV_PWR       eventFlag = 0x1000
-	EV_FF_STATUS eventFlag = 0x2000
+	ev_key eventFlag = 0x0002
+	ev_rel eventFlag = 0x0004
+	ev_abs eventFlag = 0x0008
 )
 
 // eventType is a type of event that is sent by the device.
 type eventType uint16
 
 const (
-	EV_TYPE_SYN       eventType = 0x00
-	EV_TYPE_KEY       eventType = 0x01
-	EV_TYPE_REL       eventType = 0x02
-	EV_TYPE_ABS       eventType = 0x03
-	EV_TYPE_MSC       eventType = 0x04
-	EV_TYPE_SW        eventType = 0x05
-	EV_TYPE_LED       eventType = 0x11
-	EV_TYPE_SND       eventType = 0x12
-	EV_TYPE_REP       eventType = 0x14
-	EV_TYPE_FF        eventType = 0x15
-	EV_TYPE_PWR       eventType = 0x16
-	EV_TYPE_FF_STATUS eventType = 0x17
+	ev_type_key eventType = 0x01
 )
 
 // deviceCapabilities holds information on the event and key capabilities of the device.
@@ -212,8 +194,8 @@ func listKeyboards() ([]*linuxDevice, error) {
 
 keyboardCheck:
 	for _, device := range devices {
-		slog.Info("device", "name", device.Name, "supportsEvent", device.SupportsEvent(EV_KEY))
-		if device.SupportsEvent(EV_KEY) {
+		slog.Info("device", "name", device.Name, "supportsEvent", device.SupportsEvent(ev_key))
+		if device.SupportsEvent(ev_key) {
 			common := []int{1, 30, 46, 48, 28}
 			for _, key := range common {
 				if !device.SupportsKey(key) {
@@ -237,7 +219,7 @@ func listPointerDevices() ([]*linuxDevice, error) {
 	}
 
 	for _, device := range devices {
-		if device.SupportsEvent(EV_REL) || device.SupportsEvent(EV_ABS) {
+		if device.SupportsEvent(ev_rel) || device.SupportsEvent(ev_abs) {
 			pointers = append(pointers, device)
 		}
 	}

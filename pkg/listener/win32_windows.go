@@ -8,28 +8,24 @@ import (
 
 const (
 	// This is the event we will hook into in the Windows API.
-	WH_MOUSE_LL int = 14
+	wh_mouse_ll int = 14
 	// Mouse button message constants
-	WM_LBUTTONDOWN = 0x0201
-	WM_LBUTTONUP   = 0x0202
-	WM_RBUTTONDOWN = 0x0204
-	WM_RBUTTONUP   = 0x0205
-	WM_MBUTTONDOWN = 0x0207
-	WM_MBUTTONUP   = 0x0208
+	wm_lbuttondown = 0x0201
+	wm_lbuttonup   = 0x0202
+	wm_rbuttondown = 0x0204
+	wm_rbuttonup   = 0x0205
+	wm_mbuttondown = 0x0207
+	wm_mbuttonup   = 0x0208
 
 	// This is the event we will hook into in the Windows API.
-	WH_KEYBOARD_LL int = 13
-	// LLKHF_UP is used to determine if a key event is an up or down event.
-	LLKHF_UP = 0x00000080
-
-	PM_NOREMOVE = 0x0000
-	PM_REMOVE   = 0x0001
-	PM_NOYIELD  = 0x0002
-	WM_QUIT     = 0x0012
+	wh_keyboard_ll int = 13
+	// llkhf_up is used to determine if a key event is an up or down event.
+	llkhf_up = 0x00000080
+	wm_quit  = 0x0012
 )
 
 type (
-	HookFunc func(int, uintptr, uintptr) uintptr
+	hookFunc func(int, uintptr, uintptr) uintptr
 	hHOOK    uintptr
 	hWND     uintptr
 	msg      struct {
@@ -42,14 +38,14 @@ type (
 			X, Y int32
 		}
 	}
-	kbDLLHOOKSTRUCT struct {
+	kbdllhookstruct struct {
 		VKCode      uint32
 		ScanCode    uint32
 		Flags       uint32
 		Time        uint32
 		DwExtraInfo uintptr
 	}
-	msDLLHOOKSTRUCT struct {
+	msdllhookstruct struct {
 		Pt          struct{ X, Y int32 }
 		MouseData   uint32
 		Flags       uint32

@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	PROCESS_QUERY_INFORMATION = 0x0400
-	PROCESS_VM_READ           = 0x0010
-	WINEVENT_OUTOFCONTEXT     = 0x0000
-	EVENT_SYSTEM_FOREGROUND   = 0x0003
-	WM_QUIT                   = 0x0012
+	process_query_information = 0x0400
+	process_vm_read           = 0x0010
+	winevent_outofcontext     = 0x0000
+	event_system_foreground   = 0x0003
+	wm_quit                   = 0x0012
 )
 
 var (
@@ -43,10 +43,10 @@ var (
 )
 
 type (
-	hWINEVENTHOOK uintptr
-	hWND          uintptr
+	hwineventhook uintptr
+	hwnd          uintptr
 	msg           struct {
-		HWND    hWND
+		HWND    hwnd
 		Message uint32
 		WPARAM  uintptr
 		LPARAM  uintptr
@@ -60,12 +60,12 @@ type (
 type windowsFocusDetector struct {
 	events            chan FocusEvent
 	mu                sync.Mutex
-	hHook             hWINEVENTHOOK
+	hHook             hwineventhook
 	messageLoopDone   chan struct{}
 	messageLoopActive bool
 }
 
-// NewFocusDetector creates a new application focus detector.
+// NewFocusDetector creates a new application focus detector. (On Linux, this returns a nil value.)
 func NewFocusDetector() FocusDetector {
 	return &windowsFocusDetector{
 		events:          make(chan FocusEvent, 100),
@@ -73,6 +73,7 @@ func NewFocusDetector() FocusDetector {
 	}
 }
 
+// Listen starts the focus detector.
 func (d *windowsFocusDetector) Listen(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -97,6 +98,7 @@ func (d *windowsFocusDetector) Listen(ctx context.Context) error {
 	return nil
 }
 
+// Events returns a channel that emits focus events.
 func (d *windowsFocusDetector) Events() chan FocusEvent {
 	return d.events
 }
@@ -122,7 +124,7 @@ func (d *windowsFocusDetector) onForegroundWindowChange(
 	}
 
 	// Open the process
-	access := uint32(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ)
+	access := uint32(process_query_information | process_vm_read)
 	hProcess, _, _ := procOpenProcess.Call(
 		uintptr(access),
 		0, // FALSE
@@ -171,7 +173,7 @@ func (d *windowsFocusDetector) messageLoopWithContext(ctx context.Context) {
 	go func() {
 		<-ctx.Done()
 		slog.Info("Focus detector context cancelled, posting WM_QUIT to thread", "threadId", threadId)
-		ret, _, err := procPostThreadMessageW.Call(threadId, WM_QUIT, 0, 0)
+		ret, _, err := procPostThreadMessageW.Call(threadId, wm_quit, 0, 0)
 		if ret == 0 {
 			slog.Warn("Failed to post WM_QUIT", "error", err, "threadId", threadId)
 		} else {
@@ -182,7 +184,7 @@ func (d *windowsFocusDetector) messageLoopWithContext(ctx context.Context) {
 	// Get the current foreground window and trigger callback to initialize state
 	hwnd, _, _ := procGetForegroundWindow.Call()
 	if hwnd != 0 {
-		d.onForegroundWindowChange(0, EVENT_SYSTEM_FOREGROUND, hwnd, 0, 0, 0, 0)
+		d.onForegroundWindowChange(0, event_system_foreground, hwnd, 0, 0, 0, 0)
 	}
 
 	// Create the WinEvent callback
@@ -190,13 +192,13 @@ func (d *windowsFocusDetector) messageLoopWithContext(ctx context.Context) {
 
 	// Set the WinEvent hook
 	hook, _, err := procSetWinEventHook.Call(
-		uintptr(EVENT_SYSTEM_FOREGROUND),
-		uintptr(EVENT_SYSTEM_FOREGROUND),
+		uintptr(event_system_foreground),
+		uintptr(event_system_foreground),
 		0, // hmodWinEventProc (NULL for out-of-context)
 		winEventProc,
 		0, // idProcess (0 = all processes)
 		0, // idThread (0 = all threads)
-		uintptr(WINEVENT_OUTOFCONTEXT),
+		uintptr(winevent_outofcontext),
 	)
 
 	if hook == 0 {
@@ -208,7 +210,7 @@ func (d *windowsFocusDetector) messageLoopWithContext(ctx context.Context) {
 	}
 
 	d.mu.Lock()
-	d.hHook = hWINEVENTHOOK(hook)
+	d.hHook = hwineventhook(hook)
 	d.mu.Unlock()
 
 	// Message loop

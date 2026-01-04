@@ -15,6 +15,7 @@ import (
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/listener/listenertypes"
 )
 
+// WindowsDevice represents a device that generates keyboard events. On Windows, this is the WH_KEYBOARD_LL hook.
 var WindowsDevice = listenertypes.Device{
 	Name: "Windows (WH_KEYBOARD_LL Hook)",
 }
@@ -43,16 +44,18 @@ type windowsKeyboardListener struct {
 	messageLoopCtx    context.Context
 	messageLoopCancel context.CancelFunc
 
-	ringBuffer   [ringBufferSize]kbDLLHOOKSTRUCT
+	ringBuffer   [ringBufferSize]kbdllhookstruct
 	ringWritePos uint64        // Atomic counter for write position
 	ringReadPos  uint64        // Atomic counter for read position
 	workerDone   chan struct{} // Signal when worker is done
 }
 
+// Events returns a channel of key events.
 func (l *windowsKeyboardListener) Events() chan listenertypes.KeyEvent {
 	return l.events
 }
 
+// Listen starts the listener.
 func (l *windowsKeyboardListener) Listen(ctx context.Context) error {
 	l.mu.Lock()
 
@@ -115,9 +118,9 @@ func (l *windowsKeyboardListener) Listen(ctx context.Context) error {
 		slog.Info("Hook/message loop goroutine locked to OS thread")
 
 		// Set the hook on this thread
-		slog.Info("Setting Windows hook", "hook_type", WH_KEYBOARD_LL)
+		slog.Info("Setting Windows hook", "hook_type", wh_keyboard_ll)
 		h, _, err := procSetWindowsHookEx.Call(
-			uintptr(WH_KEYBOARD_LL),
+			uintptr(wh_keyboard_ll),
 			syscall.NewCallback(l.hook(messageLoopCtx)),
 			0,
 			0,
@@ -212,7 +215,7 @@ func (l *windowsKeyboardListener) Listen(ctx context.Context) error {
 	return nil
 }
 
-func (l *windowsKeyboardListener) hook(ctx context.Context) HookFunc {
+func (l *windowsKeyboardListener) hook(ctx context.Context) hookFunc {
 	return func(nCode int, wParam, lParam uintptr) uintptr {
 		// CRITICAL: This hook procedure must return IMMEDIATELY to avoid blocking
 		// the entire system's keyboard input.
@@ -235,7 +238,7 @@ func (l *windowsKeyboardListener) hook(ctx context.Context) HookFunc {
 			// Copy the hook struct data immediately (lParam is only valid during this call)
 			// ignore "possible misuse of unsafe.Pointer" warning, lParam is guaranteed by
 			// the Windows API to be a pointer to a kbDLLHOOKSTRUCT.
-			kbStruct := (*kbDLLHOOKSTRUCT)(unsafe.Pointer(lParam))
+			kbStruct := (*kbdllhookstruct)(unsafe.Pointer(lParam))
 			kbData := *kbStruct // Copy the struct
 
 			// Write to ring buffer using atomic operations (lock-free, no blocking)
@@ -299,7 +302,7 @@ func (l *windowsKeyboardListener) eventWorker(ctx context.Context) {
 
 			// Determine action
 			action := listenertypes.ActionPress
-			if kbData.Flags&LLKHF_UP != 0 {
+			if kbData.Flags&llkhf_up != 0 {
 				action = listenertypes.ActionRelease
 			}
 
@@ -353,7 +356,7 @@ func (l *windowsKeyboardListener) executeMessageLoop(ctx context.Context) {
 	go func() {
 		<-ctx.Done()
 		slog.Info("Context cancelled, posting WM_QUIT to thread", "threadId", threadId)
-		ret, _, err := procPostThreadMessageW.Call(threadId, WM_QUIT, 0, 0)
+		ret, _, err := procPostThreadMessageW.Call(threadId, wm_quit, 0, 0)
 		if ret == 0 {
 			slog.Warn("Failed to post WM_QUIT", "error", err, "threadId", threadId)
 		} else {
@@ -435,6 +438,7 @@ func (l *windowsKeyboardListener) executeMessageLoop(ctx context.Context) {
 	}
 }
 
+// parseTime converts a Windows system time to a time.Time.
 func parseTime(t uint32) time.Time {
 	sysTime, _, _ := procGetTickCount.Call()
 	now := time.Now()
