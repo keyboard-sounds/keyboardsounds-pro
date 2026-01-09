@@ -21,6 +21,7 @@ Download the latest release from the [releases page](https://github.com/keyboard
 - Per-device volume and audio effects.
 - Import and export sound profiles to share with others.
 - Customize and build your own sound profiles and share them with others.
+- Customizable hotkeys to control the application.
 
 ## Use the Keyboard Sounds Backend
 
