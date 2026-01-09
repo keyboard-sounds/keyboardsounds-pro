@@ -10,6 +10,8 @@ import (
 	"sync"
 
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/audio"
+	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/hotkeys"
+	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/key"
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/listener"
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/profile"
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/rules"
@@ -52,10 +54,18 @@ type Manager struct {
 	keyboardVolume float64
 	// Lock for the keyboard volume
 	keyboardVolumeLock sync.RWMutex
+	// The last keyboard volume
+	lastKeyboardVolume float64
+	// Lock for the last keyboard volume
+	lastKeyboardVolumeLock sync.RWMutex
 	// The mouse volume for the audio player
 	mouseVolume float64
 	// Lock for the mouse volume
 	mouseVolumeLock sync.RWMutex
+	// The last mouse volume
+	lastMouseVolume float64
+	// Lock for the last mouse volume
+	lastMouseVolumeLock sync.RWMutex
 
 	// Effects Configs
 	keyboardPitchShiftConfig managerPitchShiftConfig
@@ -78,7 +88,7 @@ type Manager struct {
 	// The cached audio files for the current profile.
 	keyboardProfileAudioCache map[string]*audio.Audio
 	// The keys that are currently down
-	keyboardKeysDown []uint32
+	keyboardKeysDown []key.Key
 	// Lock for the keyboard keys down
 	keyboardKeysDownLock sync.RWMutex
 
@@ -118,6 +128,11 @@ func NewManager(cfgDir string) (*Manager, error) {
 		}
 
 		slog.Warn("application rules disabled", "error", err)
+	}
+
+	err = hotkeys.LoadHotKeys(cfgDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load hotkeys: %w", err)
 	}
 
 	defaultProfiles := rules.GetDefaultProfiles()
@@ -168,6 +183,21 @@ func NewManager(cfgDir string) (*Manager, error) {
 
 	mgr.setKeyboardProfile(keyboardProfile)
 	mgr.setMouseProfile(mouseProfile)
+
+	RegisterHotKeyDelegate()
+	RegisterToggleEnableHotKeyHandler(mgr)
+	RegisterMuteAllHotKeyHandler(mgr)
+	RegisterUnmuteAllHotKeyHandler(mgr)
+	RegisterMuteKeyboardHotKeyHandler(mgr)
+	RegisterUnmuteKeyboardHotKeyHandler(mgr)
+	RegisterMuteMouseHotKeyHandler(mgr)
+	RegisterUnmuteMouseHotKeyHandler(mgr)
+	RegisterIncreaseVolumeAllHotKeyHandler(mgr)
+	RegisterDecreaseVolumeAllHotKeyHandler(mgr)
+	RegisterIncreaseVolumeKeyboardHotKeyHandler(mgr)
+	RegisterDecreaseVolumeKeyboardHotKeyHandler(mgr)
+	RegisterIncreaseVolumeMouseHotKeyHandler(mgr)
+	RegisterDecreaseVolumeMouseHotKeyHandler(mgr)
 
 	return mgr, nil
 }

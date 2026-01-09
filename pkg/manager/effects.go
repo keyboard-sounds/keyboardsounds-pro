@@ -220,6 +220,46 @@ func (m *Manager) GetKeyboardVolume() float64 {
 	return m.keyboardVolume
 }
 
+// MuteKeyboard mutes the keyboard audio player, saving the current volume to the last keyboard volume such that it can be restored later using UnmuteKeyboard.
+func (m *Manager) MuteKeyboard() {
+	lastKeyboardVolume := m.GetKeyboardVolume()
+	m.lastKeyboardVolumeLock.Lock()
+	m.lastKeyboardVolume = lastKeyboardVolume
+	m.lastKeyboardVolumeLock.Unlock()
+	m.SetKeyboardVolume(0.0)
+}
+
+// UnmuteKeyboard unmutes the keyboard audio player, restoring the last keyboard volume.
+func (m *Manager) UnmuteKeyboard() {
+	m.lastKeyboardVolumeLock.RLock()
+	lastKeyboardVolume := m.lastKeyboardVolume
+	m.lastKeyboardVolumeLock.RUnlock()
+
+	// Avoid unmuting if the keyboard volume is not already muted.
+	currentVolume := m.GetKeyboardVolume()
+	if currentVolume != 0.0 {
+		return
+	}
+
+	// If the current volume is 0, and the last volume is 0, default to 1.0.
+	if lastKeyboardVolume == 0.0 {
+		m.SetKeyboardVolume(1.0)
+		return
+	}
+
+	m.SetKeyboardVolume(lastKeyboardVolume)
+}
+
+// ToggleMuteKeyboard toggles the mute state of the keyboard audio player.
+func (m *Manager) ToggleMuteKeyboard() {
+	currentVolume := m.GetKeyboardVolume()
+	if currentVolume == 0.0 {
+		m.UnmuteKeyboard()
+	} else {
+		m.MuteKeyboard()
+	}
+}
+
 // SetMouseVolume sets the volume for the mouse audio player.
 func (m *Manager) SetMouseVolume(volume float64) error {
 	m.mouseVolumeLock.Lock()
@@ -239,4 +279,44 @@ func (m *Manager) GetMouseVolume() float64 {
 	m.mouseVolumeLock.RLock()
 	defer m.mouseVolumeLock.RUnlock()
 	return m.mouseVolume
+}
+
+// MuteMouse mutes the mouse audio player, saving the current volume to the last mouse volume such that it can be restored later using UnmuteMouse.
+func (m *Manager) MuteMouse() {
+	lastMouseVolume := m.GetMouseVolume()
+	m.lastMouseVolumeLock.Lock()
+	m.lastMouseVolume = lastMouseVolume
+	m.lastMouseVolumeLock.Unlock()
+	m.SetMouseVolume(0.0)
+}
+
+// UnmuteMouse unmutes the mouse audio player, restoring the last mouse volume.
+func (m *Manager) UnmuteMouse() {
+	m.lastMouseVolumeLock.RLock()
+	lastMouseVolume := m.lastMouseVolume
+	m.lastMouseVolumeLock.RUnlock()
+
+	// Avoid unmuting if the mouse volume is not already muted.
+	currentVolume := m.GetMouseVolume()
+	if currentVolume != 0.0 {
+		return
+	}
+
+	// If the current volume is 0, and the last volume is 0, default to 1.0.
+	if lastMouseVolume == 0.0 {
+		m.SetMouseVolume(1.0)
+		return
+	}
+
+	m.SetMouseVolume(lastMouseVolume)
+}
+
+// ToggleMuteMouse toggles the mute state of the mouse audio player.
+func (m *Manager) ToggleMuteMouse() {
+	currentVolume := m.GetMouseVolume()
+	if currentVolume == 0.0 {
+		m.UnmuteMouse()
+	} else {
+		m.MuteMouse()
+	}
 }

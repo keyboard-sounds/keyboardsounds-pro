@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/audio"
+	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/hotkeys"
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/key"
 	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/listener/listenertypes"
 	"github.com/samber/lo"
@@ -37,12 +38,12 @@ func (m *Manager) keyboardEventWorker() {
 			}
 
 			go func(e listenertypes.KeyEvent) {
-				// Do not play the audio if the key is already down.
+				// Ignore key repeat.
 				if e.Action == listenertypes.ActionPress {
 					var keyDown bool
 					m.keyboardKeysDownLock.RLock()
 					if len(m.keyboardKeysDown) > 0 {
-						keyDown = lo.Contains(m.keyboardKeysDown, e.Key.Code)
+						keyDown = lo.Contains(m.keyboardKeysDown, e.Key)
 					}
 					m.keyboardKeysDownLock.RUnlock()
 					if keyDown {
@@ -53,13 +54,35 @@ func (m *Manager) keyboardEventWorker() {
 				// Update the keys that are currently down.
 				m.keyboardKeysDownLock.Lock()
 				if e.Action == listenertypes.ActionPress {
-					m.keyboardKeysDown = append(m.keyboardKeysDown, e.Key.Code)
+					m.keyboardKeysDown = append(m.keyboardKeysDown, e.Key)
 				} else {
-					m.keyboardKeysDown = lo.Filter(m.keyboardKeysDown, func(key uint32, _ int) bool {
-						return key != e.Key.Code
+					m.keyboardKeysDown = lo.Filter(m.keyboardKeysDown, func(key key.Key, _ int) bool {
+						return key != e.Key
 					})
 				}
 				m.keyboardKeysDownLock.Unlock()
+
+				// On release, determine if a hot key was triggered.
+				if e.Action == listenertypes.ActionRelease {
+					// Make a copy of the keys down to avoid race conditions.
+					m.keyboardKeysDownLock.RLock()
+					keysDown := make([]key.Key, len(m.keyboardKeysDown))
+					copy(keysDown, m.keyboardKeysDown)
+					m.keyboardKeysDownLock.RUnlock()
+
+					// TODO: Also copy hot key configs to avoid race conditions.
+
+					go func() {
+						err := hotkeys.GetHotKeys().Execute(hotkeys.ExecuteArg{
+							Event:    e,
+							KeysDown: keysDown,
+						})
+
+						if err != nil {
+							slog.Error("failed to execute hot key", "error", err)
+						}
+					}()
+				}
 
 				// Check the current focus action with proper locking
 				m.currentProfilesLock.RLock()
