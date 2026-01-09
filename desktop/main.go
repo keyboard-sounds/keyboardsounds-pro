@@ -202,6 +202,9 @@ func main() {
 	// Create the community binding
 	community := app.NewCommunityBinding()
 
+	// Create the hotkeys binding
+	hotkeys := app.NewHotKeys()
+
 	wailsCfg := NewWailsConfig()
 
 	ud, err := NewUpdateDetails(wailsCfg.Info.ProductVersion)
@@ -284,6 +287,7 @@ func main() {
 			library,
 			profileBuilder,
 			community,
+			hotkeys,
 			wailsCfg,
 			updateDetails,
 		},

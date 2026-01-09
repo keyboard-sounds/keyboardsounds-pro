@@ -25,6 +25,10 @@ export function GetState():Promise<app.StatusPanelState>;
 
 export function IsEnabled():Promise<boolean>;
 
+export function MuteKeyboard():Promise<void>;
+
+export function MuteMouse():Promise<void>;
+
 export function SetDefaultKeyboardProfile(arg1:string):Promise<void>;
 
 export function SetDefaultMouseProfile(arg1:string):Promise<void>;
@@ -34,3 +38,11 @@ export function SetDefaultProfiles(arg1:any,arg2:any):Promise<void>;
 export function SetKeyboardVolume(arg1:number):Promise<void>;
 
 export function SetMouseVolume(arg1:number):Promise<void>;
+
+export function ToggleMuteKeyboard():Promise<void>;
+
+export function ToggleMuteMouse():Promise<void>;
+
+export function UnmuteKeyboard():Promise<void>;
+
+export function UnmuteMouse():Promise<void>;

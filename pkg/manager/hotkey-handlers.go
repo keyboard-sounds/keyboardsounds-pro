@@ -12,26 +12,9 @@ import (
 // Delegate
 // =============================================================================
 
-func RegisterHotKeyDelegate() {
+func registerHotKeyDelegate() {
 	hotkeys.RegisterDelegate(func(event hotkeys.HotKeyEvent) {
 		slog.Info("hotkey processed", "event", event)
-	})
-}
-
-// =============================================================================
-// Enabled Handlers
-// =============================================================================
-
-func RegisterToggleEnableHotKeyHandler(mgr *Manager) {
-	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
-		Device: hotkeys.HotKeyTargetDeviceNone,
-		Action: hotkeys.HotKeyActionToggleEnabled,
-	}, func(action hotkeys.HotKeyDeviceAction) error {
-		if mgr.IsEnabled() {
-			return mgr.Disable()
-		}
-
-		return mgr.Enable()
 	})
 }
 
@@ -39,7 +22,7 @@ func RegisterToggleEnableHotKeyHandler(mgr *Manager) {
 // Mute Handlers
 // =============================================================================
 
-func RegisterMuteAllHotKeyHandler(mgr *Manager) {
+func registerMuteAllHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionMute,
@@ -51,7 +34,7 @@ func RegisterMuteAllHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterMuteKeyboardHotKeyHandler(mgr *Manager) {
+func registerMuteKeyboardHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionMute,
@@ -61,7 +44,7 @@ func RegisterMuteKeyboardHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterMuteMouseHotKeyHandler(mgr *Manager) {
+func registerMuteMouseHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionMute,
@@ -75,7 +58,7 @@ func RegisterMuteMouseHotKeyHandler(mgr *Manager) {
 // Unmute Handlers
 // =============================================================================
 
-func RegisterUnmuteAllHotKeyHandler(mgr *Manager) {
+func registerUnmuteAllHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionUnmute,
@@ -87,7 +70,7 @@ func RegisterUnmuteAllHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterUnmuteKeyboardHotKeyHandler(mgr *Manager) {
+func registerUnmuteKeyboardHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionUnmute,
@@ -97,7 +80,7 @@ func RegisterUnmuteKeyboardHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterUnmuteMouseHotKeyHandler(mgr *Manager) {
+func registerUnmuteMouseHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionUnmute,
@@ -111,7 +94,7 @@ func RegisterUnmuteMouseHotKeyHandler(mgr *Manager) {
 // Toggle Mute Handlers
 // =============================================================================
 
-func RegisterToggleMuteAllHotKeyHandler(mgr *Manager) {
+func registerToggleMuteAllHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionToggleMute,
@@ -122,7 +105,7 @@ func RegisterToggleMuteAllHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterToggleMuteKeyboardHotKeyHandler(mgr *Manager) {
+func registerToggleMuteKeyboardHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionToggleMute,
@@ -132,7 +115,7 @@ func RegisterToggleMuteKeyboardHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterToggleMuteMouseHotKeyHandler(mgr *Manager) {
+func registerToggleMuteMouseHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionToggleMute,
@@ -146,7 +129,7 @@ func RegisterToggleMuteMouseHotKeyHandler(mgr *Manager) {
 // Volume Handlers
 // =============================================================================
 
-func RegisterIncreaseVolumeAllHotKeyHandler(mgr *Manager) {
+func registerIncreaseVolumeAllHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionIncreaseVolume,
@@ -169,7 +152,7 @@ func RegisterIncreaseVolumeAllHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterDecreaseVolumeAllHotKeyHandler(mgr *Manager) {
+func registerDecreaseVolumeAllHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionDecreaseVolume,
@@ -192,7 +175,7 @@ func RegisterDecreaseVolumeAllHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterIncreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
+func registerIncreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionIncreaseVolume,
@@ -210,7 +193,7 @@ func RegisterIncreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterDecreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
+func registerDecreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionDecreaseVolume,
@@ -228,7 +211,7 @@ func RegisterDecreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterIncreaseVolumeMouseHotKeyHandler(mgr *Manager) {
+func registerIncreaseVolumeMouseHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionIncreaseVolume,
@@ -246,7 +229,7 @@ func RegisterIncreaseVolumeMouseHotKeyHandler(mgr *Manager) {
 	})
 }
 
-func RegisterDecreaseVolumeMouseHotKeyHandler(mgr *Manager) {
+func registerDecreaseVolumeMouseHotKeyHandler(mgr *Manager) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionDecreaseVolume,

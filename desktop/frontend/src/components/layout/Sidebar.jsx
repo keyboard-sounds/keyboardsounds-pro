@@ -14,8 +14,10 @@ function Sidebar({
   setMouseVolume,
   keyboardMuted,
   setKeyboardMuted,
+  onKeyboardMuteToggle,
   mouseMuted,
   setMouseMuted,
+  onMouseMuteToggle,
   volumesLocked,
   setVolumesLocked,
   keyboardProfile,
@@ -107,8 +109,10 @@ function Sidebar({
           setMouseVolume={setMouseVolume}
           keyboardMuted={keyboardMuted}
           setKeyboardMuted={setKeyboardMuted}
+          onKeyboardMuteToggle={onKeyboardMuteToggle}
           mouseMuted={mouseMuted}
           setMouseMuted={setMouseMuted}
+          onMouseMuteToggle={onMouseMuteToggle}
           volumesLocked={volumesLocked}
           setVolumesLocked={setVolumesLocked}
           keyboardProfile={keyboardProfile}

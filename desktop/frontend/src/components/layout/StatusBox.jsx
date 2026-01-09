@@ -18,8 +18,10 @@ function StatusBox({
   setMouseVolume,
   keyboardMuted,
   setKeyboardMuted,
+  onKeyboardMuteToggle,
   mouseMuted,
   setMouseMuted,
+  onMouseMuteToggle,
   volumesLocked,
   setVolumesLocked,
   keyboardProfile,
@@ -62,20 +64,22 @@ function StatusBox({
   };
 
   // Handler for keyboard mute toggle
-  const handleKeyboardMuteToggle = () => {
+  const handleKeyboardMuteToggle = async () => {
     const newMuted = !keyboardMuted;
-    setKeyboardMuted(newMuted);
+    await onKeyboardMuteToggle(newMuted);
+    // If volumes are locked, also set mouse mute to the same state
     if (volumesLocked) {
-      setMouseMuted(newMuted);
+      await onMouseMuteToggle(newMuted);
     }
   };
 
   // Handler for mouse mute toggle
-  const handleMouseMuteToggle = () => {
+  const handleMouseMuteToggle = async () => {
     const newMuted = !mouseMuted;
-    setMouseMuted(newMuted);
+    await onMouseMuteToggle(newMuted);
+    // If volumes are locked, also set keyboard mute to the same state
     if (volumesLocked) {
-      setKeyboardMuted(newMuted);
+      await onKeyboardMuteToggle(newMuted);
     }
   };
   return (

@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 )
 
+// HotKeyTargetDevice represents the target device for a hot key.
 type HotKeyTargetDevice string
 
 const (
@@ -17,6 +18,7 @@ const (
 	HotKeyTargetDeviceNone     HotKeyTargetDevice = "none"
 )
 
+// HotKeyAction represents the action for a hot key.
 type HotKeyAction string
 
 const (
@@ -25,23 +27,26 @@ const (
 	HotKeyActionToggleMute     HotKeyAction = "toggle-mute"
 	HotKeyActionIncreaseVolume HotKeyAction = "increase-volume"
 	HotKeyActionDecreaseVolume HotKeyAction = "decrease-volume"
-	HotKeyActionToggleEnabled  HotKeyAction = "toggle-enabled"
 )
 
+// HotKeyDeviceAction represents the action for a hot key on a specific device.
 type HotKeyDeviceAction struct {
 	Action HotKeyAction       `json:"action"`
 	Device HotKeyTargetDevice `json:"target"`
 	Value  string             `json:"value"`
 }
 
+// HotKeyHandler represents a handler for a hot key action.
 type HotKeyHandler func(HotKeyDeviceAction) error
 
 var registeredActions = map[HotKeyDeviceAction]HotKeyHandler{}
 
+// RegisterHandler registers a handler for a hot key action.
 func RegisterHandler(action HotKeyDeviceAction, handler HotKeyHandler) {
 	registeredActions[action] = handler
 }
 
+// ExecuteArg represents the arguments for executing a hot key action.
 type ExecuteArg struct {
 	Event    listenertypes.KeyEvent
 	KeysDown []key.Key
@@ -121,8 +126,10 @@ func (hk HotKeys) runAction(action HotKeyDeviceAction) error {
 	return handler(action)
 }
 
+// HotKeyEventDelegate represents a delegate for a hot key event.
 type HotKeyEventDelegate func(event HotKeyEvent)
 
+// HotKeyEvent represents a hot key event.
 type HotKeyEvent struct {
 	// The keys that are required for any of the handlers to be triggered.
 	Modifiers []string
@@ -134,6 +141,7 @@ type HotKeyEvent struct {
 
 var hotKeyDelegates = []HotKeyEventDelegate{}
 
+// RegisterDelegate registers a delegate for a hot key event.
 func RegisterDelegate(delegate HotKeyEventDelegate) {
 	hotKeyDelegates = append(hotKeyDelegates, delegate)
 }

@@ -6,12 +6,14 @@ import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import DiscordIcon from '../components/icons/DiscordIcon';
 import PeopleIcon from '@mui/icons-material/People';
+import KeyboardIcon from '@mui/icons-material/Keyboard';
 
 export const menuItems = [
   { name: 'Application Rules', icon: GavelIcon },
   { name: 'Audio Effects', icon: GraphicEqIcon },
   { name: 'Library', icon: LibraryMusicIcon },
   { name: 'Profile Builder', icon: ConstructionIcon },
+  { name: 'Hotkeys', icon: KeyboardIcon },
   { name: 'Community', icon: PeopleIcon },
   { name: 'Settings', icon: SettingsIcon },
 ];

@@ -25,8 +25,8 @@ type HotKey struct {
 	Action HotKeyDeviceAction `json:"action"`
 }
 
-// DefaultHotKeys is the default hotkeys configuration.
-var DefaultHotKeys = HotKeys{
+// defaultHotKeys is the default hotkeys configuration.
+var defaultHotKeys = HotKeys{
 	{
 		Modifiers: []string{key.LeftControl.Name, key.LeftShift.Name, key.LeftAlt.Name},
 		Keys: []HotKey{
@@ -60,13 +60,6 @@ var DefaultHotKeys = HotKeys{
 					Value:  "0.1",
 				},
 			},
-			{
-				Key: key.K.Name,
-				Action: HotKeyDeviceAction{
-					Device: HotKeyTargetDeviceNone,
-					Action: HotKeyActionToggleEnabled,
-				},
-			},
 		},
 	},
 }
@@ -74,7 +67,7 @@ var DefaultHotKeys = HotKeys{
 var (
 	cfgDir             string
 	cfgDirLock         sync.RWMutex
-	currentHotKeys     = DefaultHotKeys
+	currentHotKeys     = defaultHotKeys
 	currentHotKeysLock sync.RWMutex
 )
 
@@ -87,7 +80,7 @@ func LoadHotKeys(dir string) error {
 	hotKeyConfigFile := filepath.Join(dir, "hotkeys.yaml")
 	if _, err := os.Stat(hotKeyConfigFile); os.IsNotExist(err) {
 		// Write the default hotkeys to the file.
-		hotKeyConfig, err := yaml.Marshal(DefaultHotKeys)
+		hotKeyConfig, err := yaml.Marshal(defaultHotKeys)
 		if err != nil {
 			return fmt.Errorf("failed to marshal default hotkeys: %w", err)
 		}

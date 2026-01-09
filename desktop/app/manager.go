@@ -47,6 +47,9 @@ func Init(c context.Context) error {
 		panic(err)
 	}
 
+	// Register hotkey delegate to emit events when hotkeys are triggered
+	RegisterHotKeyEventDelegate()
+
 	// Apply saved audio effects preferences
 	ApplyAudioEffectsFromPreferences()
 	// Apply saved volume preferences

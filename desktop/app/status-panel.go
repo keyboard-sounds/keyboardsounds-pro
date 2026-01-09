@@ -157,3 +157,39 @@ func (s *StatusPanel) GetMouseProfiles() []string {
 	}
 	return names
 }
+
+// MuteKeyboard mutes the keyboard audio player
+func (s *StatusPanel) MuteKeyboard() error {
+	mgr.MuteKeyboard()
+	return SaveVolumeToPreferences()
+}
+
+// UnmuteKeyboard unmutes the keyboard audio player
+func (s *StatusPanel) UnmuteKeyboard() error {
+	mgr.UnmuteKeyboard()
+	return SaveVolumeToPreferences()
+}
+
+// ToggleMuteKeyboard toggles the mute state of the keyboard audio player
+func (s *StatusPanel) ToggleMuteKeyboard() error {
+	mgr.ToggleMuteKeyboard()
+	return SaveVolumeToPreferences()
+}
+
+// MuteMouse mutes the mouse audio player
+func (s *StatusPanel) MuteMouse() error {
+	mgr.MuteMouse()
+	return SaveVolumeToPreferences()
+}
+
+// UnmuteMouse unmutes the mouse audio player
+func (s *StatusPanel) UnmuteMouse() error {
+	mgr.UnmuteMouse()
+	return SaveVolumeToPreferences()
+}
+
+// ToggleMuteMouse toggles the mute state of the mouse audio player
+func (s *StatusPanel) ToggleMuteMouse() error {
+	mgr.ToggleMuteMouse()
+	return SaveVolumeToPreferences()
+}

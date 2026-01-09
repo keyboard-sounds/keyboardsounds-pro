@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Box } from '@mui/material';
 import { TitleBar, Sidebar } from './components/layout';
-import { AudioEffectsPage, ApplicationRulesPage, LibraryPage, SettingsPage, PlaceholderPage, CommunityPage, ProfileBuilderPage } from './pages';
+import { AudioEffectsPage, ApplicationRulesPage, LibraryPage, SettingsPage, PlaceholderPage, CommunityPage, ProfileBuilderPage, HotkeysPage } from './pages';
 import { defaultEqualizerBands } from './constants';
-import { GetState, Enable, Disable, SetKeyboardVolume, SetMouseVolume, SetDefaultKeyboardProfile, SetDefaultMouseProfile, ClearDefaultKeyboardProfile, ClearDefaultMouseProfile } from '../wailsjs/go/app/StatusPanel';
+import { GetState, Enable, Disable, SetKeyboardVolume, SetMouseVolume, SetDefaultKeyboardProfile, SetDefaultMouseProfile, ClearDefaultKeyboardProfile, ClearDefaultMouseProfile, ToggleMuteKeyboard, ToggleMuteMouse, MuteKeyboard, UnmuteKeyboard, MuteMouse, UnmuteMouse } from '../wailsjs/go/app/StatusPanel';
 import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden } from '../wailsjs/go/app/AppRules';
 import { GetStartWithSystem, SetStartWithSystem } from '../wailsjs/go/main/App';
 import { GetState as GetAudioEffectsState, SetKeyboardPitchShift, SetKeyboardPan, SetKeyboardEqualizer, SetMousePitchShift, SetMousePan, SetMouseEqualizer } from '../wailsjs/go/app/AudioEffects';
 import { GetState as GetLibraryState, DeleteProfile, OpenProfileFolder, ImportProfile, ExportProfile } from '../wailsjs/go/app/Library';
+import { EventsOn } from '../wailsjs/runtime/runtime';
 import { AddRuleModal } from './components/rules';
 import './App.css';
 
@@ -72,18 +73,32 @@ function App() {
     loadLibraryState();
   }, [loadLibraryState]);
   
+  // Function to load state from backend
+  const loadState = useCallback(async () => {
+    try {
+      const state = await GetState();
+      setIsPaused(!state.enabled);
+      const kbVol = Math.round(state.keyboardVolume * 100);
+      const msVol = Math.round(state.mouseVolume * 100);
+      setKeyboardVolume(kbVol);
+      setMouseVolume(msVol);
+      // Update mute state based on volume (0 = muted)
+      setKeyboardMuted(kbVol === 0);
+      setMouseMuted(msVol === 0);
+      setKeyboardProfile(profileToDisplay(state.keyboardProfile));
+      setMouseProfile(profileToDisplay(state.mouseProfile));
+      setKeyboardProfiles(state.keyboardProfiles || []);
+      setMouseProfiles(state.mouseProfiles || []);
+    } catch (error) {
+      console.error('Failed to load status panel state:', error);
+    }
+  }, []);
+
   // Load initial state from backend
   useEffect(() => {
-    const loadState = async () => {
+    const loadInitialState = async () => {
       try {
-        const state = await GetState();
-        setIsPaused(!state.enabled);
-        setKeyboardVolume(Math.round(state.keyboardVolume * 100));
-        setMouseVolume(Math.round(state.mouseVolume * 100));
-        setKeyboardProfile(profileToDisplay(state.keyboardProfile));
-        setMouseProfile(profileToDisplay(state.mouseProfile));
-        setKeyboardProfiles(state.keyboardProfiles || []);
-        setMouseProfiles(state.mouseProfiles || []);
+        await loadState();
         
         // Load notify on minimize preference
         const notifyOnMinimizeValue = await GetNotifyOnMinimize();
@@ -105,13 +120,27 @@ function App() {
         const startWithSystemValue = await GetStartWithSystem();
         setStartWithSystem(startWithSystemValue);
       } catch (error) {
-        console.error('Failed to load status panel state:', error);
+        console.error('Failed to load initial state:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    loadState();
-  }, []);
+    loadInitialState();
+  }, [loadState]);
+
+  // Listen for hotkey state changes and refresh UI
+  useEffect(() => {
+    const unsubscribe = EventsOn('hotkey-state-changed', () => {
+      // Refresh state when hotkeys trigger changes
+      loadState();
+    });
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [loadState]);
 
   // Load rules from backend
   const loadRules = useCallback(async () => {
@@ -170,6 +199,36 @@ function App() {
       console.error('Failed to set mouse volume:', error);
     }
   }, []);
+
+  // Handle keyboard mute toggle
+  const handleKeyboardMuteToggle = useCallback(async (newMutedState) => {
+    try {
+      if (newMutedState) {
+        await MuteKeyboard();
+      } else {
+        await UnmuteKeyboard();
+      }
+      // Refresh state to get updated volume
+      await loadState();
+    } catch (error) {
+      console.error('Failed to toggle keyboard mute:', error);
+    }
+  }, [loadState]);
+
+  // Handle mouse mute toggle
+  const handleMouseMuteToggle = useCallback(async (newMutedState) => {
+    try {
+      if (newMutedState) {
+        await MuteMouse();
+      } else {
+        await UnmuteMouse();
+      }
+      // Refresh state to get updated volume
+      await loadState();
+    } catch (error) {
+      console.error('Failed to toggle mouse mute:', error);
+    }
+  }, [loadState]);
   
   // Handle keyboard profile change
   const handleSetKeyboardProfile = useCallback(async (profile) => {
@@ -712,6 +771,8 @@ function App() {
         );
       case 'Community':
         return <CommunityPage />;
+      case 'Hotkeys':
+        return <HotkeysPage />;
       case 'Profile Builder':
         return (
           <ProfileBuilderPage
@@ -741,8 +802,10 @@ function App() {
         setMouseVolume={handleSetMouseVolume}
         keyboardMuted={keyboardMuted}
         setKeyboardMuted={setKeyboardMuted}
+        onKeyboardMuteToggle={handleKeyboardMuteToggle}
         mouseMuted={mouseMuted}
         setMouseMuted={setMouseMuted}
+        onMouseMuteToggle={handleMouseMuteToggle}
         volumesLocked={volumesLocked}
         setVolumesLocked={setVolumesLocked}
         keyboardProfile={keyboardProfile}

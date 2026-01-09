@@ -46,6 +46,14 @@ export function IsEnabled() {
   return window['go']['app']['StatusPanel']['IsEnabled']();
 }
 
+export function MuteKeyboard() {
+  return window['go']['app']['StatusPanel']['MuteKeyboard']();
+}
+
+export function MuteMouse() {
+  return window['go']['app']['StatusPanel']['MuteMouse']();
+}
+
 export function SetDefaultKeyboardProfile(arg1) {
   return window['go']['app']['StatusPanel']['SetDefaultKeyboardProfile'](arg1);
 }
@@ -64,4 +72,20 @@ export function SetKeyboardVolume(arg1) {
 
 export function SetMouseVolume(arg1) {
   return window['go']['app']['StatusPanel']['SetMouseVolume'](arg1);
+}
+
+export function ToggleMuteKeyboard() {
+  return window['go']['app']['StatusPanel']['ToggleMuteKeyboard']();
+}
+
+export function ToggleMuteMouse() {
+  return window['go']['app']['StatusPanel']['ToggleMuteMouse']();
+}
+
+export function UnmuteKeyboard() {
+  return window['go']['app']['StatusPanel']['UnmuteKeyboard']();
+}
+
+export function UnmuteMouse() {
+  return window['go']['app']['StatusPanel']['UnmuteMouse']();
 }
