@@ -33,9 +33,6 @@ func (m *Manager) keyboardEventWorker() {
 			}
 
 			slog.Debug("Keyboard event received", "event", event)
-			if m.keyboardProfile == nil {
-				continue
-			}
 
 			go func(e listenertypes.KeyEvent) {
 				// Ignore key repeat.
@@ -82,6 +79,10 @@ func (m *Manager) keyboardEventWorker() {
 							slog.Error("failed to execute hot key", "error", err)
 						}
 					}()
+				}
+
+				if m.keyboardProfile == nil {
+					return
 				}
 
 				// Check the current focus action with proper locking
