@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/audio"
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
 )
 
 // AudioEffects is the Wails binding for audio effects settings

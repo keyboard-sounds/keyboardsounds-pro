@@ -3,7 +3,7 @@ package app
 import (
 	"path/filepath"
 
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/rules"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/rules"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

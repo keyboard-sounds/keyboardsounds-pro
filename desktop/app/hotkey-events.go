@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/hotkeys"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/hotkeys"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

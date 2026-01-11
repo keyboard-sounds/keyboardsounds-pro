@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/audio"
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/manager"
+	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
 )
 
 // AudioEffectsPreferences stores persisted audio effects settings
@@ -46,11 +47,7 @@ var (
 )
 
 func init() {
-	userDir, err := os.UserHomeDir()
-	if err != nil {
-		return
-	}
-	uiPrefsPath = filepath.Join(userDir, "keyboardsounds-pro", "ui-preferences.json")
+	uiPrefsPath = filepath.Join(kbs.GetHomeDirectory(), "ui-preferences.json")
 	loadUIPreferences()
 }
 

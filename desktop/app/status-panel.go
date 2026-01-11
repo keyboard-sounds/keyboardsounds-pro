@@ -3,8 +3,8 @@ package app
 import (
 	"log/slog"
 
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/profile"
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/rules"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/profile"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/rules"
 )
 
 // StatusPanel is the Wails binding for the status panel UI

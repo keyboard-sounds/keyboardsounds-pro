@@ -12,7 +12,8 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/manager"
+	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
 )
 
 var (
@@ -25,12 +26,9 @@ var (
 func Init(c context.Context) error {
 	ctx = c
 
-	userDir, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
+	kbsDir := kbs.GetHomeDirectory()
 
-	kbsDir = filepath.Join(userDir, "keyboardsounds-pro")
+	var err error
 
 	// Only seed profiles if not in dev mode.
 	if runtime.Environment(ctx).BuildType != "dev" {

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/profile"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/profile"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gopkg.in/yaml.v2"
 )

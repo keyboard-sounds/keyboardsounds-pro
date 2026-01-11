@@ -27,40 +27,35 @@ Download the latest release from the [releases page](https://github.com/keyboard
 
 Keyboard Sounds Pro uses the Keyboard Sounds backend to manage profiles, audio, keyboard and mouse events, and application rules. This backend is made entirely public and is free to use to develop your own applications.
 
-For detailed documentation, see the [API documentation](https://pkg.go.dev/github.com/keyboard-sounds/keyboardsounds-pro/pkg) and [examples](https://github.com/keyboard-sounds/keyboardsounds-pro/tree/main/internal/cmd/example).
+For detailed documentation, see the [API documentation](https://pkg.go.dev/github.com/keyboard-sounds/keyboardsounds-pro/backend) and [examples](https://github.com/keyboard-sounds/keyboardsounds-pro/tree/main/backend/internal/cmd/example).
 
 ```sh
-$ go get github.com/keyboard-sounds/keyboardsounds-pro
+$ go get github.com/keyboard-sounds/keyboardsounds-pro/backend
 ```
 
 ```go
 package main
 
 import (
-    "os"
-    "log"
+	"os"
+	"log"
 
-	kbs "github.com/keyboard-sounds/keyboardsounds-pro/pkg"
+	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
 )
 
 func main() {
-    cwd, err := os.Getwd()
-    if err != nil{
-        log.Fatalf("Failed to get current working directory: %v", err)
-    }
+	mgr, err := manager.NewManager(kbs.GetHomeDirectory())
+	if err != nil{
+		log.Fatalf("Failed to create manager: %v", err)
+	}
 
-    // Look for the `profiles` directory in the current working directory.
-	mgr, err := kbs.NewManager(cwd)
-    if err != nil{
-        log.Fatalf("Failed to create manager: %v", err)
-    }
+	err = mgr.Enable()
+	if err != nil{
+		log.Fatalf("Failed to enable manager: %v", err)
+	}
 
-    err = mgr.Enable()
-    if err != nil{
-        log.Fatalf("Failed to enable manager: %v", err)
-    }
-
-    // Wait indefinitely.
-    select {}
+	// Wait indefinitely.
+	select {}
 }
 ```

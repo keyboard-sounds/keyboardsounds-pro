@@ -6,8 +6,8 @@ import (
 	goRuntime "runtime"
 	"strings"
 
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/profile"
-	"github.com/keyboard-sounds/keyboardsounds-pro/pkg/rules"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/profile"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/rules"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -225,7 +225,7 @@ func (l *Library) ExportProfile(name string) error {
 
 	// Open save file dialog
 	selection, err := runtime.SaveFileDialog(ctx, runtime.SaveDialogOptions{
-		Title: "Export Profile",
+		Title:           "Export Profile",
 		DefaultFilename: p.Details.Name + ".zip",
 		Filters: []runtime.FileFilter{
 			{
