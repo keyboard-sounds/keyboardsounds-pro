@@ -51,8 +51,8 @@ jobs:
       - name: Extract version from release tag
         id: get_version
         run: |
-          $tag = "${{ github.event.release.tag_name }}"
-          # Remove 'v' prefix if present
+          $tag = "${{ github.ref_name }}"
+          # Remove 'desktop/v' prefix if present
           $version = $tag -replace '^desktop/v', ''
           echo "version=$version" >> $env:GITHUB_OUTPUT
           echo "Extracted version: $version"
@@ -149,10 +149,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ steps.rename_installer.outputs.installer_path }}
-          tag_name: ${{ github.event.release.tag_name }}
-          name: ${{ github.event.release.name }}
-          body: ${{ github.event.release.body }}
+          tag_name: ${{ github.ref_name }}
           draft: false
-          prerelease: ${{ github.event.release.prerelease }}
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
