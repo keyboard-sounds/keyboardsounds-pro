@@ -26,7 +26,7 @@ var (
 func Init(c context.Context) error {
 	ctx = c
 
-	kbsDir := kbs.GetHomeDirectory()
+	kbsDir = kbs.GetHomeDirectory()
 
 	var err error
 
@@ -97,6 +97,8 @@ func seedProfiles() error {
 
 	bundledProfilesDir := filepath.Join(installDir, "bundled-profiles")
 	kbsProfilesDir := filepath.Join(kbsDir, "profiles")
+
+	slog.Info("Seeding profiles", "bundledProfilesDir", bundledProfilesDir, "kbsProfilesDir", kbsProfilesDir)
 
 	// Check if kbs profiles dir exists, and if not, create it
 	if _, err := os.Stat(kbsProfilesDir); os.IsNotExist(err) {

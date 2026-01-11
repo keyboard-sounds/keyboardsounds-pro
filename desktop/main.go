@@ -116,7 +116,7 @@ func (u *UpdateDetails) CheckForUpdate() error {
 		return err
 	}
 
-	u.LatestVersion = strings.TrimPrefix(u.LatestVersion, "v")
+	u.LatestVersion = strings.TrimPrefix(strings.TrimPrefix(u.LatestVersion, "desktop/v"), "v")
 	u.UpdateAvailable = u.LatestVersion != u.CurrentVersion && u.LatestVersion != ""
 
 	return nil
