@@ -53,7 +53,7 @@ jobs:
         run: |
           $tag = "${{ github.event.release.tag_name }}"
           # Remove 'v' prefix if present
-          $version = $tag -replace '^v', ''
+          $version = $tag -replace '^desktop/v', ''
           echo "version=$version" >> $env:GITHUB_OUTPUT
           echo "Extracted version: $version"
 

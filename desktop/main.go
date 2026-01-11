@@ -169,7 +169,7 @@ func NewUpdateDetails(currentVersion string) (*UpdateDetails, error) {
 		return &UpdateDetails{}, err
 	}
 
-	updateDetails.LatestVersion = strings.TrimPrefix(updateDetails.LatestVersion, "v")
+	updateDetails.LatestVersion = strings.TrimPrefix(strings.TrimPrefix(updateDetails.LatestVersion, "desktop/v"), "v")
 	updateDetails.UpdateAvailable = updateDetails.LatestVersion != currentVersion && updateDetails.LatestVersion != ""
 	updateDetails.CurrentVersion = currentVersion
 
