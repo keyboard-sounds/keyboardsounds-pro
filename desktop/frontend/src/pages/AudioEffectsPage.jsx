@@ -97,6 +97,14 @@ function AudioEffectsPage({
         setPitchRange={isKeyboard ? setPitchRange : setPitchRangeMouse}
       />
 
+      {/* Equalizer Section */}
+      <EqualizerCard
+        enabled={isKeyboard ? equalizerEnabled : equalizerEnabledMouse}
+        setEnabled={isKeyboard ? setEqualizerEnabled : setEqualizerEnabledMouse}
+        bands={isKeyboard ? equalizerBands : equalizerBandsMouse}
+        setBands={isKeyboard ? setEqualizerBands : setEqualizerBandsMouse}
+      />
+
       {/* Pan Section */}
       <PanCard
         enabled={isKeyboard ? panEnabled : panEnabledMouse}
@@ -106,14 +114,6 @@ function AudioEffectsPage({
         keyPositionKeys={panKeyPositionKeys}
         setKeyPositionKeys={setPanKeyPositionKeys}
         isKeyboard={isKeyboard}
-      />
-
-      {/* Equalizer Section */}
-      <EqualizerCard
-        enabled={isKeyboard ? equalizerEnabled : equalizerEnabledMouse}
-        setEnabled={isKeyboard ? setEqualizerEnabled : setEqualizerEnabledMouse}
-        bands={isKeyboard ? equalizerBands : equalizerBandsMouse}
-        setBands={isKeyboard ? setEqualizerBands : setEqualizerBandsMouse}
       />
     </Box>
   );
