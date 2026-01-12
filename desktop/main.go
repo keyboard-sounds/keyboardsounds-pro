@@ -130,6 +130,11 @@ func (u *UpdateDetails) CheckForUpdateAndNotify() {
 	}
 
 	if u.IsUpdateAvailable() && app.GetNotifyOnUpdate() {
+		updateNotifiedAndIgnored := app.GetUpdateNotifiedAndIgnored()
+		if updateNotifiedAndIgnored == u.LatestVersion {
+			return
+		}
+
 		selectedButton, err := runtime.MessageDialog(wailsCtx, runtime.MessageDialogOptions{
 			Type:          runtime.QuestionDialog,
 			Title:         "Keyboard Sounds Pro - Update Available",
@@ -143,8 +148,12 @@ func (u *UpdateDetails) CheckForUpdateAndNotify() {
 			return
 		}
 
-		if selectedButton == "Yes" {
+		switch selectedButton {
+		case "Yes":
 			runtime.BrowserOpenURL(wailsCtx, u.DownloadURL)
+		case "No":
+			app.SetUpdateNotifiedAndIgnored(u.LatestVersion)
+			return
 		}
 	}
 }

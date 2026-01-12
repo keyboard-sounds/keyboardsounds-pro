@@ -34,7 +34,7 @@ func (a *App) startup(ctx context.Context) {
 
 			for {
 				select {
-				case <-time.After(1 * time.Hour):
+				case <-time.After(24 * time.Hour):
 					slog.Info("checking for update")
 					updateDetails.CheckForUpdateAndNotify()
 				case <-wailsCtx.Done():

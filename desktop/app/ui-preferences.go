@@ -31,13 +31,14 @@ type VolumePreferences struct {
 
 // UIPreferences stores persistent UI state
 type UIPreferences struct {
-	InfoBannerDismissed  bool                    `json:"infoBannerDismissed"`
-	StartPlayingOnLaunch bool                    `json:"startPlayingOnLaunch"`
-	StartHidden          bool                    `json:"startHidden"`
-	NotifyOnUpdate       bool                    `json:"notifyOnUpdate"`
-	NotifyOnMinimize     bool                    `json:"notifyOnMinimize"`
-	AudioEffects         AudioEffectsPreferences `json:"audioEffects"`
-	Volume               VolumePreferences       `json:"volume"`
+	InfoBannerDismissed      bool                    `json:"infoBannerDismissed"`
+	StartPlayingOnLaunch     bool                    `json:"startPlayingOnLaunch"`
+	StartHidden              bool                    `json:"startHidden"`
+	NotifyOnUpdate           bool                    `json:"notifyOnUpdate"`
+	NotifyOnMinimize         bool                    `json:"notifyOnMinimize"`
+	AudioEffects             AudioEffectsPreferences `json:"audioEffects"`
+	Volume                   VolumePreferences       `json:"volume"`
+	UpdateNotifiedAndIgnored string                  `json:"updateNotifiedAndIgnored"`
 }
 
 var (
@@ -286,6 +287,24 @@ func GetStartHidden() bool {
 func SetStartHidden(startHidden bool) error {
 	uiPrefsLock.Lock()
 	uiPrefs.StartHidden = startHidden
+	uiPrefsLock.Unlock()
+
+	return saveUIPreferences()
+}
+
+func GetUpdateNotifiedAndIgnored() string {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+
+	if uiPrefs == nil {
+		return ""
+	}
+	return uiPrefs.UpdateNotifiedAndIgnored
+}
+
+func SetUpdateNotifiedAndIgnored(updateNotifiedAndIgnored string) error {
+	uiPrefsLock.Lock()
+	uiPrefs.UpdateNotifiedAndIgnored = updateNotifiedAndIgnored
 	uiPrefsLock.Unlock()
 
 	return saveUIPreferences()
