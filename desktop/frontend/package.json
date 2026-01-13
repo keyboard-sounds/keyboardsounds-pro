@@ -13,6 +13,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.6",
+    "mixpanel-browser": "^2.73.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

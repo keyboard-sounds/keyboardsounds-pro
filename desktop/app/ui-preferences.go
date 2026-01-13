@@ -5,11 +5,18 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
+	"github.com/google/uuid"
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
 )
+
+type Analytics struct {
+	AnalyticsID  uuid.UUID `json:"analyticsID"`
+	LastPingTime time.Time `json:"lastPingTime"`
+}
 
 // AudioEffectsPreferences stores persisted audio effects settings
 type AudioEffectsPreferences struct {
@@ -39,6 +46,7 @@ type UIPreferences struct {
 	AudioEffects             AudioEffectsPreferences `json:"audioEffects"`
 	Volume                   VolumePreferences       `json:"volume"`
 	UpdateNotifiedAndIgnored string                  `json:"updateNotifiedAndIgnored"`
+	Analytics                Analytics               `json:"analytics"`
 }
 
 var (
@@ -74,6 +82,10 @@ func loadUIPreferences() {
 		Volume: VolumePreferences{
 			KeyboardVolume: 1.0,
 			MouseVolume:    1.0,
+		},
+		Analytics: Analytics{
+			AnalyticsID:  uuid.New(),
+			LastPingTime: time.Time{}, // Never pinged before
 		},
 	}
 
@@ -308,4 +320,32 @@ func SetUpdateNotifiedAndIgnored(updateNotifiedAndIgnored string) error {
 	uiPrefsLock.Unlock()
 
 	return saveUIPreferences()
+}
+
+func UpdateAnalyticsLastPingTime() error {
+	uiPrefsLock.Lock()
+	uiPrefs.Analytics.LastPingTime = time.Now()
+	uiPrefsLock.Unlock()
+
+	return saveUIPreferences()
+}
+
+func GetAnalyticsID() string {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+
+	if uiPrefs == nil {
+		return ""
+	}
+	return uiPrefs.Analytics.AnalyticsID.String()
+}
+
+func GetAnalyticsLastPingTimeMS() int64 {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+
+	if uiPrefs == nil {
+		return 0
+	}
+	return uiPrefs.Analytics.LastPingTime.Unix() * 1000 // Convert to milliseconds
 }

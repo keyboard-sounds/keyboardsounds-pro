@@ -61,3 +61,15 @@ func (a *App) SetStartWithSystem(startWithSystem bool) error {
 func (a *App) GetStartWithSystem() bool {
 	return app.GetAutoStartApp().IsEnabled()
 }
+
+func (a *App) GetAnalyticsID() string {
+	return app.GetAnalyticsID()
+}
+
+func (a *App) GetAnalyticsLastPingTimeMS() int64 {
+	return app.GetAnalyticsLastPingTimeMS()
+}
+
+func (a *App) UpdateAnalyticsLastPingTime() error {
+	return app.UpdateAnalyticsLastPingTime()
+}

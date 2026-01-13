@@ -10,6 +10,7 @@ import { GetState as GetAudioEffectsState, SetKeyboardPitchShift, SetKeyboardPan
 import { GetState as GetLibraryState, DeleteProfile, OpenProfileFolder, ImportProfile, ExportProfile } from '../wailsjs/go/app/Library';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 import { AddRuleModal } from './components/rules';
+import { initializeAnalytics } from './utils/analytics';
 import './App.css';
 
 // Convert null/undefined to "None" for UI display
@@ -119,6 +120,9 @@ function App() {
         // Load start with system preference
         const startWithSystemValue = await GetStartWithSystem();
         setStartWithSystem(startWithSystemValue);
+        
+        // Initialize analytics tracking (sends ping if needed and schedules future pings)
+        initializeAnalytics();
       } catch (error) {
         console.error('Failed to load initial state:', error);
       } finally {
