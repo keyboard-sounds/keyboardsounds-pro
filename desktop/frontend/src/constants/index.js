@@ -12,10 +12,10 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 export const menuItems = [
   { name: 'Application Rules', icon: GavelIcon },
   { name: 'Audio Effects', icon: GraphicEqIcon },
-  { name: 'Library', icon: LibraryMusicIcon },
   { name: 'Profile Builder', icon: ConstructionIcon },
-  { name: 'Hotkeys', icon: KeyboardIcon },
   { name: 'On-Screen Modifiers', icon: VisibilityIcon },
+  { name: 'Hotkeys', icon: KeyboardIcon },
+  { name: 'Library', icon: LibraryMusicIcon },
   { name: 'Community', icon: PeopleIcon },
   { name: 'Settings', icon: SettingsIcon },
 ];
