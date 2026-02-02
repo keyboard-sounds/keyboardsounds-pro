@@ -1,0 +1,875 @@
+import { useState, useEffect } from 'react';
+import { Box, Typography, Switch, TextField, Slider, Chip } from '@mui/material';
+import { GlassCard, PageHeader } from '../components/common';
+import { greenSwitchStyle } from '../constants';
+import { GetState, SetEnabled, SetConfig } from '../../wailsjs/go/app/OSKHelperBinding';
+import TextFieldsIcon from '@mui/icons-material/TextFields';
+import PaletteIcon from '@mui/icons-material/Palette';
+import PositionIcon from '@mui/icons-material/AspectRatio';
+import TimerIcon from '@mui/icons-material/Timer';
+import PreviewIcon from '@mui/icons-material/Visibility';
+
+function OSKHelperPage() {
+  const [enabled, setEnabled] = useState(false);
+  const [fontSize, setFontSize] = useState(24);
+  const [fontColor, setFontColor] = useState('#FFFFFF');
+  const [backgroundColor, setBackgroundColor] = useState('#000000');
+  const [backgroundOpacity, setBackgroundOpacity] = useState(200);
+  const [cornerRadius, setCornerRadius] = useState(12);
+  const [position, setPosition] = useState('bottom');
+  const [offset, setOffset] = useState(20);
+  const [dismissAfter, setDismissAfter] = useState(1000);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load state from backend
+  useEffect(() => {
+    const loadState = async () => {
+      try {
+        const state = await GetState();
+        setEnabled(state.enabled);
+        setFontSize(state.fontSize || 24);
+        setFontColor(state.fontColor || '#FFFFFF');
+        setBackgroundColor(state.backgroundColor || '#000000');
+        setBackgroundOpacity(state.backgroundOpacity || 200);
+        setCornerRadius(state.cornerRadius || 12);
+        setPosition(state.position || 'bottom');
+        setOffset(state.offset || 20);
+        setDismissAfter(state.dismissAfter || 1000);
+      } catch (error) {
+        console.error('Failed to load OSK Helper state:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadState();
+  }, []);
+
+  // Update enabled state
+  const handleSetEnabled = async (value) => {
+    setEnabled(value);
+    try {
+      await SetEnabled(value);
+    } catch (error) {
+      console.error('Failed to set OSK Helper enabled state:', error);
+    }
+  };
+
+  // Update config
+  const updateConfig = async (updates) => {
+    const newConfig = {
+      fontSize: updates.fontSize !== undefined ? updates.fontSize : fontSize,
+      fontColor: updates.fontColor !== undefined ? updates.fontColor : fontColor,
+      backgroundColor: updates.backgroundColor !== undefined ? updates.backgroundColor : backgroundColor,
+      backgroundOpacity: updates.backgroundOpacity !== undefined ? updates.backgroundOpacity : backgroundOpacity,
+      cornerRadius: updates.cornerRadius !== undefined ? updates.cornerRadius : cornerRadius,
+      position: updates.position !== undefined ? updates.position : position,
+      offset: updates.offset !== undefined ? updates.offset : offset,
+      dismissAfter: updates.dismissAfter !== undefined ? updates.dismissAfter : dismissAfter,
+    };
+
+    try {
+      await SetConfig(
+        newConfig.fontSize,
+        newConfig.fontColor,
+        newConfig.backgroundColor,
+        newConfig.backgroundOpacity,
+        newConfig.cornerRadius,
+        newConfig.position,
+        newConfig.offset,
+        newConfig.dismissAfter
+      );
+    } catch (error) {
+      console.error('Failed to update OSK Helper config:', error);
+    }
+  };
+
+  const handleFontSizeChange = (value) => {
+    setFontSize(value);
+    updateConfig({ fontSize: value });
+  };
+
+  const handleFontColorChange = (value) => {
+    setFontColor(value);
+    updateConfig({ fontColor: value });
+  };
+
+  const handleBackgroundColorChange = (value) => {
+    setBackgroundColor(value);
+    updateConfig({ backgroundColor: value });
+  };
+
+  const handleBackgroundOpacityChange = (value) => {
+    setBackgroundOpacity(value);
+    updateConfig({ backgroundOpacity: value });
+  };
+
+  const handleCornerRadiusChange = (value) => {
+    setCornerRadius(value);
+    updateConfig({ cornerRadius: value });
+  };
+
+  const handlePositionChange = (value) => {
+    setPosition(value);
+    updateConfig({ position: value });
+  };
+
+  const handleOffsetChange = (value) => {
+    setOffset(value);
+    updateConfig({ offset: value });
+  };
+
+  const handleDismissAfterChange = (value) => {
+    setDismissAfter(value);
+    updateConfig({ dismissAfter: value });
+  };
+
+  if (isLoading) {
+    return (
+      <Box>
+        <PageHeader title="On-Screen Modifiers" />
+        <GlassCard>
+          <Typography sx={{ color: 'var(--text-secondary)' }}>Loading...</Typography>
+        </GlassCard>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      <PageHeader title="On-Screen Modifiers" />
+
+      {/* Enable/Disable Section */}
+      <GlassCard sx={{ marginBottom: '24px' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ flexGrow: 1, maxWidth: '85%' }}>
+            <Typography
+              sx={{
+                color: 'var(--text-primary)',
+                fontSize: '18px',
+                fontWeight: 600,
+                marginBottom: '4px',
+              }}
+            >
+              Enable On-Screen Modifiers
+            </Typography>
+            <Typography
+              sx={{
+                color: 'var(--text-tertiary)',
+                fontSize: '13px',
+                lineHeight: 1.5,
+              }}
+            >
+              Display pressed modifier keys on your screen in real-time. Perfect for tutorials, livestreams, or learning keyboard shortcuts.
+            </Typography>
+          </Box>
+          <Switch
+            checked={enabled}
+            onChange={(e) => handleSetEnabled(e.target.checked)}
+            sx={greenSwitchStyle}
+          />
+        </Box>
+      </GlassCard>
+
+      {/* Live Preview Section */}
+      {enabled && (
+        <GlassCard sx={{ marginBottom: '24px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <PreviewIcon sx={{ color: 'var(--accent-primary)', fontSize: '24px' }} />
+            <Typography
+              variant="h6"
+              sx={{
+                color: 'var(--text-primary)',
+                fontSize: '18px',
+                fontWeight: 600,
+              }}
+            >
+              Live Preview
+            </Typography>
+            <Chip 
+              label="Demo" 
+              size="small" 
+              sx={{ 
+                backgroundColor: 'var(--accent-bg)', 
+                color: 'var(--accent-primary)',
+                fontWeight: 600,
+                fontSize: '11px',
+              }} 
+            />
+          </Box>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '120px',
+              borderRadius: '12px',
+              border: '2px dashed var(--input-border)',
+              backgroundColor: 'rgba(0, 0, 0, 0.2)',
+              position: 'relative',
+            }}
+          >
+            <Box
+              sx={{
+                padding: '12px 24px',
+                borderRadius: `${cornerRadius}px`,
+                backgroundColor: backgroundColor,
+                opacity: backgroundOpacity / 255,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <Typography
+                sx={{
+                  color: fontColor,
+                  fontSize: `${fontSize}px`,
+                  fontWeight: 600,
+                  fontFamily: 'monospace',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                }}
+              >
+                Ctrl + Shift + A
+              </Typography>
+            </Box>
+          </Box>
+          <Typography
+            sx={{
+              color: 'var(--text-tertiary)',
+              fontSize: '12px',
+              textAlign: 'center',
+              marginTop: '12px',
+              fontStyle: 'italic',
+            }}
+          >
+            This is how modifier keys will appear on your screen
+          </Typography>
+        </GlassCard>
+      )}
+
+      {/* Text Appearance Section */}
+      <GlassCard sx={{ marginBottom: '24px', opacity: enabled ? 1 : 0.6 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <TextFieldsIcon 
+            sx={{ 
+              color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)', 
+              fontSize: '24px' 
+            }} 
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '18px',
+              fontWeight: 600,
+            }}
+          >
+            Text Appearance
+          </Typography>
+        </Box>
+
+        {/* Font Size */}
+        <Box sx={{ marginBottom: '28px' }}>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '15px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Font Size: {fontSize}px
+          </Typography>
+          <Slider
+            value={fontSize}
+            onChange={(e, newValue) => setFontSize(newValue)}
+            onChangeCommitted={(e, newValue) => handleFontSizeChange(newValue)}
+            min={12}
+            max={72}
+            step={2}
+            disabled={!enabled}
+            sx={{
+              color: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              '& .MuiSlider-thumb': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-track': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-rail': {
+                backgroundColor: 'var(--input-border)',
+              },
+            }}
+          />
+        </Box>
+
+        {/* Font Color */}
+        <Box sx={{ marginBottom: '20px' }}>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '15px',
+              fontWeight: 500,
+              marginBottom: '8px',
+            }}
+          >
+            Font Color
+          </Typography>
+          <Box sx={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <TextField
+              value={fontColor}
+              onChange={(e) => setFontColor(e.target.value)}
+              onBlur={(e) => handleFontColorChange(e.target.value)}
+              placeholder="#FFFFFF"
+              disabled={!enabled}
+              sx={{
+                flex: 1,
+                '& .MuiInputBase-root': {
+                  backgroundColor: 'var(--input-bg)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--input-border)',
+                  color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  fontFamily: 'monospace',
+                  fontSize: '14px',
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  border: 'none',
+                },
+                '&:hover .MuiInputBase-root': {
+                  borderColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+                },
+              }}
+            />
+            <Box
+              sx={{
+                position: 'relative',
+                width: '50px',
+                height: '50px',
+              }}
+            >
+              <Box
+                sx={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '12px',
+                  backgroundColor: fontColor,
+                  border: '2px solid var(--input-border)',
+                  cursor: enabled ? 'pointer' : 'not-allowed',
+                  opacity: enabled ? 1 : 0.5,
+                  transition: 'all 0.2s ease',
+                  boxShadow: enabled ? `0 4px 12px ${fontColor}40` : 'none',
+                  '&:hover': enabled ? {
+                    transform: 'scale(1.05)',
+                    boxShadow: `0 6px 16px ${fontColor}60`,
+                  } : {},
+                }}
+                onClick={() => enabled && document.getElementById('font-color-picker').click()}
+              />
+              <input
+                id="font-color-picker"
+                type="color"
+                value={fontColor}
+                onChange={(e) => {
+                  setFontColor(e.target.value);
+                  handleFontColorChange(e.target.value);
+                }}
+                disabled={!enabled}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '50px',
+                  height: '50px',
+                  opacity: 0,
+                  cursor: enabled ? 'pointer' : 'not-allowed',
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Color Presets */}
+        <Box sx={{ marginBottom: '20px', paddingTop: '8px', borderTop: '1px solid var(--input-border)' }}>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+              fontSize: '13px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Quick Presets
+          </Typography>
+          <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {[
+              { name: 'Classic', font: '#FFFFFF', bg: '#000000' },
+              { name: 'Matrix', font: '#00FF00', bg: '#001100' },
+              { name: 'Ocean', font: '#00D9FF', bg: '#001F3F' },
+              { name: 'Sunset', font: '#FF6B35', bg: '#2D1B00' },
+              { name: 'Purple', font: '#E0B0FF', bg: '#1A0033' },
+              { name: 'Neon', font: '#FF10F0', bg: '#0A0014' },
+            ].map((preset) => (
+              <Chip
+                key={preset.name}
+                label={preset.name}
+                disabled={!enabled}
+                onClick={() => {
+                  if (enabled) {
+                    setFontColor(preset.font);
+                    setBackgroundColor(preset.bg);
+                    handleFontColorChange(preset.font);
+                    handleBackgroundColorChange(preset.bg);
+                  }
+                }}
+                sx={{
+                  backgroundColor: enabled ? preset.bg : 'var(--input-bg)',
+                  color: enabled ? preset.font : 'var(--text-disabled)',
+                  border: '1px solid var(--input-border)',
+                  cursor: enabled ? 'pointer' : 'not-allowed',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  transition: 'all 0.2s ease',
+                  '&:hover': enabled ? {
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 4px 12px ${preset.bg}60`,
+                  } : {},
+                }}
+              />
+            ))}
+          </Box>
+        </Box>
+      </GlassCard>
+
+      {/* Background Appearance Section */}
+      <GlassCard sx={{ marginBottom: '24px', opacity: enabled ? 1 : 0.6 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <PaletteIcon 
+            sx={{ 
+              color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)', 
+              fontSize: '24px' 
+            }} 
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '18px',
+              fontWeight: 600,
+            }}
+          >
+            Background Appearance
+          </Typography>
+        </Box>
+
+        {/* Background Color */}
+        <Box sx={{ marginBottom: '28px' }}>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '15px',
+              fontWeight: 500,
+              marginBottom: '8px',
+            }}
+          >
+            Background Color
+          </Typography>
+          <Box sx={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <TextField
+              value={backgroundColor}
+              onChange={(e) => setBackgroundColor(e.target.value)}
+              onBlur={(e) => handleBackgroundColorChange(e.target.value)}
+              placeholder="#000000"
+              disabled={!enabled}
+              sx={{
+                flex: 1,
+                '& .MuiInputBase-root': {
+                  backgroundColor: 'var(--input-bg)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--input-border)',
+                  color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  fontFamily: 'monospace',
+                  fontSize: '14px',
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  border: 'none',
+                },
+                '&:hover .MuiInputBase-root': {
+                  borderColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+                },
+              }}
+            />
+            <Box
+              sx={{
+                position: 'relative',
+                width: '50px',
+                height: '50px',
+              }}
+            >
+              <Box
+                sx={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '12px',
+                  backgroundColor: backgroundColor,
+                  border: '2px solid var(--input-border)',
+                  cursor: enabled ? 'pointer' : 'not-allowed',
+                  opacity: enabled ? 1 : 0.5,
+                  transition: 'all 0.2s ease',
+                  boxShadow: enabled ? `0 4px 12px ${backgroundColor}40` : 'none',
+                  '&:hover': enabled ? {
+                    transform: 'scale(1.05)',
+                    boxShadow: `0 6px 16px ${backgroundColor}60`,
+                  } : {},
+                }}
+                onClick={() => enabled && document.getElementById('bg-color-picker').click()}
+              />
+              <input
+                id="bg-color-picker"
+                type="color"
+                value={backgroundColor}
+                onChange={(e) => {
+                  setBackgroundColor(e.target.value);
+                  handleBackgroundColorChange(e.target.value);
+                }}
+                disabled={!enabled}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '50px',
+                  height: '50px',
+                  opacity: 0,
+                  cursor: enabled ? 'pointer' : 'not-allowed',
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Background Opacity */}
+        <Box sx={{ marginBottom: '28px' }}>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '15px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Background Opacity: {Math.round((backgroundOpacity / 255) * 100)}%
+          </Typography>
+          <Slider
+            value={backgroundOpacity}
+            onChange={(e, newValue) => setBackgroundOpacity(newValue)}
+            onChangeCommitted={(e, newValue) => handleBackgroundOpacityChange(newValue)}
+            min={0}
+            max={255}
+            step={5}
+            disabled={!enabled}
+            sx={{
+              color: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              '& .MuiSlider-thumb': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-track': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-rail': {
+                backgroundColor: 'var(--input-border)',
+              },
+            }}
+          />
+        </Box>
+
+        {/* Corner Radius */}
+        <Box sx={{ marginBottom: '20px' }}>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '15px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Corner Radius: {cornerRadius}px
+          </Typography>
+          <Slider
+            value={cornerRadius}
+            onChange={(e, newValue) => setCornerRadius(newValue)}
+            onChangeCommitted={(e, newValue) => handleCornerRadiusChange(newValue)}
+            min={0}
+            max={50}
+            step={2}
+            disabled={!enabled}
+            sx={{
+              color: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              '& .MuiSlider-thumb': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-track': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-rail': {
+                backgroundColor: 'var(--input-border)',
+              },
+            }}
+          />
+        </Box>
+      </GlassCard>
+
+      {/* Position and Timing Section */}
+      <GlassCard sx={{ opacity: enabled ? 1 : 0.6 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <PositionIcon 
+              sx={{ 
+                color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)', 
+                fontSize: '24px' 
+              }} 
+            />
+            <TimerIcon 
+              sx={{ 
+                color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)', 
+                fontSize: '20px' 
+              }} 
+            />
+          </Box>
+          <Typography
+            variant="h6"
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '18px',
+              fontWeight: 600,
+            }}
+          >
+            Position and Timing
+          </Typography>
+        </Box>
+
+        {/* Position */}
+        <Box sx={{ marginBottom: '28px' }}>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '15px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Screen Position
+          </Typography>
+          <Box sx={{ display: 'flex', gap: '12px' }}>
+            {['top', 'bottom'].map((pos) => (
+              <Box
+                key={pos}
+                onClick={() => {
+                  if (enabled) {
+                    setPosition(pos);
+                    handlePositionChange(pos);
+                  }
+                }}
+                sx={{
+                  flex: 1,
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: position === pos 
+                    ? '2px solid var(--accent-primary)' 
+                    : '2px solid var(--input-border)',
+                  backgroundColor: position === pos 
+                    ? 'var(--accent-bg)' 
+                    : 'var(--input-bg)',
+                  cursor: enabled ? 'pointer' : 'not-allowed',
+                  opacity: enabled ? 1 : 0.5,
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  '&:hover': enabled ? {
+                    backgroundColor: position === pos 
+                      ? 'var(--accent-bg)' 
+                      : 'var(--hover-bg)',
+                    transform: 'translateY(-2px)',
+                  } : {},
+                }}
+              >
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '40px',
+                    borderRadius: '8px',
+                    border: '2px dashed var(--input-border)',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: pos === 'top' ? 'flex-start' : 'flex-end',
+                    justifyContent: 'center',
+                    padding: '4px',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: '60%',
+                      height: '8px',
+                      borderRadius: '4px',
+                      backgroundColor: position === pos 
+                        ? 'var(--accent-primary)' 
+                        : 'var(--text-tertiary)',
+                    }}
+                  />
+                </Box>
+                <Typography
+                  sx={{
+                    color: position === pos 
+                      ? 'var(--accent-primary)' 
+                      : enabled ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+                    fontSize: '14px',
+                    fontWeight: position === pos ? 600 : 500,
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {pos}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        {/* Offset */}
+        <Box sx={{ marginBottom: '28px' }}>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '15px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Offset from Edge: {offset}px
+          </Typography>
+          <Slider
+            value={offset}
+            onChange={(e, newValue) => setOffset(newValue)}
+            onChangeCommitted={(e, newValue) => handleOffsetChange(newValue)}
+            min={0}
+            max={200}
+            step={5}
+            disabled={!enabled}
+            sx={{
+              color: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              '& .MuiSlider-thumb': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-track': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-rail': {
+                backgroundColor: 'var(--input-border)',
+              },
+            }}
+          />
+        </Box>
+
+        {/* Dismiss After */}
+        <Box>
+          <Typography
+            sx={{
+              color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: '15px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Auto-Dismiss After: {dismissAfter < 1000 ? `${dismissAfter}ms` : `${(dismissAfter / 1000).toFixed(1)}s`}
+          </Typography>
+          <Slider
+            value={dismissAfter}
+            onChange={(e, newValue) => setDismissAfter(newValue)}
+            onChangeCommitted={(e, newValue) => handleDismissAfterChange(newValue)}
+            min={100}
+            max={5000}
+            step={100}
+            disabled={!enabled}
+            marks={[
+              { value: 100, label: '0.1s' },
+              { value: 1000, label: '1s' },
+              { value: 2500, label: '2.5s' },
+              { value: 5000, label: '5s' },
+            ]}
+            sx={{
+              color: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              '& .MuiSlider-thumb': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-track': {
+                backgroundColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+              },
+              '& .MuiSlider-rail': {
+                backgroundColor: 'var(--input-border)',
+              },
+              '& .MuiSlider-mark': {
+                backgroundColor: 'var(--input-border)',
+                height: '8px',
+                width: '2px',
+              },
+              '& .MuiSlider-markLabel': {
+                color: enabled ? 'var(--text-tertiary)' : 'var(--text-disabled)',
+                fontSize: '11px',
+                marginTop: '8px',
+              },
+            }}
+          />
+        </Box>
+      </GlassCard>
+
+      {/* Tips Section */}
+      {enabled && (
+        <GlassCard sx={{ marginTop: '24px', backgroundColor: 'var(--accent-bg)', borderColor: 'var(--accent-primary)' }}>
+          <Box sx={{ display: 'flex', gap: '12px' }}>
+            <Box sx={{ 
+              minWidth: '32px', 
+              height: '32px', 
+              borderRadius: '8px',
+              backgroundColor: 'var(--accent-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '16px',
+            }}>
+              💡
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                sx={{
+                  color: 'var(--text-primary)',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  marginBottom: '8px',
+                }}
+              >
+                Pro Tips
+              </Typography>
+              <Box component="ul" sx={{ 
+                margin: 0, 
+                paddingLeft: '20px',
+                '& li': {
+                  color: 'var(--text-secondary)',
+                  fontSize: '13px',
+                  lineHeight: 1.6,
+                  marginBottom: '6px',
+                }
+              }}>
+                <li>Press modifier keys like <strong>Ctrl</strong>, <strong>Alt</strong>, or <strong>Win</strong> to see them appear on screen</li>
+                <li>Combine multiple modifiers (e.g., <strong>Ctrl + Shift</strong>) to see them together</li>
+                <li>Perfect for screen recording, streaming, or teaching keyboard shortcuts</li>
+                <li>Try different color presets to match your recording setup or preferences</li>
+              </Box>
+            </Box>
+          </Box>
+        </GlassCard>
+      )}
+    </Box>
+  );
+}
+
+export default OSKHelperPage;

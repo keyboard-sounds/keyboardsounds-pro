@@ -6,4 +6,5 @@ export { default as PlaceholderPage } from './PlaceholderPage';
 export { default as CommunityPage } from './CommunityPage';
 export { default as ProfileBuilderPage } from './ProfileBuilderPage';
 export { default as HotkeysPage } from './HotkeysPage';
+export { default as OSKHelperPage } from './OSKHelperPage';
 

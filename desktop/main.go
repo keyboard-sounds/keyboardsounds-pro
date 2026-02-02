@@ -214,6 +214,9 @@ func main() {
 	// Create the hotkeys binding
 	hotkeys := app.NewHotKeys()
 
+	// Create the OSK Helper binding
+	oskHelper := app.NewOSKHelperBinding()
+
 	wailsCfg := NewWailsConfig()
 
 	ud, err := NewUpdateDetails(wailsCfg.Info.ProductVersion)
@@ -297,6 +300,7 @@ func main() {
 			profileBuilder,
 			community,
 			hotkeys,
+			oskHelper,
 			wailsCfg,
 			updateDetails,
 		},

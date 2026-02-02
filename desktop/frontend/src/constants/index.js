@@ -7,6 +7,7 @@ import ConstructionIcon from '@mui/icons-material/Construction';
 import DiscordIcon from '../components/icons/DiscordIcon';
 import PeopleIcon from '@mui/icons-material/People';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 export const menuItems = [
   { name: 'Application Rules', icon: GavelIcon },
@@ -14,6 +15,7 @@ export const menuItems = [
   { name: 'Library', icon: LibraryMusicIcon },
   { name: 'Profile Builder', icon: ConstructionIcon },
   { name: 'Hotkeys', icon: KeyboardIcon },
+  { name: 'On-Screen Modifiers', icon: VisibilityIcon },
   { name: 'Community', icon: PeopleIcon },
   { name: 'Settings', icon: SettingsIcon },
 ];

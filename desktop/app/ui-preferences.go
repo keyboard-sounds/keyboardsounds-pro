@@ -11,6 +11,7 @@ import (
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/oskhelpers"
 )
 
 type Analytics struct {
@@ -36,6 +37,19 @@ type VolumePreferences struct {
 	MouseVolume    float64 `json:"mouseVolume"`
 }
 
+// OSKHelperPreferences stores persisted OSK Helper settings
+type OSKHelperPreferences struct {
+	Enabled           bool   `json:"enabled"`
+	FontSize          int    `json:"fontSize"`
+	FontColor         string `json:"fontColor"`
+	BackgroundColor   string `json:"backgroundColor"`
+	BackgroundOpacity int    `json:"backgroundOpacity"`
+	CornerRadius      int    `json:"cornerRadius"`
+	Position          string `json:"position"`
+	Offset            int    `json:"offset"`
+	DismissAfter      int64  `json:"dismissAfter"` // milliseconds
+}
+
 // UIPreferences stores persistent UI state
 type UIPreferences struct {
 	InfoBannerDismissed      bool                    `json:"infoBannerDismissed"`
@@ -45,6 +59,7 @@ type UIPreferences struct {
 	NotifyOnMinimize         bool                    `json:"notifyOnMinimize"`
 	AudioEffects             AudioEffectsPreferences `json:"audioEffects"`
 	Volume                   VolumePreferences       `json:"volume"`
+	OSKHelper                OSKHelperPreferences    `json:"oskHelper"`
 	UpdateNotifiedAndIgnored string                  `json:"updateNotifiedAndIgnored"`
 	Analytics                Analytics               `json:"analytics"`
 }
@@ -82,6 +97,17 @@ func loadUIPreferences() {
 		Volume: VolumePreferences{
 			KeyboardVolume: 1.0,
 			MouseVolume:    1.0,
+		},
+		OSKHelper: OSKHelperPreferences{
+			Enabled:           false,
+			FontSize:          24,
+			FontColor:         "#FFFFFF",
+			BackgroundColor:   "#000000",
+			BackgroundOpacity: 200,
+			CornerRadius:      12,
+			Position:          string(oskhelpers.OSKPositionBottom),
+			Offset:            20,
+			DismissAfter:      1000,
 		},
 		Analytics: Analytics{
 			AnalyticsID:  uuid.New(),
@@ -348,4 +374,54 @@ func GetAnalyticsLastPingTimeMS() int64 {
 		return 0
 	}
 	return uiPrefs.Analytics.LastPingTime.Unix() * 1000 // Convert to milliseconds
+}
+
+// ApplyOSKHelperFromPreferences applies the saved OSK Helper settings to the manager
+// This should be called after the manager is initialized
+func ApplyOSKHelperFromPreferences() {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+
+	if uiPrefs == nil {
+		return
+	}
+
+	oskPrefs := uiPrefs.OSKHelper
+
+	// Apply OSK Helper settings
+	mgr.SetOSKHelperEnabled(oskPrefs.Enabled)
+	mgr.SetOSKHelperConfig(oskhelpers.OSKHelperConfig{
+		FontSize:          oskPrefs.FontSize,
+		FontColor:         oskPrefs.FontColor,
+		BackgroundColor:   oskPrefs.BackgroundColor,
+		BackgroundOpacity: oskPrefs.BackgroundOpacity,
+		CornerRadius:      oskPrefs.CornerRadius,
+		Position:          oskhelpers.OSKPosition(oskPrefs.Position),
+		Offset:            oskPrefs.Offset,
+		DismissAfter:      time.Duration(oskPrefs.DismissAfter) * time.Millisecond,
+	})
+}
+
+// SaveOSKHelperToPreferences saves the current OSK Helper settings to preferences
+func SaveOSKHelperToPreferences() error {
+	// Get current state from manager
+	enabled := mgr.GetOSKHelperEnabled()
+	config := mgr.GetOSKHelperConfig()
+
+	// Update preferences (need write lock for this part)
+	uiPrefsLock.Lock()
+	uiPrefs.OSKHelper = OSKHelperPreferences{
+		Enabled:           enabled,
+		FontSize:          config.FontSize,
+		FontColor:         config.FontColor,
+		BackgroundColor:   config.BackgroundColor,
+		BackgroundOpacity: config.BackgroundOpacity,
+		CornerRadius:      config.CornerRadius,
+		Position:          string(config.Position),
+		Offset:            config.Offset,
+		DismissAfter:      config.DismissAfter.Milliseconds(),
+	}
+	uiPrefsLock.Unlock()
+
+	return saveUIPreferences()
 }

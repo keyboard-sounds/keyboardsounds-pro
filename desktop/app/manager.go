@@ -52,6 +52,8 @@ func Init(c context.Context) error {
 	ApplyAudioEffectsFromPreferences()
 	// Apply saved volume preferences
 	ApplyVolumeFromPreferences()
+	// Apply saved OSK Helper preferences
+	ApplyOSKHelperFromPreferences()
 	// Enable manager if start playing on launch is set
 	if GetStartPlayingOnLaunch() {
 		// Get the status panel to enable the manager

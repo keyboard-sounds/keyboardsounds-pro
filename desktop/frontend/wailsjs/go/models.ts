@@ -326,6 +326,34 @@ export namespace app {
 		}
 	}
 	
+	export class OSKHelperState {
+	    enabled: boolean;
+	    fontSize: number;
+	    fontColor: string;
+	    backgroundColor: string;
+	    backgroundOpacity: number;
+	    cornerRadius: number;
+	    position: string;
+	    offset: number;
+	    dismissAfter: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new OSKHelperState(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.fontSize = source["fontSize"];
+	        this.fontColor = source["fontColor"];
+	        this.backgroundColor = source["backgroundColor"];
+	        this.backgroundOpacity = source["backgroundOpacity"];
+	        this.cornerRadius = source["cornerRadius"];
+	        this.position = source["position"];
+	        this.offset = source["offset"];
+	        this.dismissAfter = source["dismissAfter"];
+	    }
+	}
 	
 	
 	

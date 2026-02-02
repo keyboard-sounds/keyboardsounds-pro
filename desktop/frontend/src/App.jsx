@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Box } from '@mui/material';
 import { TitleBar, Sidebar } from './components/layout';
-import { AudioEffectsPage, ApplicationRulesPage, LibraryPage, SettingsPage, PlaceholderPage, CommunityPage, ProfileBuilderPage, HotkeysPage } from './pages';
+import { AudioEffectsPage, ApplicationRulesPage, LibraryPage, SettingsPage, PlaceholderPage, CommunityPage, ProfileBuilderPage, HotkeysPage, OSKHelperPage } from './pages';
 import { defaultEqualizerBands } from './constants';
 import { GetState, Enable, Disable, SetKeyboardVolume, SetMouseVolume, SetDefaultKeyboardProfile, SetDefaultMouseProfile, ClearDefaultKeyboardProfile, ClearDefaultMouseProfile, ToggleMuteKeyboard, ToggleMuteMouse, MuteKeyboard, UnmuteKeyboard, MuteMouse, UnmuteMouse } from '../wailsjs/go/app/StatusPanel';
 import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden } from '../wailsjs/go/app/AppRules';
@@ -777,6 +777,8 @@ function App() {
         return <CommunityPage />;
       case 'Hotkeys':
         return <HotkeysPage />;
+      case 'On-Screen Modifiers':
+        return <OSKHelperPage />;
       case 'Profile Builder':
         return (
           <ProfileBuilderPage

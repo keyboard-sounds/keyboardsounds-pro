@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/hotkeys"
@@ -180,6 +181,18 @@ func NewManager(cfgDir string) (*Manager, error) {
 		return nil, fmt.Errorf("failed to create osk helper: %w", err)
 	}
 
+	// Initialize default OSK Helper config
+	defaultOSKConfig := oskhelpers.OSKHelperConfig{
+		FontSize:          24,
+		FontColor:         "#FFFFFF",
+		BackgroundColor:   "#000000",
+		BackgroundOpacity: 200,
+		CornerRadius:      12,
+		Position:          oskhelpers.OSKPositionBottom,
+		Offset:            20,
+		DismissAfter:      1000 * time.Millisecond,
+	}
+
 	mgr := &Manager{
 		rootDir:          cfgDir,
 		enabled:          false,
@@ -188,6 +201,7 @@ func NewManager(cfgDir string) (*Manager, error) {
 		mouseListener:    listener.NewMouseListener(),
 		focusDetector:    rules.NewFocusDetector(),
 		oskHelper:        oskHelper,
+		oskHelperConfig:  defaultOSKConfig,
 		currentProfiles:  defaultProfiles,
 		keyboardVolume:   1.0,
 		mouseVolume:      1.0,
