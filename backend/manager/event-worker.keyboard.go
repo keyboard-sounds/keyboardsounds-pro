@@ -61,19 +61,27 @@ func (m *Manager) keyboardEventWorker() {
 
 				if m.GetOSKHelperEnabled() {
 					m.oskHelperLock.RLock()
-					if len(m.keyboardKeysDown) > 0 && key.IsModifierKey(m.keyboardKeysDown[0]) {
-						err := m.oskHelper.SetOnScreenText(m.oskHelperConfig, strings.Join(
-							lo.Map(m.keyboardKeysDown, func(key key.Key, _ int) string {
-								return key.Name
-							}),
-							" + ",
-						))
-						if err != nil {
-							slog.Error("failed to set on screen text", "error", err)
+
+					if e.Action == listenertypes.ActionPress {
+						if len(m.keyboardKeysDown) > 0 && key.IsModifierKey(m.keyboardKeysDown[0]) {
+							err := m.oskHelper.SetOnScreenText(m.oskHelperConfig, strings.Join(
+								lo.Map(m.keyboardKeysDown, func(key key.Key, _ int) string {
+									return key.Name
+								}),
+								" + ",
+							))
+							if err != nil {
+								slog.Error("failed to set on screen text", "error", err)
+							}
+						} else {
+							m.oskHelper.ClearOnScreenText()
 						}
 					} else {
-						m.oskHelper.ClearOnScreenText()
+						if len(m.keyboardKeysDown) == 0 || !key.IsModifierKey(m.keyboardKeysDown[0]) {
+							m.oskHelper.ClearOnScreenText()
+						}
 					}
+
 					m.oskHelperLock.RUnlock()
 				}
 

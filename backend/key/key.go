@@ -261,8 +261,6 @@ var allKeyCodes = []Key{
 }
 
 var modifierKeys = []Key{
-	LeftShift,
-	RightShift,
 	LeftControl,
 	RightControl,
 	LeftAlt,

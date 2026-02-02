@@ -17,13 +17,13 @@ func main() {
 
 	mgr.SetOSKHelperEnabled(true)
 	mgr.SetOSKHelperConfig(oskhelpers.OSKHelperConfig{
-		FontSize:          48,
+		FontSize:          72,
 		FontColor:         "#FFFFFF",
 		BackgroundColor:   "#000000",
 		BackgroundOpacity: 128,
 		CornerRadius:      10,
 		Position:          oskhelpers.OSKPositionBottom,
-		Offset:            32,
+		Offset:            48,
 		DismissAfter:      1 * time.Second,
 	})
 
