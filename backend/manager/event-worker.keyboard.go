@@ -162,7 +162,7 @@ func (m *Manager) keyboardEventWorker() {
 // The audio file is chosen based on the following priority:
 // 1. If the key is in the m.keyboardProfile.Keys.Other map, the audio file is chosen from the map.
 // 2. If the key is not in the m.keyboardProfile.Keys.Other map, the audio file is chosen randomly from the m.keyboardProfile.Keys.Default slice.
-// 3. If there are no audio files in the m.keyboardProfile.Keys.Other map or m.keyboardProfile.Keys.Default slice, an error is returned.
+// 3. If there are no audio files in the m.keyboardProfile.Keys.Other map or m.keyboardProfile.Keys.Default slice, a random souce will be selected.
 func (m *Manager) getAudioForKeyEvent(event listenertypes.KeyEvent) (*audio.Audio, error) {
 	m.keyboardProfileLock.RLock()
 	defer m.keyboardProfileLock.RUnlock()
@@ -177,10 +177,8 @@ func (m *Manager) getAudioForKeyEvent(event listenertypes.KeyEvent) (*audio.Audi
 
 	var sourceID string
 
-	// If no other keys and no default keys are configured, pick a random source from the sources
-	if len(m.keyboardProfile.Keys.Other) < 1 && len(m.keyboardProfile.Keys.Default) < 1 {
-		sourceID = m.keyboardProfile.Sources[rand.Intn(len(m.keyboardProfile.Sources))].ID
-	} else {
+	// Check if an "other" config exists for this key.
+	if len(m.keyboardProfile.Keys.Other) > 0 {
 		for _, k := range m.keyboardProfile.Keys.Other {
 			if k.Keys == nil || len(*k.Keys) == 0 {
 				continue
@@ -198,17 +196,20 @@ func (m *Manager) getAudioForKeyEvent(event listenertypes.KeyEvent) (*audio.Audi
 				default:
 					return nil, fmt.Errorf("invalid sound source value: %T", sourceValue)
 				}
-				break
 			}
-
-			// Pick a random source ID from m.profile.Keys.Default
-			if len(m.keyboardProfile.Keys.Default) > 0 {
-				sourceID = m.keyboardProfile.Keys.Default[rand.Intn(len(m.keyboardProfile.Keys.Default))]
-				break
-			}
-
-			return nil, fmt.Errorf("no source ID found for event %v", event)
 		}
+	}
+
+	// Attempt to pick from the default sources, if any are configured.
+	if sourceID == "" {
+		if len(m.keyboardProfile.Keys.Default) > 0 {
+			sourceID = m.keyboardProfile.Keys.Default[rand.Intn(len(m.keyboardProfile.Keys.Default))]
+		}
+	}
+
+	// Fall back on using a random source from the sources list.
+	if sourceID == "" {
+		sourceID = m.keyboardProfile.Sources[rand.Intn(len(m.keyboardProfile.Sources))].ID
 	}
 
 	sourceConfig, ok := m.keyboardProfileSources[sourceID]
