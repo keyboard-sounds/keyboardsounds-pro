@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"time"
 
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
@@ -23,6 +24,7 @@ func main() {
 		CornerRadius:      10,
 		Position:          oskhelpers.OSKPositionBottom,
 		Offset:            32,
+		DismissAfter:      1 * time.Second,
 	})
 
 	slog.Info("Enabling manager")

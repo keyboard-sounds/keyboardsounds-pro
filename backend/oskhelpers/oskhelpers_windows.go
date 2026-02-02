@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -152,12 +153,13 @@ type (
 
 // WindowsOSKHelper implements OSKHelper for Windows
 type WindowsOSKHelper struct {
-	hwnd        hwnd
-	mutex       sync.Mutex
-	text        string
-	config      OSKHelperConfig
-	threadID    uint32
-	msgLoopDone chan struct{}
+	hwnd         hwnd
+	mutex        sync.Mutex
+	text         string
+	config       OSKHelperConfig
+	threadID     uint32
+	msgLoopDone  chan struct{}
+	dismissTimer *time.Timer
 }
 
 // NewOSKHelper creates a new Windows OSK helper
@@ -479,10 +481,7 @@ func (w *WindowsOSKHelper) updateLayeredWindowContent() {
 	bgColorARGB := uint32(bgOpacity)<<24 | uint32(bgBPre)<<16 | uint32(bgGPre)<<8 | uint32(bgRPre)
 
 	// Get corner radius from config
-	cornerRadius := config.CornerRadius
-	if cornerRadius < 0 {
-		cornerRadius = 0
-	}
+	cornerRadius := max(config.CornerRadius, 0)
 
 	// Fill the bitmap with rounded corners
 	pixels := unsafe.Slice((*uint32)(unsafe.Pointer(pBits)), windowWidth*windowHeight)
@@ -671,6 +670,13 @@ func getCornerAlpha(x, y, width, height, radius int) float32 {
 // SetOnScreenText displays text on the screen with the given configuration
 func (w *WindowsOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) error {
 	w.mutex.Lock()
+
+	// Cancel any pending dismissal timer
+	if w.dismissTimer != nil {
+		w.dismissTimer.Stop()
+		w.dismissTimer = nil
+	}
+
 	w.text = text
 	w.config = config
 	w.mutex.Unlock()
@@ -688,20 +694,56 @@ func (w *WindowsOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) 
 	return nil
 }
 
-// ClearOnScreenText hides the on-screen text
+// ClearOnScreenText hides the on-screen text after the configured delay
 func (w *WindowsOSKHelper) ClearOnScreenText() error {
 	w.mutex.Lock()
-	w.text = ""
-	w.mutex.Unlock()
 
-	procShowWindow.Call(uintptr(w.hwnd), sw_hide)
-	procUpdateWindow.Call(uintptr(w.hwnd))
+	// Get the dismiss delay from config
+	dismissAfter := w.config.DismissAfter
+
+	// Cancel any existing timer
+	if w.dismissTimer != nil {
+		w.dismissTimer.Stop()
+		w.dismissTimer = nil
+	}
+
+	// If no delay is configured, hide immediately
+	if dismissAfter <= 0 {
+		w.text = ""
+		w.mutex.Unlock()
+
+		procShowWindow.Call(uintptr(w.hwnd), sw_hide)
+		procUpdateWindow.Call(uintptr(w.hwnd))
+
+		return nil
+	}
+
+	// Create a timer to hide after the delay
+	w.dismissTimer = time.AfterFunc(dismissAfter, func() {
+		w.mutex.Lock()
+		w.text = ""
+		w.dismissTimer = nil
+		w.mutex.Unlock()
+
+		procShowWindow.Call(uintptr(w.hwnd), sw_hide)
+		procUpdateWindow.Call(uintptr(w.hwnd))
+	})
+
+	w.mutex.Unlock()
 
 	return nil
 }
 
 // Close cleans up the window (optional, for graceful shutdown)
 func (w *WindowsOSKHelper) Close() error {
+	w.mutex.Lock()
+	// Cancel any pending dismissal timer
+	if w.dismissTimer != nil {
+		w.dismissTimer.Stop()
+		w.dismissTimer = nil
+	}
+	w.mutex.Unlock()
+
 	if w.hwnd != 0 {
 		// Post quit message to the message loop
 		const wm_quit = 0x0012

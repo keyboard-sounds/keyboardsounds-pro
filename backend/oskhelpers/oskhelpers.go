@@ -1,5 +1,7 @@
 package oskhelpers
 
+import "time"
+
 type OSKPosition string
 
 const (
@@ -21,6 +23,8 @@ type OSKHelperConfig struct {
 	Position OSKPosition
 	// Offset is the offset of the OSK from the position in pixels.
 	Offset int
+	// DismissAfter is the duration after which the OSK will be dismissed.
+	DismissAfter time.Duration
 }
 
 type OSKHelper interface {
