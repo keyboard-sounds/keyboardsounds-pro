@@ -13,6 +13,7 @@ import (
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/hotkeys"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/key"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/listener"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/oskhelpers"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/profile"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/rules"
 	"github.com/samber/lo"
@@ -92,6 +93,11 @@ type Manager struct {
 	// Lock for the keyboard keys down
 	keyboardKeysDownLock sync.RWMutex
 
+	oskHelperLock    sync.RWMutex
+	oskHelperEnabled bool
+	oskHelper        oskhelpers.OSKHelper
+	oskHelperConfig  oskhelpers.OSKHelperConfig
+
 	// Mouse Listener
 	mouseListener listener.MouseListener
 	// The current mouse profile
@@ -169,6 +175,11 @@ func NewManager(cfgDir string) (*Manager, error) {
 		mouseProfile = mmp
 	}
 
+	oskHelper, err := oskhelpers.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create osk helper: %w", err)
+	}
+
 	mgr := &Manager{
 		rootDir:          cfgDir,
 		enabled:          false,
@@ -176,6 +187,7 @@ func NewManager(cfgDir string) (*Manager, error) {
 		keyboardListener: listener.NewKeyboardListener(),
 		mouseListener:    listener.NewMouseListener(),
 		focusDetector:    rules.NewFocusDetector(),
+		oskHelper:        oskHelper,
 		currentProfiles:  defaultProfiles,
 		keyboardVolume:   1.0,
 		mouseVolume:      1.0,
@@ -467,4 +479,31 @@ func (m *Manager) setMouseProfile(p *profile.Profile) error {
 	m.mouseProfileAudioCache = audioCache
 
 	return nil
+}
+
+func (m *Manager) SetOSKHelperEnabled(enabled bool) {
+	m.oskHelperLock.Lock()
+	defer m.oskHelperLock.Unlock()
+
+	m.oskHelperEnabled = enabled
+}
+
+func (m *Manager) GetOSKHelperEnabled() bool {
+	m.oskHelperLock.RLock()
+	defer m.oskHelperLock.RUnlock()
+
+	return m.oskHelperEnabled
+}
+
+func (m *Manager) SetOSKHelperConfig(config oskhelpers.OSKHelperConfig) {
+	m.oskHelperLock.Lock()
+	defer m.oskHelperLock.Unlock()
+
+	m.oskHelperConfig = config
+}
+
+func (m *Manager) GetOSKHelperConfig() oskhelpers.OSKHelperConfig {
+	m.oskHelperLock.RLock()
+	defer m.oskHelperLock.RUnlock()
+	return m.oskHelperConfig
 }

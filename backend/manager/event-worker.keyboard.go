@@ -50,6 +50,7 @@ func (m *Manager) keyboardEventWorker() {
 
 				// Update the keys that are currently down.
 				m.keyboardKeysDownLock.Lock()
+
 				if e.Action == listenertypes.ActionPress {
 					m.keyboardKeysDown = append(m.keyboardKeysDown, e.Key)
 				} else {
@@ -57,6 +58,25 @@ func (m *Manager) keyboardEventWorker() {
 						return key != e.Key
 					})
 				}
+
+				if m.GetOSKHelperEnabled() {
+					m.oskHelperLock.RLock()
+					if len(m.keyboardKeysDown) > 0 && key.IsModifierKey(m.keyboardKeysDown[0]) {
+						err := m.oskHelper.SetOnScreenText(m.oskHelperConfig, strings.Join(
+							lo.Map(m.keyboardKeysDown, func(key key.Key, _ int) string {
+								return key.Name
+							}),
+							" + ",
+						))
+						if err != nil {
+							slog.Error("failed to set on screen text", "error", err)
+						}
+					} else {
+						m.oskHelper.ClearOnScreenText()
+					}
+					m.oskHelperLock.RUnlock()
+				}
+
 				m.keyboardKeysDownLock.Unlock()
 
 				// On release, determine if a hot key was triggered.
