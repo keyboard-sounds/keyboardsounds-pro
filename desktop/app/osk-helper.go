@@ -17,11 +17,6 @@ func NewOSKHelperBinding() *OSKHelperBinding {
 	return &OSKHelperBinding{}
 }
 
-// startup is called when the app starts
-func (b *OSKHelperBinding) startup(ctx context.Context) {
-	b.ctx = ctx
-}
-
 // OSKHelperState represents the state of the OSK Helper
 type OSKHelperState struct {
 	Enabled           bool   `json:"enabled"`
