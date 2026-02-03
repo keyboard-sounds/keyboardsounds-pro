@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Switch, TextField, Slider, Chip, MenuItem, Select, FormControl } from '@mui/material';
-import { GlassCard, PageHeader } from '../components/common';
+import { GlassCard, PageHeader, ColorPicker } from '../components/common';
 import { greenSwitchStyle, selectMenuProps } from '../constants';
 import { GetState, SetEnabled, SetConfig, GetMonitors } from '../../wailsjs/go/app/OSKHelperBinding';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
@@ -572,51 +572,14 @@ function OSKHelperPage() {
                     },
                   }}
                 />
-                <Box
-                  sx={{
-                    position: 'relative',
-                    width: '40px',
-                    height: '40px',
+                <ColorPicker
+                  value={fontColor}
+                  onChange={(color) => {
+                    setFontColor(color);
+                    handleFontColorChange(color);
                   }}
-                >
-                  <Box
-                    sx={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      backgroundColor: fontColor,
-                      border: '2px solid var(--input-border)',
-                      cursor: enabled ? 'pointer' : 'not-allowed',
-                      opacity: enabled ? 1 : 0.5,
-                      transition: 'all 0.2s ease',
-                      boxShadow: enabled ? `0 4px 12px ${fontColor}40` : 'none',
-                      '&:hover': enabled ? {
-                        transform: 'scale(1.05)',
-                        boxShadow: `0 6px 16px ${fontColor}60`,
-                      } : {},
-                    }}
-                    onClick={() => enabled && document.getElementById('font-color-picker').click()}
-                  />
-                  <input
-                    id="font-color-picker"
-                    type="color"
-                    value={fontColor}
-                    onChange={(e) => {
-                      setFontColor(e.target.value);
-                      handleFontColorChange(e.target.value);
-                    }}
-                    disabled={!enabled}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '40px',
-                      height: '40px',
-                      opacity: 0,
-                      cursor: enabled ? 'pointer' : 'not-allowed',
-                    }}
-                  />
-                </Box>
+                  disabled={!enabled}
+                />
               </Box>
             </Box>
 
@@ -658,51 +621,14 @@ function OSKHelperPage() {
                     },
                   }}
                 />
-                <Box
-                  sx={{
-                    position: 'relative',
-                    width: '40px',
-                    height: '40px',
+                <ColorPicker
+                  value={backgroundColor}
+                  onChange={(color) => {
+                    setBackgroundColor(color);
+                    handleBackgroundColorChange(color);
                   }}
-                >
-                  <Box
-                    sx={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      backgroundColor: backgroundColor,
-                      border: '2px solid var(--input-border)',
-                      cursor: enabled ? 'pointer' : 'not-allowed',
-                      opacity: enabled ? 1 : 0.5,
-                      transition: 'all 0.2s ease',
-                      boxShadow: enabled ? `0 4px 12px ${backgroundColor}40` : 'none',
-                      '&:hover': enabled ? {
-                        transform: 'scale(1.05)',
-                        boxShadow: `0 6px 16px ${backgroundColor}60`,
-                      } : {},
-                    }}
-                    onClick={() => enabled && document.getElementById('bg-color-picker').click()}
-                  />
-                  <input
-                    id="bg-color-picker"
-                    type="color"
-                    value={backgroundColor}
-                    onChange={(e) => {
-                      setBackgroundColor(e.target.value);
-                      handleBackgroundColorChange(e.target.value);
-                    }}
-                    disabled={!enabled}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '40px',
-                      height: '40px',
-                      opacity: 0,
-                      cursor: enabled ? 'pointer' : 'not-allowed',
-                    }}
-                  />
-                </Box>
+                  disabled={!enabled}
+                />
               </Box>
             </Box>
           </Box>
