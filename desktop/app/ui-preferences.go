@@ -48,6 +48,7 @@ type OSKHelperPreferences struct {
 	Position          string `json:"position"`
 	Offset            int    `json:"offset"`
 	DismissAfter      int64  `json:"dismissAfter"` // milliseconds
+	MonitorIndex      int    `json:"monitorIndex"`
 }
 
 // UIPreferences stores persistent UI state
@@ -399,6 +400,7 @@ func ApplyOSKHelperFromPreferences() {
 		Position:          oskhelpers.OSKPosition(oskPrefs.Position),
 		Offset:            oskPrefs.Offset,
 		DismissAfter:      time.Duration(oskPrefs.DismissAfter) * time.Millisecond,
+		MonitorIndex:      oskPrefs.MonitorIndex,
 	})
 }
 
@@ -420,6 +422,7 @@ func SaveOSKHelperToPreferences() error {
 		Position:          string(config.Position),
 		Offset:            config.Offset,
 		DismissAfter:      config.DismissAfter.Milliseconds(),
+		MonitorIndex:      config.MonitorIndex,
 	}
 	uiPrefsLock.Unlock()
 

@@ -191,6 +191,7 @@ func NewManager(cfgDir string) (*Manager, error) {
 		Position:          oskhelpers.OSKPositionBottom,
 		Offset:            20,
 		DismissAfter:      1000 * time.Millisecond,
+		MonitorIndex:      0,
 	}
 
 	mgr := &Manager{

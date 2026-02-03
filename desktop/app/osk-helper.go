@@ -33,6 +33,7 @@ type OSKHelperState struct {
 	Position          string `json:"position"`
 	Offset            int    `json:"offset"`
 	DismissAfter      int64  `json:"dismissAfter"` // milliseconds
+	MonitorIndex      int    `json:"monitorIndex"`
 }
 
 // GetState returns the current OSK Helper configuration
@@ -50,6 +51,7 @@ func (b *OSKHelperBinding) GetState() OSKHelperState {
 		Position:          string(config.Position),
 		Offset:            config.Offset,
 		DismissAfter:      config.DismissAfter.Milliseconds(),
+		MonitorIndex:      config.MonitorIndex,
 	}
 }
 
@@ -60,7 +62,7 @@ func (b *OSKHelperBinding) SetEnabled(enabled bool) {
 }
 
 // SetConfig updates the OSK Helper configuration
-func (b *OSKHelperBinding) SetConfig(fontSize int, fontColor string, backgroundColor string, backgroundOpacity int, cornerRadius int, position string, offset int, dismissAfter int64) {
+func (b *OSKHelperBinding) SetConfig(fontSize int, fontColor string, backgroundColor string, backgroundOpacity int, cornerRadius int, position string, offset int, dismissAfter int64, monitorIndex int) {
 	config := oskhelpers.OSKHelperConfig{
 		FontSize:          fontSize,
 		FontColor:         fontColor,
@@ -70,8 +72,14 @@ func (b *OSKHelperBinding) SetConfig(fontSize int, fontColor string, backgroundC
 		Position:          oskhelpers.OSKPosition(position),
 		Offset:            offset,
 		DismissAfter:      time.Duration(dismissAfter) * time.Millisecond,
+		MonitorIndex:      monitorIndex,
 	}
 
 	mgr.SetOSKHelperConfig(config)
 	SaveOSKHelperToPreferences()
+}
+
+// GetMonitors returns information about all available monitors
+func (b *OSKHelperBinding) GetMonitors() []oskhelpers.MonitorInfo {
+	return oskhelpers.GetMonitors()
 }

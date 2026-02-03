@@ -31,24 +31,26 @@ var (
 	gdi32    = syscall.NewLazyDLL("gdi32.dll")
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
-	procCreateWindowEx      = user32.NewProc("CreateWindowExW")
-	procDefWindowProc       = user32.NewProc("DefWindowProcW")
-	procDestroyWindow       = user32.NewProc("DestroyWindow")
-	procRegisterClassEx     = user32.NewProc("RegisterClassExW")
-	procShowWindow          = user32.NewProc("ShowWindow")
-	procUpdateWindow        = user32.NewProc("UpdateWindow")
-	procGetDC               = user32.NewProc("GetDC")
-	procReleaseDC           = user32.NewProc("ReleaseDC")
-	procBeginPaint          = user32.NewProc("BeginPaint")
-	procEndPaint            = user32.NewProc("EndPaint")
-	procGetSystemMetrics    = user32.NewProc("GetSystemMetrics")
-	procUpdateLayeredWindow = user32.NewProc("UpdateLayeredWindow")
-	procGetMessage          = user32.NewProc("GetMessageW")
-	procTranslateMessage    = user32.NewProc("TranslateMessage")
-	procDispatchMessage     = user32.NewProc("DispatchMessageW")
-	procPostThreadMessage   = user32.NewProc("PostThreadMessageW")
-	procGetCurrentThreadId  = kernel32.NewProc("GetCurrentThreadId")
-	procGetModuleHandle     = kernel32.NewProc("GetModuleHandleW")
+	procCreateWindowEx       = user32.NewProc("CreateWindowExW")
+	procDefWindowProc        = user32.NewProc("DefWindowProcW")
+	procDestroyWindow        = user32.NewProc("DestroyWindow")
+	procRegisterClassEx      = user32.NewProc("RegisterClassExW")
+	procShowWindow           = user32.NewProc("ShowWindow")
+	procUpdateWindow         = user32.NewProc("UpdateWindow")
+	procGetDC                = user32.NewProc("GetDC")
+	procReleaseDC            = user32.NewProc("ReleaseDC")
+	procBeginPaint           = user32.NewProc("BeginPaint")
+	procEndPaint             = user32.NewProc("EndPaint")
+	procGetSystemMetrics     = user32.NewProc("GetSystemMetrics")
+	procUpdateLayeredWindow  = user32.NewProc("UpdateLayeredWindow")
+	procGetMessage           = user32.NewProc("GetMessageW")
+	procTranslateMessage     = user32.NewProc("TranslateMessage")
+	procDispatchMessage      = user32.NewProc("DispatchMessageW")
+	procPostThreadMessage    = user32.NewProc("PostThreadMessageW")
+	procGetCurrentThreadId   = kernel32.NewProc("GetCurrentThreadId")
+	procGetModuleHandle      = kernel32.NewProc("GetModuleHandleW")
+	procEnumDisplayMonitors  = user32.NewProc("EnumDisplayMonitors")
+	procGetMonitorInfo       = user32.NewProc("GetMonitorInfoW")
 
 	procSelectObject         = gdi32.NewProc("SelectObject")
 	procSetBkMode            = gdi32.NewProc("SetBkMode")
@@ -149,7 +151,101 @@ type (
 	sizeStruct struct {
 		cx, cy int32
 	}
+
+	monitorinfo struct {
+		cbSize    uint32
+		rcMonitor rect
+		rcWork    rect
+		dwFlags   uint32
+	}
+
+	monitorData struct {
+		monitors []monitorinfo
+		index    int
+	}
 )
+
+// monitorEnumProc is the callback for EnumDisplayMonitors
+func monitorEnumProc(hMonitor uintptr, hdcMonitor uintptr, lprcMonitor uintptr, dwData uintptr) uintptr {
+	data := (*monitorData)(unsafe.Pointer(dwData))
+	
+	var mi monitorinfo
+	mi.cbSize = uint32(unsafe.Sizeof(mi))
+	
+	ret, _, _ := procGetMonitorInfo.Call(hMonitor, uintptr(unsafe.Pointer(&mi)))
+	if ret != 0 {
+		data.monitors = append(data.monitors, mi)
+	}
+	
+	return 1 // Continue enumeration
+}
+
+// getMonitorInfo returns information about a specific monitor by index
+// Returns nil if the monitor index is invalid
+func getMonitorInfo(monitorIndex int) *monitorinfo {
+	if monitorIndex < 0 {
+		// Use primary monitor (index 0) for negative values
+		monitorIndex = 0
+	}
+	
+	data := monitorData{
+		monitors: make([]monitorinfo, 0),
+	}
+	
+	// Enumerate all monitors
+	procEnumDisplayMonitors.Call(
+		0, // hdc (NULL for all monitors)
+		0, // lprcClip (NULL for all monitors)
+		syscall.NewCallback(monitorEnumProc),
+		uintptr(unsafe.Pointer(&data)),
+	)
+	
+	// Find the primary monitor first
+	primaryIdx := -1
+	for i, monitor := range data.monitors {
+		const monitorinfo_primary = 0x00000001
+		if monitor.dwFlags&monitorinfo_primary != 0 {
+			primaryIdx = i
+			break
+		}
+	}
+	
+	// If requesting primary (index 0), return the primary monitor
+	if monitorIndex == 0 && primaryIdx >= 0 {
+		return &data.monitors[primaryIdx]
+	}
+	
+	// For other indices, we need to order monitors consistently
+	// Primary is always index 0, others follow
+	if monitorIndex == 0 {
+		// No primary found, return first monitor if available
+		if len(data.monitors) > 0 {
+			return &data.monitors[0]
+		}
+		return nil
+	}
+	
+	// For non-primary monitors, skip the primary in our counting
+	nonPrimaryIndex := 0
+	for i := range data.monitors {
+		if i == primaryIdx {
+			continue // Skip primary
+		}
+		if nonPrimaryIndex == monitorIndex-1 {
+			return &data.monitors[i]
+		}
+		nonPrimaryIndex++
+	}
+	
+	// Index out of range, return primary as fallback
+	if primaryIdx >= 0 {
+		return &data.monitors[primaryIdx]
+	}
+	if len(data.monitors) > 0 {
+		return &data.monitors[0]
+	}
+	return nil
+}
 
 // WindowsOSKHelper implements OSKHelper for Windows
 type WindowsOSKHelper struct {
@@ -387,14 +483,30 @@ func (w *WindowsOSKHelper) updateLayeredWindowContent() {
 		windowHeight = 40
 	}
 
-	// Get screen dimensions for positioning
-	smCxScreen := 0
-	smCyScreen := 1
-	screenWidth, _, _ := procGetSystemMetrics.Call(uintptr(smCxScreen))
-	screenHeight, _, _ := procGetSystemMetrics.Call(uintptr(smCyScreen))
+	// Get monitor dimensions for positioning
+	var screenX, screenY, screenWidth, screenHeight int
+	
+	monitorInfo := getMonitorInfo(config.MonitorIndex)
+	if monitorInfo != nil {
+		// Use the work area (excludes taskbar) of the selected monitor
+		screenX = int(monitorInfo.rcWork.left)
+		screenY = int(monitorInfo.rcWork.top)
+		screenWidth = int(monitorInfo.rcWork.right - monitorInfo.rcWork.left)
+		screenHeight = int(monitorInfo.rcWork.bottom - monitorInfo.rcWork.top)
+	} else {
+		// Fallback to primary monitor using GetSystemMetrics
+		smCxScreen := 0
+		smCyScreen := 1
+		screenX = 0
+		screenY = 0
+		w, _, _ := procGetSystemMetrics.Call(uintptr(smCxScreen))
+		h, _, _ := procGetSystemMetrics.Call(uintptr(smCyScreen))
+		screenWidth = int(w)
+		screenHeight = int(h)
+	}
 
-	// Calculate centered horizontal position
-	windowX := (int(screenWidth) - windowWidth) / 2
+	// Calculate centered horizontal position within the monitor
+	windowX := screenX + (screenWidth-windowWidth)/2
 
 	// Calculate vertical position based on Position and Offset
 	offset := config.Offset
@@ -405,10 +517,10 @@ func (w *WindowsOSKHelper) updateLayeredWindowContent() {
 	var windowY int
 	if config.Position == OSKPositionTop {
 		// Top of screen: offset from top edge
-		windowY = offset
+		windowY = screenY + offset
 	} else {
 		// Bottom of screen (default): offset from bottom edge
-		windowY = int(screenHeight) - windowHeight - offset
+		windowY = screenY + screenHeight - windowHeight - offset
 	}
 
 	// Update window position and size
@@ -732,6 +844,77 @@ func (w *WindowsOSKHelper) ClearOnScreenText() error {
 	w.mutex.Unlock()
 
 	return nil
+}
+
+// MonitorInfo represents information about a display monitor
+type MonitorInfo struct {
+	Index     int    `json:"index"`
+	IsPrimary bool   `json:"isPrimary"`
+	Left      int    `json:"left"`
+	Top       int    `json:"top"`
+	Width     int    `json:"width"`
+	Height    int    `json:"height"`
+}
+
+// GetMonitors returns information about all available monitors
+func GetMonitors() []MonitorInfo {
+	data := monitorData{
+		monitors: make([]monitorinfo, 0),
+	}
+	
+	// Enumerate all monitors
+	procEnumDisplayMonitors.Call(
+		0, // hdc (NULL for all monitors)
+		0, // lprcClip (NULL for all monitors)
+		syscall.NewCallback(monitorEnumProc),
+		uintptr(unsafe.Pointer(&data)),
+	)
+	
+	if len(data.monitors) == 0 {
+		return []MonitorInfo{}
+	}
+	
+	// Find primary monitor
+	primaryIdx := -1
+	for i, monitor := range data.monitors {
+		const monitorinfo_primary = 0x00000001
+		if monitor.dwFlags&monitorinfo_primary != 0 {
+			primaryIdx = i
+			break
+		}
+	}
+	
+	result := make([]MonitorInfo, 0)
+	
+	// Add primary monitor first (index 0)
+	if primaryIdx >= 0 {
+		monitor := data.monitors[primaryIdx]
+		result = append(result, MonitorInfo{
+			Index:     0,
+			IsPrimary: true,
+			Left:      int(monitor.rcWork.left),
+			Top:       int(monitor.rcWork.top),
+			Width:     int(monitor.rcWork.right - monitor.rcWork.left),
+			Height:    int(monitor.rcWork.bottom - monitor.rcWork.top),
+		})
+	}
+	
+	// Add other monitors
+	for i, monitor := range data.monitors {
+		if i == primaryIdx {
+			continue // Skip primary, already added
+		}
+		result = append(result, MonitorInfo{
+			Index:     len(result),
+			IsPrimary: false,
+			Left:      int(monitor.rcWork.left),
+			Top:       int(monitor.rcWork.top),
+			Width:     int(monitor.rcWork.right - monitor.rcWork.left),
+			Height:    int(monitor.rcWork.bottom - monitor.rcWork.top),
+		})
+	}
+	
+	return result
 }
 
 // Close cleans up the window (optional, for graceful shutdown)

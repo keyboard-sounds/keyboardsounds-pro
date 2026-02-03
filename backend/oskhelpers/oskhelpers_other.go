@@ -22,3 +22,18 @@ func (u *unsupportedOSKHelper) SetOnScreenText(config OSKHelperConfig, text stri
 func (u *unsupportedOSKHelper) ClearOnScreenText() error {
 	return fmt.Errorf("OSKHelper is not supported on this platform")
 }
+
+// MonitorInfo represents information about a display monitor
+type MonitorInfo struct {
+	Index     int  `json:"index"`
+	IsPrimary bool `json:"isPrimary"`
+	Left      int  `json:"left"`
+	Top       int  `json:"top"`
+	Width     int  `json:"width"`
+	Height    int  `json:"height"`
+}
+
+// GetMonitors returns an empty list on unsupported platforms
+func GetMonitors() []MonitorInfo {
+	return []MonitorInfo{}
+}

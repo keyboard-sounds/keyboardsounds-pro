@@ -336,6 +336,7 @@ export namespace app {
 	    position: string;
 	    offset: number;
 	    dismissAfter: number;
+	    monitorIndex: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new OSKHelperState(source);
@@ -352,6 +353,7 @@ export namespace app {
 	        this.position = source["position"];
 	        this.offset = source["offset"];
 	        this.dismissAfter = source["dismissAfter"];
+	        this.monitorIndex = source["monitorIndex"];
 	    }
 	}
 	
@@ -523,6 +525,33 @@ export namespace hotkeys {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace oskhelpers {
+	
+	export class MonitorInfo {
+	    index: number;
+	    isPrimary: boolean;
+	    left: number;
+	    top: number;
+	    width: number;
+	    height: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.index = source["index"];
+	        this.isPrimary = source["isPrimary"];
+	        this.left = source["left"];
+	        this.top = source["top"];
+	        this.width = source["width"];
+	        this.height = source["height"];
+	    }
 	}
 
 }

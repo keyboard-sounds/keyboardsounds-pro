@@ -25,6 +25,8 @@ type OSKHelperConfig struct {
 	Offset int
 	// DismissAfter is the duration after which the OSK will be dismissed.
 	DismissAfter time.Duration
+	// MonitorIndex specifies which monitor to display on (0 = primary, 1+ = additional monitors, -1 = auto/current)
+	MonitorIndex int
 }
 
 type OSKHelper interface {

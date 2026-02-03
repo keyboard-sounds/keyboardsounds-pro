@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Switch, TextField, Slider, Chip } from '@mui/material';
+import { Box, Typography, Switch, TextField, Slider, Chip, MenuItem, Select, FormControl } from '@mui/material';
 import { GlassCard, PageHeader } from '../components/common';
-import { greenSwitchStyle } from '../constants';
-import { GetState, SetEnabled, SetConfig } from '../../wailsjs/go/app/OSKHelperBinding';
+import { greenSwitchStyle, selectMenuProps } from '../constants';
+import { GetState, SetEnabled, SetConfig, GetMonitors } from '../../wailsjs/go/app/OSKHelperBinding';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import PaletteIcon from '@mui/icons-material/Palette';
 import PositionIcon from '@mui/icons-material/AspectRatio';
 import TimerIcon from '@mui/icons-material/Timer';
 import PreviewIcon from '@mui/icons-material/Visibility';
+import MonitorIcon from '@mui/icons-material/Monitor';
 
 function OSKHelperPage() {
   const [enabled, setEnabled] = useState(false);
@@ -19,13 +20,19 @@ function OSKHelperPage() {
   const [position, setPosition] = useState('bottom');
   const [offset, setOffset] = useState(20);
   const [dismissAfter, setDismissAfter] = useState(1000);
+  const [monitorIndex, setMonitorIndex] = useState(0);
+  const [monitors, setMonitors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load state from backend
   useEffect(() => {
     const loadState = async () => {
       try {
-        const state = await GetState();
+        const [state, availableMonitors] = await Promise.all([
+          GetState(),
+          GetMonitors()
+        ]);
+        
         setEnabled(state.enabled);
         setFontSize(state.fontSize || 24);
         setFontColor(state.fontColor || '#FFFFFF');
@@ -35,6 +42,8 @@ function OSKHelperPage() {
         setPosition(state.position || 'bottom');
         setOffset(state.offset || 20);
         setDismissAfter(state.dismissAfter || 1000);
+        setMonitorIndex(state.monitorIndex || 0);
+        setMonitors(availableMonitors || []);
       } catch (error) {
         console.error('Failed to load OSK Helper state:', error);
       } finally {
@@ -65,6 +74,7 @@ function OSKHelperPage() {
       position: updates.position !== undefined ? updates.position : position,
       offset: updates.offset !== undefined ? updates.offset : offset,
       dismissAfter: updates.dismissAfter !== undefined ? updates.dismissAfter : dismissAfter,
+      monitorIndex: updates.monitorIndex !== undefined ? updates.monitorIndex : monitorIndex,
     };
 
     try {
@@ -76,7 +86,8 @@ function OSKHelperPage() {
         newConfig.cornerRadius,
         newConfig.position,
         newConfig.offset,
-        newConfig.dismissAfter
+        newConfig.dismissAfter,
+        newConfig.monitorIndex
       );
     } catch (error) {
       console.error('Failed to update OSK Helper config:', error);
@@ -121,6 +132,11 @@ function OSKHelperPage() {
   const handleDismissAfterChange = (value) => {
     setDismissAfter(value);
     updateConfig({ dismissAfter: value });
+  };
+
+  const handleMonitorIndexChange = (value) => {
+    setMonitorIndex(value);
+    updateConfig({ monitorIndex: value });
   };
 
   if (isLoading) {
@@ -644,6 +660,62 @@ function OSKHelperPage() {
             Position and Timing
           </Typography>
         </Box>
+
+        {/* Monitor Selection */}
+        {monitors && monitors.length > 1 && (
+          <Box sx={{ marginBottom: '28px' }}>
+            <Typography
+              sx={{
+                color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                fontSize: '15px',
+                fontWeight: 500,
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <MonitorIcon sx={{ fontSize: '18px' }} />
+              Display Monitor
+            </Typography>
+            <FormControl fullWidth disabled={!enabled}>
+              <Select
+                value={monitorIndex}
+                onChange={(e) => handleMonitorIndexChange(e.target.value)}
+                sx={{
+                  backgroundColor: 'var(--input-bg)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--input-border)',
+                  color: enabled ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    border: 'none',
+                  },
+                  '&:hover': {
+                    borderColor: enabled ? 'var(--accent-primary)' : 'var(--input-border)',
+                  },
+                  '& .MuiSelect-icon': {
+                    color: enabled ? 'var(--text-secondary)' : 'var(--text-disabled)',
+                  },
+                }}
+                MenuProps={selectMenuProps}
+              >
+                {monitors.map((monitor) => (
+                  <MenuItem key={monitor.index} value={monitor.index}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MonitorIcon sx={{ fontSize: '16px', color: 'var(--accent-primary)' }} />
+                      <Typography>
+                        Monitor {monitor.index + 1}
+                        {monitor.isPrimary && ' (Primary)'}
+                        {' - '}
+                        {monitor.width} × {monitor.height}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        )}
 
         {/* Position */}
         <Box sx={{ marginBottom: '28px' }}>
