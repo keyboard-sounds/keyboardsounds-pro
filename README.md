@@ -22,6 +22,7 @@ Download the latest release from the [releases page](https://github.com/keyboard
 - Import and export sound profiles to share with others.
 - Customize and build your own sound profiles and share them with others.
 - Customizable hotkeys to control the application.
+- On-screen keyboard shortcut display.
 
 ## Custom Profiles
 
