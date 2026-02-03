@@ -183,13 +183,13 @@ func NewManager(cfgDir string) (*Manager, error) {
 
 	// Initialize default OSK Helper config
 	defaultOSKConfig := oskhelpers.OSKHelperConfig{
-		FontSize:          24,
-		FontColor:         "#FFFFFF",
-		BackgroundColor:   "#000000",
-		BackgroundOpacity: 200,
-		CornerRadius:      12,
+		FontSize:          72,
+		FontColor:         "#bed1d5",
+		BackgroundColor:   "#4e4b4b",
+		BackgroundOpacity: 94,
+		CornerRadius:      30,
 		Position:          oskhelpers.OSKPositionBottom,
-		Offset:            20,
+		Offset:            100,
 		DismissAfter:      1000 * time.Millisecond,
 		MonitorIndex:      0,
 	}

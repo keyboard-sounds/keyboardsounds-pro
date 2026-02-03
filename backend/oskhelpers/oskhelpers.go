@@ -29,15 +29,26 @@ type OSKHelperConfig struct {
 	MonitorIndex int
 }
 
+// OSKHelper is the interface for the on-screen text display.
 type OSKHelper interface {
-	// SetOnScreenText will set the text visible on the bottom of the users screen.
+	// SetOnScreenText will set the text visible on the users screen.
 	SetOnScreenText(OSKHelperConfig, string) error
-	// ClearOnScreenText will clear the text visible on the bottom of the users screen.
+	// ClearOnScreenText will clear the text visible on the users screen.
 	ClearOnScreenText() error
 }
 
 // New creates a new OSKHelper instance for the current platform.
 // Returns an error if the platform is not supported or initialization fails.
 func New() (OSKHelper, error) {
-	return NewOSKHelper()
+	return newOSKHelper()
+}
+
+// MonitorInfo represents information about a display monitor
+type MonitorInfo struct {
+	Index     int  `json:"index"`
+	IsPrimary bool `json:"isPrimary"`
+	Left      int  `json:"left"`
+	Top       int  `json:"top"`
+	Width     int  `json:"width"`
+	Height    int  `json:"height"`
 }

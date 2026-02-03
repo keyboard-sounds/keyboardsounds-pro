@@ -31,26 +31,26 @@ var (
 	gdi32    = syscall.NewLazyDLL("gdi32.dll")
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
-	procCreateWindowEx       = user32.NewProc("CreateWindowExW")
-	procDefWindowProc        = user32.NewProc("DefWindowProcW")
-	procDestroyWindow        = user32.NewProc("DestroyWindow")
-	procRegisterClassEx      = user32.NewProc("RegisterClassExW")
-	procShowWindow           = user32.NewProc("ShowWindow")
-	procUpdateWindow         = user32.NewProc("UpdateWindow")
-	procGetDC                = user32.NewProc("GetDC")
-	procReleaseDC            = user32.NewProc("ReleaseDC")
-	procBeginPaint           = user32.NewProc("BeginPaint")
-	procEndPaint             = user32.NewProc("EndPaint")
-	procGetSystemMetrics     = user32.NewProc("GetSystemMetrics")
-	procUpdateLayeredWindow  = user32.NewProc("UpdateLayeredWindow")
-	procGetMessage           = user32.NewProc("GetMessageW")
-	procTranslateMessage     = user32.NewProc("TranslateMessage")
-	procDispatchMessage      = user32.NewProc("DispatchMessageW")
-	procPostThreadMessage    = user32.NewProc("PostThreadMessageW")
-	procGetCurrentThreadId   = kernel32.NewProc("GetCurrentThreadId")
-	procGetModuleHandle      = kernel32.NewProc("GetModuleHandleW")
-	procEnumDisplayMonitors  = user32.NewProc("EnumDisplayMonitors")
-	procGetMonitorInfo       = user32.NewProc("GetMonitorInfoW")
+	procCreateWindowEx      = user32.NewProc("CreateWindowExW")
+	procDefWindowProc       = user32.NewProc("DefWindowProcW")
+	procDestroyWindow       = user32.NewProc("DestroyWindow")
+	procRegisterClassEx     = user32.NewProc("RegisterClassExW")
+	procShowWindow          = user32.NewProc("ShowWindow")
+	procUpdateWindow        = user32.NewProc("UpdateWindow")
+	procGetDC               = user32.NewProc("GetDC")
+	procReleaseDC           = user32.NewProc("ReleaseDC")
+	procBeginPaint          = user32.NewProc("BeginPaint")
+	procEndPaint            = user32.NewProc("EndPaint")
+	procGetSystemMetrics    = user32.NewProc("GetSystemMetrics")
+	procUpdateLayeredWindow = user32.NewProc("UpdateLayeredWindow")
+	procGetMessage          = user32.NewProc("GetMessageW")
+	procTranslateMessage    = user32.NewProc("TranslateMessage")
+	procDispatchMessage     = user32.NewProc("DispatchMessageW")
+	procPostThreadMessage   = user32.NewProc("PostThreadMessageW")
+	procGetCurrentThreadId  = kernel32.NewProc("GetCurrentThreadId")
+	procGetModuleHandle     = kernel32.NewProc("GetModuleHandleW")
+	procEnumDisplayMonitors = user32.NewProc("EnumDisplayMonitors")
+	procGetMonitorInfo      = user32.NewProc("GetMonitorInfoW")
 
 	procSelectObject         = gdi32.NewProc("SelectObject")
 	procSetBkMode            = gdi32.NewProc("SetBkMode")
@@ -168,15 +168,15 @@ type (
 // monitorEnumProc is the callback for EnumDisplayMonitors
 func monitorEnumProc(hMonitor uintptr, hdcMonitor uintptr, lprcMonitor uintptr, dwData uintptr) uintptr {
 	data := (*monitorData)(unsafe.Pointer(dwData))
-	
+
 	var mi monitorinfo
 	mi.cbSize = uint32(unsafe.Sizeof(mi))
-	
+
 	ret, _, _ := procGetMonitorInfo.Call(hMonitor, uintptr(unsafe.Pointer(&mi)))
 	if ret != 0 {
 		data.monitors = append(data.monitors, mi)
 	}
-	
+
 	return 1 // Continue enumeration
 }
 
@@ -187,11 +187,11 @@ func getMonitorInfo(monitorIndex int) *monitorinfo {
 		// Use primary monitor (index 0) for negative values
 		monitorIndex = 0
 	}
-	
+
 	data := monitorData{
 		monitors: make([]monitorinfo, 0),
 	}
-	
+
 	// Enumerate all monitors
 	procEnumDisplayMonitors.Call(
 		0, // hdc (NULL for all monitors)
@@ -199,7 +199,7 @@ func getMonitorInfo(monitorIndex int) *monitorinfo {
 		syscall.NewCallback(monitorEnumProc),
 		uintptr(unsafe.Pointer(&data)),
 	)
-	
+
 	// Find the primary monitor first
 	primaryIdx := -1
 	for i, monitor := range data.monitors {
@@ -209,12 +209,12 @@ func getMonitorInfo(monitorIndex int) *monitorinfo {
 			break
 		}
 	}
-	
+
 	// If requesting primary (index 0), return the primary monitor
 	if monitorIndex == 0 && primaryIdx >= 0 {
 		return &data.monitors[primaryIdx]
 	}
-	
+
 	// For other indices, we need to order monitors consistently
 	// Primary is always index 0, others follow
 	if monitorIndex == 0 {
@@ -224,7 +224,7 @@ func getMonitorInfo(monitorIndex int) *monitorinfo {
 		}
 		return nil
 	}
-	
+
 	// For non-primary monitors, skip the primary in our counting
 	nonPrimaryIndex := 0
 	for i := range data.monitors {
@@ -236,7 +236,7 @@ func getMonitorInfo(monitorIndex int) *monitorinfo {
 		}
 		nonPrimaryIndex++
 	}
-	
+
 	// Index out of range, return primary as fallback
 	if primaryIdx >= 0 {
 		return &data.monitors[primaryIdx]
@@ -247,8 +247,8 @@ func getMonitorInfo(monitorIndex int) *monitorinfo {
 	return nil
 }
 
-// WindowsOSKHelper implements OSKHelper for Windows
-type WindowsOSKHelper struct {
+// windowsOSKHelper implements OSKHelper for Windows
+type windowsOSKHelper struct {
 	hwnd         hwnd
 	mutex        sync.Mutex
 	text         string
@@ -258,9 +258,9 @@ type WindowsOSKHelper struct {
 	dismissTimer *time.Timer
 }
 
-// NewOSKHelper creates a new Windows OSK helper
-func NewOSKHelper() (OSKHelper, error) {
-	helper := &WindowsOSKHelper{
+// newOSKHelper creates a new Windows OSK helper
+func newOSKHelper() (OSKHelper, error) {
+	helper := &windowsOSKHelper{
 		msgLoopDone: make(chan struct{}),
 	}
 
@@ -277,7 +277,7 @@ func NewOSKHelper() (OSKHelper, error) {
 	return helper, nil
 }
 
-func (w *WindowsOSKHelper) createWindow(errChan chan error) {
+func (w *windowsOSKHelper) createWindow(errChan chan error) {
 	// Get the current thread ID for message loop
 	ret, _, _ := procGetCurrentThreadId.Call()
 	w.threadID = uint32(ret)
@@ -366,7 +366,7 @@ func (w *WindowsOSKHelper) createWindow(errChan chan error) {
 }
 
 // Window procedure callback
-func (w *WindowsOSKHelper) wndProc(hwnd hwnd, msg uint32, wParam, lParam uintptr) uintptr {
+func (w *windowsOSKHelper) wndProc(hwnd hwnd, msg uint32, wParam, lParam uintptr) uintptr {
 	const (
 		wm_paint   = 0x000F
 		wm_destroy = 0x0002
@@ -385,7 +385,7 @@ func (w *WindowsOSKHelper) wndProc(hwnd hwnd, msg uint32, wParam, lParam uintptr
 	}
 }
 
-func (w *WindowsOSKHelper) onPaint(hwnd hwnd) {
+func (w *windowsOSKHelper) onPaint(hwnd hwnd) {
 	var ps paintstruct
 	hdc, _, _ := procBeginPaint.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&ps)))
 	if hdc == 0 {
@@ -405,7 +405,7 @@ func (w *WindowsOSKHelper) onPaint(hwnd hwnd) {
 	w.updateLayeredWindowContent()
 }
 
-func (w *WindowsOSKHelper) updateLayeredWindowContent() {
+func (w *windowsOSKHelper) updateLayeredWindowContent() {
 	w.mutex.Lock()
 	text := w.text
 	config := w.config
@@ -485,7 +485,7 @@ func (w *WindowsOSKHelper) updateLayeredWindowContent() {
 
 	// Get monitor dimensions for positioning
 	var screenX, screenY, screenWidth, screenHeight int
-	
+
 	monitorInfo := getMonitorInfo(config.MonitorIndex)
 	if monitorInfo != nil {
 		// Use the work area (excludes taskbar) of the selected monitor
@@ -780,7 +780,7 @@ func getCornerAlpha(x, y, width, height, radius int) float32 {
 }
 
 // SetOnScreenText displays text on the screen with the given configuration
-func (w *WindowsOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) error {
+func (w *windowsOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) error {
 	w.mutex.Lock()
 
 	// Cancel any pending dismissal timer
@@ -807,7 +807,7 @@ func (w *WindowsOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) 
 }
 
 // ClearOnScreenText hides the on-screen text after the configured delay
-func (w *WindowsOSKHelper) ClearOnScreenText() error {
+func (w *windowsOSKHelper) ClearOnScreenText() error {
 	w.mutex.Lock()
 
 	// Get the dismiss delay from config
@@ -846,22 +846,12 @@ func (w *WindowsOSKHelper) ClearOnScreenText() error {
 	return nil
 }
 
-// MonitorInfo represents information about a display monitor
-type MonitorInfo struct {
-	Index     int    `json:"index"`
-	IsPrimary bool   `json:"isPrimary"`
-	Left      int    `json:"left"`
-	Top       int    `json:"top"`
-	Width     int    `json:"width"`
-	Height    int    `json:"height"`
-}
-
 // GetMonitors returns information about all available monitors
 func GetMonitors() []MonitorInfo {
 	data := monitorData{
 		monitors: make([]monitorinfo, 0),
 	}
-	
+
 	// Enumerate all monitors
 	procEnumDisplayMonitors.Call(
 		0, // hdc (NULL for all monitors)
@@ -869,11 +859,11 @@ func GetMonitors() []MonitorInfo {
 		syscall.NewCallback(monitorEnumProc),
 		uintptr(unsafe.Pointer(&data)),
 	)
-	
+
 	if len(data.monitors) == 0 {
 		return []MonitorInfo{}
 	}
-	
+
 	// Find primary monitor
 	primaryIdx := -1
 	for i, monitor := range data.monitors {
@@ -883,9 +873,9 @@ func GetMonitors() []MonitorInfo {
 			break
 		}
 	}
-	
+
 	result := make([]MonitorInfo, 0)
-	
+
 	// Add primary monitor first (index 0)
 	if primaryIdx >= 0 {
 		monitor := data.monitors[primaryIdx]
@@ -898,7 +888,7 @@ func GetMonitors() []MonitorInfo {
 			Height:    int(monitor.rcWork.bottom - monitor.rcWork.top),
 		})
 	}
-	
+
 	// Add other monitors
 	for i, monitor := range data.monitors {
 		if i == primaryIdx {
@@ -913,12 +903,12 @@ func GetMonitors() []MonitorInfo {
 			Height:    int(monitor.rcWork.bottom - monitor.rcWork.top),
 		})
 	}
-	
+
 	return result
 }
 
 // Close cleans up the window (optional, for graceful shutdown)
-func (w *WindowsOSKHelper) Close() error {
+func (w *windowsOSKHelper) Close() error {
 	w.mutex.Lock()
 	// Cancel any pending dismissal timer
 	if w.dismissTimer != nil {
