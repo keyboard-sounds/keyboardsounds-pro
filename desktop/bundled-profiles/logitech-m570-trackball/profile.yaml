@@ -1,0 +1,24 @@
+buttons:
+  '1': click_left
+  '2': click_middle
+  '3': click_right
+  default: click_left
+  other: []
+profile:
+  author: MechVibesPlusPlus
+  description: Logitech M570 Trackball
+  device: mouse
+  name: logitech-m570-trackball
+sources:
+- id: click_left
+  source:
+    press: left-down.mp3
+    release: left-up.mp3
+- id: click_right
+  source:
+    press: right-down.mp3
+    release: right-up.mp3
+- id: click_middle
+  source:
+    press: scroll-down.mp3
+    release: scroll-up.mp3
