@@ -97,7 +97,7 @@ type Manager struct {
 	oskHelperLock    sync.RWMutex
 	oskHelperEnabled bool
 	oskHelper        oskhelpers.OSKHelper
-	oskHelperConfig  oskhelpers.OSKHelperConfig
+	oskHelperConfig  *oskhelpers.OSKHelperConfig
 
 	// Mouse Listener
 	mouseListener listener.MouseListener
@@ -202,10 +202,19 @@ func NewManager(cfgDir string) (*Manager, error) {
 		mouseListener:    listener.NewMouseListener(),
 		focusDetector:    rules.NewFocusDetector(),
 		oskHelper:        oskHelper,
-		oskHelperConfig:  defaultOSKConfig,
+		oskHelperConfig:  &defaultOSKConfig,
 		currentProfiles:  defaultProfiles,
 		keyboardVolume:   1.0,
 		mouseVolume:      1.0,
+	}
+
+	// This callback is called after the OSK helper is dismissed forcibly
+	// by the user clicking the close button.
+	mgr.oskHelperConfig.OnForceDismiss = func() {
+		mgr.keyboardKeysDownLock.Lock()
+		defer mgr.keyboardKeysDownLock.Unlock()
+
+		mgr.keyboardKeysDown = nil
 	}
 
 	mgr.setKeyboardProfile(keyboardProfile)
@@ -514,11 +523,18 @@ func (m *Manager) SetOSKHelperConfig(config oskhelpers.OSKHelperConfig) {
 	m.oskHelperLock.Lock()
 	defer m.oskHelperLock.Unlock()
 
-	m.oskHelperConfig = config
+	config.OnForceDismiss = func() {
+		m.keyboardKeysDownLock.Lock()
+		defer m.keyboardKeysDownLock.Unlock()
+
+		m.keyboardKeysDown = nil
+	}
+
+	m.oskHelperConfig = &config
 }
 
 func (m *Manager) GetOSKHelperConfig() oskhelpers.OSKHelperConfig {
 	m.oskHelperLock.RLock()
 	defer m.oskHelperLock.RUnlock()
-	return m.oskHelperConfig
+	return *m.oskHelperConfig
 }

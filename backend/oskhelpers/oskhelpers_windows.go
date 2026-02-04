@@ -63,6 +63,9 @@ var (
 	procCreateDIBSection     = gdi32.NewProc("CreateDIBSection")
 	procGetTextExtentPoint32 = gdi32.NewProc("GetTextExtentPoint32W")
 	procSetWindowPos         = user32.NewProc("SetWindowPos")
+	procLoadCursor           = user32.NewProc("LoadCursorW")
+	procTrackMouseEvent      = user32.NewProc("TrackMouseEvent")
+	procSetCursor            = user32.NewProc("SetCursor")
 )
 
 type (
@@ -163,6 +166,13 @@ type (
 		monitors []monitorinfo
 		index    int
 	}
+
+	trackmouseevent struct {
+		cbSize      uint32
+		dwFlags     uint32
+		hwndTrack   hwnd
+		dwHoverTime uint32
+	}
 )
 
 // monitorEnumProc is the callback for EnumDisplayMonitors
@@ -249,13 +259,17 @@ func getMonitorInfo(monitorIndex int) *monitorinfo {
 
 // windowsOSKHelper implements OSKHelper for Windows
 type windowsOSKHelper struct {
-	hwnd         hwnd
-	mutex        sync.Mutex
-	text         string
-	config       OSKHelperConfig
-	threadID     uint32
-	msgLoopDone  chan struct{}
-	dismissTimer *time.Timer
+	hwnd            hwnd
+	mutex           sync.Mutex
+	text            string
+	config          OSKHelperConfig
+	threadID        uint32
+	msgLoopDone     chan struct{}
+	dismissTimer    *time.Timer
+	isHovering      bool
+	closeButtonRect rect
+	isTrackingMouse bool
+	hCursor         uintptr
 }
 
 // newOSKHelper creates a new Windows OSK helper
@@ -287,6 +301,11 @@ func (w *windowsOSKHelper) createWindow(errChan chan error) {
 	// Get module handle
 	hInstance, _, _ := procGetModuleHandle.Call(0)
 
+	// Load standard arrow cursor
+	const idc_arrow = 32512
+	hCursor, _, _ := procLoadCursor.Call(0, uintptr(idc_arrow))
+	w.hCursor = hCursor
+
 	// Register window class
 	const cs_hredraw = 0x0002
 	const cs_vredraw = 0x0001
@@ -296,6 +315,7 @@ func (w *windowsOSKHelper) createWindow(errChan chan error) {
 		lpfnWndProc:   syscall.NewCallback(w.wndProc),
 		hInstance:     syscall.Handle(hInstance),
 		lpszClassName: className,
+		hCursor:       hCursor,
 		hbrBackground: 0,
 	}
 
@@ -368,14 +388,31 @@ func (w *windowsOSKHelper) createWindow(errChan chan error) {
 // Window procedure callback
 func (w *windowsOSKHelper) wndProc(hwnd hwnd, msg uint32, wParam, lParam uintptr) uintptr {
 	const (
-		wm_paint   = 0x000F
-		wm_destroy = 0x0002
-		wm_close   = 0x0010
+		wm_paint       = 0x000F
+		wm_destroy     = 0x0002
+		wm_close       = 0x0010
+		wm_mousemove   = 0x0200
+		wm_mouseleave  = 0x02A3
+		wm_lbuttondown = 0x0201
+		wm_setcursor   = 0x0020
 	)
 
 	switch msg {
 	case wm_paint:
 		w.onPaint(hwnd)
+		return 0
+	case wm_setcursor:
+		// Set the arrow cursor explicitly
+		procSetCursor.Call(w.hCursor)
+		return 1 // Return TRUE to prevent default processing
+	case wm_mousemove:
+		w.onMouseMove(lParam)
+		return 0
+	case wm_mouseleave:
+		w.onMouseLeave()
+		return 0
+	case wm_lbuttondown:
+		w.onMouseClick(lParam)
 		return 0
 	case wm_close, wm_destroy:
 		return 0
@@ -383,6 +420,81 @@ func (w *windowsOSKHelper) wndProc(hwnd hwnd, msg uint32, wParam, lParam uintptr
 		ret, _, _ := procDefWindowProc.Call(uintptr(hwnd), uintptr(msg), wParam, lParam)
 		return ret
 	}
+}
+
+func (w *windowsOSKHelper) onMouseMove(lParam uintptr) {
+	// Start tracking mouse leave events
+	if !w.isTrackingMouse {
+		const tme_leave = 0x00000002
+		tme := trackmouseevent{
+			cbSize:      uint32(unsafe.Sizeof(trackmouseevent{})),
+			dwFlags:     tme_leave,
+			hwndTrack:   w.hwnd,
+			dwHoverTime: 0,
+		}
+		procTrackMouseEvent.Call(uintptr(unsafe.Pointer(&tme)))
+		w.isTrackingMouse = true
+	}
+
+	w.mutex.Lock()
+	wasHovering := w.isHovering
+	w.isHovering = true
+	w.mutex.Unlock()
+
+	// Redraw if hover state changed
+	if !wasHovering {
+		w.updateLayeredWindowContent()
+	}
+}
+
+func (w *windowsOSKHelper) onMouseLeave() {
+	w.mutex.Lock()
+	wasHovering := w.isHovering
+	w.isHovering = false
+	w.isTrackingMouse = false
+	w.mutex.Unlock()
+
+	// Redraw if hover state changed
+	if wasHovering {
+		w.updateLayeredWindowContent()
+	}
+}
+
+func (w *windowsOSKHelper) onMouseClick(lParam uintptr) {
+	// Extract mouse coordinates
+	x := int32(lParam & 0xFFFF)
+	y := int32((lParam >> 16) & 0xFFFF)
+
+	w.mutex.Lock()
+	closeRect := w.closeButtonRect
+	w.mutex.Unlock()
+
+	// Check if click is within close button bounds
+	if x >= closeRect.left && x <= closeRect.right &&
+		y >= closeRect.top && y <= closeRect.bottom {
+		// Dismiss the window immediately
+		w.forceDismiss()
+		if w.config.OnForceDismiss != nil {
+			w.config.OnForceDismiss()
+		}
+	}
+}
+
+func (w *windowsOSKHelper) forceDismiss() {
+	w.mutex.Lock()
+
+	// Cancel any pending dismissal timer
+	if w.dismissTimer != nil {
+		w.dismissTimer.Stop()
+		w.dismissTimer = nil
+	}
+
+	w.text = ""
+	w.isHovering = false
+	w.mutex.Unlock()
+
+	procShowWindow.Call(uintptr(w.hwnd), sw_hide)
+	procUpdateWindow.Call(uintptr(w.hwnd))
 }
 
 func (w *windowsOSKHelper) onPaint(hwnd hwnd) {
@@ -409,6 +521,7 @@ func (w *windowsOSKHelper) updateLayeredWindowContent() {
 	w.mutex.Lock()
 	text := w.text
 	config := w.config
+	isHovering := w.isHovering
 	w.mutex.Unlock()
 
 	// Get font size (default to 28 if not specified or invalid)
@@ -664,6 +777,11 @@ func (w *windowsOSKHelper) updateLayeredWindowContent() {
 		}
 	}
 
+	// Draw close button if hovering
+	if isHovering {
+		w.drawCloseButton(pixels, windowWidth, windowHeight)
+	}
+
 	// Update the layered window
 	const ulw_alpha = 0x00000002
 	const ac_src_over = 0x00
@@ -779,6 +897,104 @@ func getCornerAlpha(x, y, width, height, radius int) float32 {
 	return 1.0
 }
 
+// drawCloseButton draws a close button (X) in the top right corner
+func (w *windowsOSKHelper) drawCloseButton(pixels []uint32, width, height int) {
+	// Close button dimensions
+	const buttonSize = 20
+	const padding = 8
+	const lineThickness = 2
+
+	// Calculate button position (top right)
+	buttonX := width - buttonSize - padding
+	buttonY := padding
+
+	// Store close button bounds for click detection
+	w.closeButtonRect = rect{
+		left:   int32(buttonX),
+		top:    int32(buttonY),
+		right:  int32(buttonX + buttonSize),
+		bottom: int32(buttonY + buttonSize),
+	}
+
+	// Draw semi-transparent button background (circle)
+	centerX := buttonX + buttonSize/2
+	centerY := buttonY + buttonSize/2
+	radius := float32(buttonSize) / 2.0
+
+	// Background color: slightly lighter/darker than background
+	buttonBgColor := uint32(0x40FFFFFF) // Semi-transparent white
+
+	for y := buttonY; y < buttonY+buttonSize && y < height; y++ {
+		for x := buttonX; x < buttonX+buttonSize && x < width; x++ {
+			// Calculate distance from center
+			dx := float32(x - centerX)
+			dy := float32(y - centerY)
+			dist := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+
+			if dist <= radius {
+				// Draw circle background
+				i := y*width + x
+				if i >= 0 && i < len(pixels) {
+					// Blend with existing pixel
+					pixels[i] = blendPixel(pixels[i], buttonBgColor)
+				}
+			}
+		}
+	}
+
+	// Draw X symbol
+	xColor := uint32(0xFFFFFFFF) // White with full opacity
+
+	for y := buttonY; y < buttonY+buttonSize && y < height; y++ {
+		for x := buttonX; x < buttonX+buttonSize && x < width; x++ {
+			// Calculate position relative to button
+			relX := x - buttonX
+			relY := y - buttonY
+
+			// Draw diagonal lines forming X
+			// Top-left to bottom-right diagonal
+			distDiag1 := math.Abs(float64(relX - relY))
+			// Top-right to bottom-left diagonal
+			distDiag2 := math.Abs(float64(relX - (buttonSize - 1 - relY)))
+
+			if distDiag1 < float64(lineThickness) || distDiag2 < float64(lineThickness) {
+				// Only draw within circle
+				dx := float32(x - centerX)
+				dy := float32(y - centerY)
+				dist := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+
+				if dist <= radius-2 { // Slight inset for X
+					i := y*width + x
+					if i >= 0 && i < len(pixels) {
+						pixels[i] = xColor
+					}
+				}
+			}
+		}
+	}
+}
+
+// blendPixel blends two ARGB pixels using alpha blending
+func blendPixel(dst, src uint32) uint32 {
+	srcA := float32((src>>24)&0xFF) / 255.0
+	srcR := byte((src >> 0) & 0xFF)
+	srcG := byte((src >> 8) & 0xFF)
+	srcB := byte((src >> 16) & 0xFF)
+
+	dstA := byte((dst >> 24) & 0xFF)
+	dstR := byte((dst >> 0) & 0xFF)
+	dstG := byte((dst >> 8) & 0xFF)
+	dstB := byte((dst >> 16) & 0xFF)
+
+	// Alpha blending
+	outA := srcA + float32(dstA)/255.0*(1.0-srcA)
+	outR := byte(float32(srcR)*srcA + float32(dstR)*(1.0-srcA))
+	outG := byte(float32(srcG)*srcA + float32(dstG)*(1.0-srcA))
+	outB := byte(float32(srcB)*srcA + float32(dstB)*(1.0-srcA))
+
+	return uint32(byte(outA*255.0))<<24 | uint32(outB)<<16 | uint32(outG)<<8 | uint32(outR)
+}
+
 // SetOnScreenText displays text on the screen with the given configuration
 func (w *windowsOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) error {
 	w.mutex.Lock()
@@ -791,6 +1007,9 @@ func (w *windowsOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) 
 
 	w.text = text
 	w.config = config
+	// Reset hover state when showing new text
+	w.isHovering = false
+	w.isTrackingMouse = false
 	w.mutex.Unlock()
 
 	if text == "" {
@@ -822,6 +1041,8 @@ func (w *windowsOSKHelper) ClearOnScreenText() error {
 	// If no delay is configured, hide immediately
 	if dismissAfter <= 0 {
 		w.text = ""
+		w.isHovering = false
+		w.isTrackingMouse = false
 		w.mutex.Unlock()
 
 		procShowWindow.Call(uintptr(w.hwnd), sw_hide)
@@ -834,6 +1055,8 @@ func (w *windowsOSKHelper) ClearOnScreenText() error {
 	w.dismissTimer = time.AfterFunc(dismissAfter, func() {
 		w.mutex.Lock()
 		w.text = ""
+		w.isHovering = false
+		w.isTrackingMouse = false
 		w.dismissTimer = nil
 		w.mutex.Unlock()
 

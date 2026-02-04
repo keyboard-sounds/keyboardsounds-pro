@@ -27,6 +27,8 @@ type OSKHelperConfig struct {
 	DismissAfter time.Duration
 	// MonitorIndex specifies which monitor to display on (0 = primary, 1+ = additional monitors, -1 = auto/current)
 	MonitorIndex int
+	// OnForceDismiss is the callback function to be called when the close button is clicked after the OSK is forcibly dismissed.
+	OnForceDismiss func()
 }
 
 // OSKHelper is the interface for the on-screen text display.
