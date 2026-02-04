@@ -63,7 +63,7 @@ func (m *Manager) keyboardEventWorker() {
 					m.oskHelperLock.RLock()
 
 					if e.Action == listenertypes.ActionPress {
-						if len(m.keyboardKeysDown) > 0 && key.IsModifierKey(m.keyboardKeysDown[0]) {
+						if len(m.keyboardKeysDown) > 1 && key.IsModifierKey(m.keyboardKeysDown[0]) {
 							err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, strings.Join(
 								lo.Map(m.keyboardKeysDown, func(key key.Key, _ int) string {
 									return key.Name
