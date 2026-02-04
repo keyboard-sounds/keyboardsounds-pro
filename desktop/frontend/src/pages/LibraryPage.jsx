@@ -379,7 +379,7 @@ function ProfileCard({ profile, isDefault, onRemove, onOpenFolder, onExport, isE
           <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <Tooltip title="Export & Share" arrow placement="top">
               <IconButton
-                onClick={() => handleExport(profile.id)}
+                onClick={() => onExport && onExport(profile.id)}
                 sx={{
                   width: '36px',
                   height: '36px',
