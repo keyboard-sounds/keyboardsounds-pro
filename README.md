@@ -31,7 +31,7 @@ Download the latest release from the [releases page](https://github.com/keyboard
 <br>
 
 - Support for both **Mouse** and **Keyboard** audio profiles
-- Comes bundled with fourteen built in profiles (13 keyboard, 1 mouse)
+- Comes bundled with **twenty** built in profiles (13 keyboard, 7 mouse)
 - Supports Custom profiles through the editors (`.wav` and `.mp3` supported)
 - Supports importing and exporting profiles to share with others.
 
