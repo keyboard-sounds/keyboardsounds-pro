@@ -102,23 +102,45 @@ func seedProfiles() error {
 
 	slog.Info("Seeding profiles", "bundledProfilesDir", bundledProfilesDir, "kbsProfilesDir", kbsProfilesDir)
 
+	// Ensure bundled profiles dir exists
+	if _, err := os.Stat(bundledProfilesDir); os.IsNotExist(err) {
+		return fmt.Errorf("bundled profiles dir does not exist")
+	}
+
 	// Check if kbs profiles dir exists, and if not, create it
 	if _, err := os.Stat(kbsProfilesDir); os.IsNotExist(err) {
-		// Ensure bundled profiles dir exists
-		if _, err := os.Stat(bundledProfilesDir); os.IsNotExist(err) {
-			return fmt.Errorf("bundled profiles dir does not exist")
-		}
-
 		// Create kbs profiles dir
 		err = os.MkdirAll(kbsProfilesDir, 0755)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create kbs profiles dir: %w", err)
 		}
 
 		// Copy all contents of bundled profiles dir to kbs profiles dir
 		err = copy.Copy(bundledProfilesDir, kbsProfilesDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to copy bundled profiles to kbs profiles dir: %w", err)
+		}
+
+		return nil
+	}
+
+	// Keep kbs profiles directory in sync with bundled profiles directory. This way if new profiles are added
+	// to the bundled profiles directory with a new release, the profiles will be available in the kbs profiles directory.
+	bundled, err := os.ReadDir(bundledProfilesDir)
+	if err != nil {
+		return fmt.Errorf("failed to read bundled profiles dir: %w", err)
+	}
+
+	for _, profile := range bundled {
+		if profile.IsDir() {
+			id := profile.Name()
+			profilePath := filepath.Join(kbsProfilesDir, id)
+			if _, err := os.Stat(profilePath); os.IsNotExist(err) {
+				err = copy.Copy(filepath.Join(bundledProfilesDir, id), profilePath)
+				if err != nil {
+					return fmt.Errorf("failed to copy bundled profile %s to kbs profiles dir: %w", id, err)
+				}
+			}
 		}
 	}
 
