@@ -48,6 +48,9 @@ func Init(c context.Context) error {
 	// Register hotkey delegate to emit events when hotkeys are triggered
 	RegisterHotKeyEventDelegate()
 
+	// Register delegate for OSK helper state changes
+	manager.RegisterOSKHelperStateChangedDelegate(EmitOSKHelperStateChanged)
+
 	// Apply saved audio effects preferences
 	ApplyAudioEffectsFromPreferences()
 	// Apply saved volume preferences

@@ -3,6 +3,7 @@ import { Box, Typography, Switch, TextField, Slider, Chip, MenuItem, Select, For
 import { GlassCard, PageHeader, ColorPicker } from '../components/common';
 import { greenSwitchStyle, selectMenuProps } from '../constants';
 import { GetState, SetEnabled, SetConfig, GetMonitors } from '../../wailsjs/go/app/OSKHelperBinding';
+import { EventsOn } from '../../wailsjs/runtime/runtime';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import PaletteIcon from '@mui/icons-material/Palette';
 import PositionIcon from '@mui/icons-material/AspectRatio';
@@ -51,6 +52,17 @@ function OSKHelperPage() {
       }
     };
     loadState();
+
+    // Listen for state changes from backend (e.g., when hotkey is triggered)
+    const unsubscribe = EventsOn('osk-helper-state-changed', () => {
+      loadState();
+    });
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   // Update enabled state

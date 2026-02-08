@@ -1069,6 +1069,12 @@ func (w *windowsOSKHelper) ClearOnScreenText() error {
 	return nil
 }
 
+// ForceDismiss forcibly dismisses the OSK helper, ignoring any dismiss after duration
+func (w *windowsOSKHelper) ForceDismiss() error {
+	w.forceDismiss()
+	return nil
+}
+
 // GetMonitors returns information about all available monitors
 func GetMonitors() []MonitorInfo {
 	data := monitorData{

@@ -37,6 +37,8 @@ type OSKHelper interface {
 	SetOnScreenText(OSKHelperConfig, string) error
 	// ClearOnScreenText will clear the text visible on the users screen.
 	ClearOnScreenText() error
+	// ForceDismiss will forcibly dismiss the OSK helper, ignoring the dismiss after duration.
+	ForceDismiss() error
 }
 
 // New creates a new OSKHelper instance for the current platform.

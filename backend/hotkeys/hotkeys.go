@@ -60,6 +60,13 @@ var defaultHotKeys = HotKeys{
 					Value:  "0.1",
 				},
 			},
+			{
+				Key: key.O.Name,
+				Action: HotKeyDeviceAction{
+					Device: HotKeyTargetDeviceNone,
+					Action: HotKeyActionToggleOSKHelpers,
+				},
+			},
 		},
 	},
 }

@@ -22,11 +22,12 @@ const (
 type HotKeyAction string
 
 const (
-	HotKeyActionMute           HotKeyAction = "mute"
-	HotKeyActionUnmute         HotKeyAction = "unmute"
-	HotKeyActionToggleMute     HotKeyAction = "toggle-mute"
-	HotKeyActionIncreaseVolume HotKeyAction = "increase-volume"
-	HotKeyActionDecreaseVolume HotKeyAction = "decrease-volume"
+	HotKeyActionMute             HotKeyAction = "mute"
+	HotKeyActionUnmute           HotKeyAction = "unmute"
+	HotKeyActionToggleMute       HotKeyAction = "toggle-mute"
+	HotKeyActionIncreaseVolume   HotKeyAction = "increase-volume"
+	HotKeyActionDecreaseVolume   HotKeyAction = "decrease-volume"
+	HotKeyActionToggleOSKHelpers HotKeyAction = "toggle-osk-helpers"
 )
 
 // HotKeyDeviceAction represents the action for a hot key on a specific device.
@@ -120,7 +121,7 @@ func (hk HotKeys) runAction(action HotKeyDeviceAction) error {
 
 	handler, ok := registeredActions[key]
 	if !ok {
-		return fmt.Errorf("handler not found for action: %s", action.Action)
+		return fmt.Errorf("handler not found for action %s and device %s", action.Action, action.Device)
 	}
 
 	return handler(action)

@@ -23,6 +23,11 @@ func (u *unsupportedOSKHelper) ClearOnScreenText() error {
 	return fmt.Errorf("OSKHelper is not supported on this platform")
 }
 
+// ForceDismiss is not implemented for unsupported platforms
+func (u *unsupportedOSKHelper) ForceDismiss() error {
+	return fmt.Errorf("OSKHelper is not supported on this platform")
+}
+
 // GetMonitors returns an empty list on unsupported platforms
 func GetMonitors() []MonitorInfo {
 	return []MonitorInfo{}

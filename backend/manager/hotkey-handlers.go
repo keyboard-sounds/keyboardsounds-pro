@@ -246,3 +246,19 @@ func registerDecreaseVolumeMouseHotKeyHandler(mgr *Manager) {
 		return nil
 	})
 }
+
+// =============================================================================
+// Other Handlers
+// =============================================================================
+
+func registerToggleOSKHelpersHandler(mgr *Manager) {
+	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
+		Device: hotkeys.HotKeyTargetDeviceNone,
+		Action: hotkeys.HotKeyActionToggleOSKHelpers,
+	}, func(action hotkeys.HotKeyDeviceAction) error {
+		enabled := mgr.GetOSKHelperEnabled()
+		mgr.SetOSKHelperEnabled(!enabled)
+
+		return nil
+	})
+}

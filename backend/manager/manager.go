@@ -236,6 +236,7 @@ func NewManager(cfgDir string) (*Manager, error) {
 	registerDecreaseVolumeKeyboardHotKeyHandler(mgr)
 	registerIncreaseVolumeMouseHotKeyHandler(mgr)
 	registerDecreaseVolumeMouseHotKeyHandler(mgr)
+	registerToggleOSKHelpersHandler(mgr)
 
 	return mgr, nil
 }
@@ -505,11 +506,30 @@ func (m *Manager) setMouseProfile(p *profile.Profile) error {
 	return nil
 }
 
+// OSKHelperStateChangedDelegate is called when OSK helper state changes
+type OSKHelperStateChangedDelegate func()
+
+var oskHelperStateChangedDelegates = []OSKHelperStateChangedDelegate{}
+
+// RegisterOSKHelperStateChangedDelegate registers a delegate for OSK helper state changes
+func RegisterOSKHelperStateChangedDelegate(delegate OSKHelperStateChangedDelegate) {
+	oskHelperStateChangedDelegates = append(oskHelperStateChangedDelegates, delegate)
+}
+
 func (m *Manager) SetOSKHelperEnabled(enabled bool) {
 	m.oskHelperLock.Lock()
-	defer m.oskHelperLock.Unlock()
-
 	m.oskHelperEnabled = enabled
+	m.oskHelperLock.Unlock()
+
+	// If disabling, forcibly dismiss any visible OSK helper
+	if !enabled && m.oskHelper != nil {
+		m.oskHelper.ForceDismiss()
+	}
+
+	// Notify all delegates that the state has changed
+	for _, delegate := range oskHelperStateChangedDelegates {
+		go delegate()
+	}
 }
 
 func (m *Manager) GetOSKHelperEnabled() bool {

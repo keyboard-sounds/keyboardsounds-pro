@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/oskhelpers"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // OSKHelperBinding provides frontend bindings for OSK Helper configuration
@@ -15,6 +16,18 @@ type OSKHelperBinding struct {
 // NewOSKHelperBinding creates a new OSK Helper binding
 func NewOSKHelperBinding() *OSKHelperBinding {
 	return &OSKHelperBinding{}
+}
+
+// EmitOSKHelperStateChanged emits an event to the frontend when OSK Helper state changes
+// and saves the state to preferences
+func EmitOSKHelperStateChanged() {
+	// Save to preferences
+	SaveOSKHelperToPreferences()
+	
+	// Emit event to frontend
+	if ctx != nil {
+		runtime.EventsEmit(ctx, "osk-helper-state-changed")
+	}
 }
 
 // OSKHelperState represents the state of the OSK Helper
