@@ -1,7 +1,7 @@
 import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
-import { menuItems } from '../../constants';
+import { menuItems as defaultMenuItems } from '../../constants';
 
-function SidebarMenu({ selectedTab, setSelectedTab }) {
+function SidebarMenu({ menuItems = defaultMenuItems, selectedTab, setSelectedTab }) {
   return (
     <Box
       sx={{
