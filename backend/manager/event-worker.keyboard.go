@@ -219,6 +219,8 @@ func (m *Manager) getAudioForKeyEvent(event listenertypes.KeyEvent) (*audio.Audi
 				switch sourceValue := k.Sound.(type) {
 				case string: // Single source ID
 					sourceID = sourceValue
+				case []any: // Multiple source IDs, pick a random one.
+					sourceID = sourceValue[rand.Intn(len(sourceValue))].(string)
 				case []string: // Multiple source IDs, pick a random one.
 					sourceID = sourceValue[rand.Intn(len(sourceValue))]
 				default:

@@ -138,6 +138,8 @@ func (m *Manager) getAudioForButtonEvent(event listenertypes.ButtonEvent) (*audi
 			switch sourceValue := b.Sound.(type) {
 			case string: // Single source ID
 				sourceID = sourceValue
+			case []any: // Multiple source IDs, pick a random one.
+				sourceID = sourceValue[rand.Intn(len(sourceValue))].(string)
 			case []string: // Multiple source IDs, pick a random one.
 				sourceID = sourceValue[rand.Intn(len(sourceValue))]
 			default:
