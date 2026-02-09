@@ -10,6 +10,7 @@ import LinkOffIcon from '@mui/icons-material/LinkOff';
 import { selectMenuProps } from '../../constants';
 
 function StatusBox({
+  platform = '',
   isPaused,
   setIsPaused,
   keyboardVolume,
@@ -32,6 +33,10 @@ function StatusBox({
   mouseProfiles = [],
   isLoading = false,
 }) {
+  const isLinux = platform === 'linux';
+  const keyboardLabel = isLinux ? 'Keyboard' : 'Default Keyboard';
+  const mouseLabel = isLinux ? 'Mouse' : 'Default Mouse';
+
   // Build profile options with "None" at the beginning
   const keyboardProfileOptions = ['None', ...keyboardProfiles];
   const mouseProfileOptions = ['None', ...mouseProfiles];
@@ -380,7 +385,7 @@ function StatusBox({
               letterSpacing: '0.5px',
             }}
           >
-            Default Keyboard
+            {keyboardLabel}
           </Typography>
         </Box>
         <FormControl fullWidth size="small" disabled={isPaused}>
@@ -434,7 +439,7 @@ function StatusBox({
               letterSpacing: '0.5px',
             }}
           >
-            Default Mouse
+            {mouseLabel}
           </Typography>
         </Box>
         <FormControl fullWidth size="small" disabled={isPaused}>

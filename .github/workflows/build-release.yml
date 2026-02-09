@@ -6,7 +6,7 @@ on:
       - 'desktop/**'
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
     permissions:
       contents: write
@@ -82,6 +82,7 @@ jobs:
             Write-Host "Current PATH: $env:PATH"
             exit 1
           }
+          wails generate module
           wails build --nsis
 
       - name: Find installer
@@ -149,6 +150,61 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ steps.rename_installer.outputs.installer_path }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-debian:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up build environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.4"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: desktop/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: desktop/frontend
+        run: npm ci
+
+      - name: Build application
+        working-directory: desktop
+        run: wails build
+
+      - name: Move binary
+        working-directory: desktop
+        run: mv build/bin/Keyboard\ Sounds\ Pro build/bin/kbs-pro
+
+      - name: Extract version from release tag
+        id: get_version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          # Remove 'desktop/v' prefix if present
+          $version = $tag -replace '^desktop/v', ''
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "Extracted version: $version"
+
+      - name: Build deb package
+        working-directory: desktop
+        run: ./build-deb.sh ${{ steps.get_version.outputs.version }}
+
+      - name: Upload deb package to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: desktop/build/kbs-pro_${{ steps.get_version.outputs.version }}_amd64.deb
           tag_name: ${{ github.ref_name }}
           draft: false
           prerelease: false

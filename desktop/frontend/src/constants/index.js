@@ -9,6 +9,8 @@ import PeopleIcon from '@mui/icons-material/People';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
+const LINUX_HIDDEN_PAGES = ['Application Rules', 'On-Screen Modifiers'];
+
 export const menuItems = [
   { name: 'Application Rules', icon: GavelIcon },
   { name: 'Audio Effects', icon: GraphicEqIcon },
@@ -19,6 +21,14 @@ export const menuItems = [
   { name: 'Community', icon: PeopleIcon },
   { name: 'Settings', icon: SettingsIcon },
 ];
+
+/** Returns menu items for the given platform. On Linux, Application Rules and On-Screen Modifiers are excluded. */
+export function getMenuItemsForPlatform(platform) {
+  if (platform === 'linux') {
+    return menuItems.filter((item) => !LINUX_HIDDEN_PAGES.includes(item.name));
+  }
+  return menuItems;
+}
 
 // Mock profile list - replace with actual profiles later
 export const profiles = ['mx-brown', 'blue-alps', 'cherry-red', 'custom-1', 'custom-2'];

@@ -1,7 +1,7 @@
 import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
-import { menuItems } from '../../constants';
+import { menuItems as defaultMenuItems } from '../../constants';
 
-function SidebarMenu({ selectedTab, setSelectedTab }) {
+function SidebarMenu({ menuItems = defaultMenuItems, selectedTab, setSelectedTab }) {
   return (
     <Box
       sx={{
@@ -16,7 +16,7 @@ function SidebarMenu({ selectedTab, setSelectedTab }) {
         border: '1px solid var(--card-border)',
         flex: 1,
         overflowY: 'hidden',
-        overflowX: 'visible',
+        overflowX: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 1002,
