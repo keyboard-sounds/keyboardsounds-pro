@@ -47,6 +47,8 @@ Download the latest release from the [releases page](https://github.com/keyboard
 
 - This allows you to do things like only enabling in your text editor or terminal, disabling it for specific games, or localizing the sound effects to a particular application.
 
+> Note: Application rules are currently only available for the **Windows** platform.
+
 <br><br><br><br>
 
 ## Audio Effects
