@@ -10,7 +10,7 @@ import { GlassCard, PageHeader } from '../components/common';
 import { greenSwitchStyle } from '../constants';
 import { useTheme } from '../context';
 import { GetVersion } from '../../wailsjs/go/main/wailsConfig';
-import { IsUpdateAvailable, GetLatestVersion, GetDownloadURL, CheckForUpdate } from '../../wailsjs/go/main/updateDetails';
+import { IsUpdateAvailable, GetLatestVersion, GetDownloadURL, CheckForUpdate } from '../../wailsjs/go/main/UpdateDetails';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 
 function SettingsPage({

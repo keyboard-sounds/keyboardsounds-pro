@@ -82,6 +82,7 @@ jobs:
             Write-Host "Current PATH: $env:PATH"
             exit 1
           }
+          wails generate module
           wails build --nsis
 
       - name: Find installer
