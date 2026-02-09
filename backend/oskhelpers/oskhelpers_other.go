@@ -3,29 +3,27 @@
 
 package oskhelpers
 
-import "fmt"
-
 // unsupportedOSKHelper is a stub implementation for unsupported platforms
 type unsupportedOSKHelper struct{}
 
 // newOSKHelper returns an error indicating the platform is not supported
 func newOSKHelper() (OSKHelper, error) {
-	return nil, fmt.Errorf("OSKHelper is not supported on this platform")
+	return &unsupportedOSKHelper{}, nil
 }
 
 // SetOnScreenText is not implemented for unsupported platforms
 func (u *unsupportedOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) error {
-	return fmt.Errorf("OSKHelper is not supported on this platform")
+	return nil
 }
 
 // ClearOnScreenText is not implemented for unsupported platforms
 func (u *unsupportedOSKHelper) ClearOnScreenText() error {
-	return fmt.Errorf("OSKHelper is not supported on this platform")
+	return nil
 }
 
 // ForceDismiss is not implemented for unsupported platforms
 func (u *unsupportedOSKHelper) ForceDismiss() error {
-	return fmt.Errorf("OSKHelper is not supported on this platform")
+	return nil
 }
 
 // GetMonitors returns an empty list on unsupported platforms

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -347,6 +348,18 @@ func (m *Manager) GetRootDir() string {
 // the in memory values will be updated immediately. Otherwise, they will be updated the next time that the focus listener
 // is triggered by an app being focused.
 func (m *Manager) SetDefaultProfiles(profiles rules.Profiles) error {
+	// On linux, we do not support application rules, so there is no need to write them to the rules.json file.
+	switch runtime.GOOS {
+	case "windows":
+		return m.setDefaultProfilesWindows(profiles)
+	case "linux":
+		return m.setDefaultProfilesLinux(profiles)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+}
+
+func (m *Manager) setDefaultProfilesWindows(profiles rules.Profiles) error {
 	err := rules.SetDefaultProfiles(profiles)
 	if err != nil {
 		return fmt.Errorf("failed to set default profiles: %w", err)
@@ -362,6 +375,12 @@ func (m *Manager) SetDefaultProfiles(profiles rules.Profiles) error {
 	if isDefault {
 		m.updateProfiles(profiles)
 	}
+
+	return nil
+}
+
+func (m *Manager) setDefaultProfilesLinux(profiles rules.Profiles) error {
+	m.updateProfiles(profiles)
 
 	return nil
 }
