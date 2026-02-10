@@ -240,6 +240,8 @@ var allKeyCodes = []Key{
 	F24,
 	NumLock,
 	ScrollLock,
+	PrintScreen,
+	Pause,
 	LeftShift,
 	RightShift,
 	LeftControl,

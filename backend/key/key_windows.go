@@ -68,11 +68,11 @@ var (
 	NumPad7        Key = Key{0x67, "Num7", runtime.GOOS}
 	NumPad8        Key = Key{0x68, "Num8", runtime.GOOS}
 	NumPad9        Key = Key{0x69, "Num9", runtime.GOOS}
-	NumPadMultiply Key = Key{0x6A, "*", runtime.GOOS}
-	NumPadAdd      Key = Key{0x6B, "+", runtime.GOOS}
-	NumPadSubtract Key = Key{0x6D, "-", runtime.GOOS}
-	NumPadDecimal  Key = Key{0x6E, ".", runtime.GOOS}
-	NumPadDivide   Key = Key{0x6F, "/", runtime.GOOS}
+	NumPadMultiply Key = Key{0x6A, "Num*", runtime.GOOS}
+	NumPadAdd      Key = Key{0x6B, "Num+", runtime.GOOS}
+	NumPadSubtract Key = Key{0x6D, "Num-", runtime.GOOS}
+	NumPadDecimal  Key = Key{0x6E, "Num.", runtime.GOOS}
+	NumPadDivide   Key = Key{0x6F, "Num/", runtime.GOOS}
 	F1             Key = Key{0x70, "F1", runtime.GOOS}
 	F2             Key = Key{0x71, "F2", runtime.GOOS}
 	F3             Key = Key{0x72, "F3", runtime.GOOS}
@@ -99,6 +99,8 @@ var (
 	F24            Key = Key{0x87, "F24", runtime.GOOS}
 	NumLock        Key = Key{0x90, "NumLock", runtime.GOOS}
 	ScrollLock     Key = Key{0x91, "ScrollLock", runtime.GOOS}
+	PrintScreen    Key = Key{0x2C, "PrintScreen", runtime.GOOS}
+	Pause          Key = Key{0x13, "Pause", runtime.GOOS}
 	LeftShift      Key = Key{0xA0, "LeftShift", runtime.GOOS}
 	RightShift     Key = Key{0xA1, "RightShift", runtime.GOOS}
 	LeftControl    Key = Key{0xA2, "LeftControl", runtime.GOOS}
