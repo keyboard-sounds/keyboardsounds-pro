@@ -36,71 +36,85 @@ func (m *Manager) mouseEventWorker() {
 			}
 
 			slog.Debug("Mouse event received", "event", event)
-			if m.mouseProfile == nil {
-				continue
-			}
 
 			go func(e listenertypes.ButtonEvent) {
-				// Check the current focus action with proper locking
-				m.currentProfilesLock.RLock()
-				shouldPlay := m.currentProfiles.Mouse != nil
-				m.currentProfilesLock.RUnlock()
-
-				// Only play the audio if the current focus action is not "Disable".
-				if shouldPlay {
-					sound, err := m.getAudioForButtonEvent(e)
-					if err != nil {
-						slog.Error("failed to get audio for button event", "error", err)
-						return
-					}
-
-					if sound == nil {
-						return
-					}
-
-					fx := audio.EffectsConfig{}
-
-					// Apply pitch shift effect
-					m.mousePitchShiftConfig.Lock.RLock()
-					pitchShiftEnabled := m.mousePitchShiftConfig.Enabled
-					fx.Pitch = lo.Ternary(pitchShiftEnabled, &audio.PitchConfig{
-						SemitoneRange: [2]float64{m.mousePitchShiftConfig.Lower, m.mousePitchShiftConfig.Upper},
-					}, nil)
-					m.mousePitchShiftConfig.Lock.RUnlock()
-
-					// Apply pan effect
-					m.mousePanConfig.Lock.RLock()
-					if m.mousePanConfig.Enabled {
-						fx.Pan = &audio.PanConfig{
-							Pan: rand.Float64()*2 - 1,
-						}
-					}
-					m.mousePanConfig.Lock.RUnlock()
-
-					// Apply equalizer effect
-					m.mouseEqualizerConfig.Lock.RLock()
-					fx.Equalizer = lo.Ternary(m.mouseEqualizerConfig.Enabled, m.mouseEqualizerConfig.Config.Copy(), nil)
-					m.mouseEqualizerConfig.Lock.RUnlock()
-
-					// Apply doppler effect
-					m.mouseDopplerConfig.Lock.RLock()
-					fx.Doppler = lo.Ternary(m.mouseDopplerConfig.Enabled, m.mouseDopplerConfig.Config.Copy(), nil)
-					m.mouseDopplerConfig.Lock.RUnlock()
-
-					// Apply volume effect
-					m.mouseVolumeLock.RLock()
-					fx.Volume = &audio.VolumeConfig{
-						Volume: m.mouseVolume,
-					}
-					m.mouseVolumeLock.RUnlock()
-
-					err = m.audioPlayer.Play(sound, fx)
-					if err != nil {
-						slog.Error("failed to play audio", "error", err)
-					}
+				if m.shouldPlayMouse() {
+					go m.playAudioForButtonEvent(e)
 				}
 			}(event)
 		}
+	}
+}
+
+// shouldPlayMouse checks if the audio should be played for the current mouse profile.
+//
+// It checks if a mouse profile is currently loaded into memory and if the currently
+// focused application has a mouse profile set.
+func (m *Manager) shouldPlayMouse() bool {
+	if m.mouseProfile != nil {
+		m.currentProfilesLock.RLock()
+		shouldPlay := m.currentProfiles.Mouse != nil
+		m.currentProfilesLock.RUnlock()
+
+		return shouldPlay
+	}
+
+	return false
+}
+
+// playAudioForButtonEvent plays audio for a mouse button event.
+//
+// Before playing the audio, this function applies any configured audio effects and volume to the audio.
+func (m *Manager) playAudioForButtonEvent(e listenertypes.ButtonEvent) {
+	sound, err := m.getAudioForButtonEvent(e)
+	if err != nil {
+		slog.Error("failed to get audio for button event", "error", err)
+		return
+	}
+
+	if sound == nil {
+		return
+	}
+
+	fx := audio.EffectsConfig{}
+
+	// Apply pitch shift effect
+	m.mousePitchShiftConfig.Lock.RLock()
+	pitchShiftEnabled := m.mousePitchShiftConfig.Enabled
+	fx.Pitch = lo.Ternary(pitchShiftEnabled, &audio.PitchConfig{
+		SemitoneRange: [2]float64{m.mousePitchShiftConfig.Lower, m.mousePitchShiftConfig.Upper},
+	}, nil)
+	m.mousePitchShiftConfig.Lock.RUnlock()
+
+	// Apply pan effect
+	m.mousePanConfig.Lock.RLock()
+	if m.mousePanConfig.Enabled {
+		fx.Pan = &audio.PanConfig{
+			Pan: rand.Float64()*2 - 1,
+		}
+	}
+	m.mousePanConfig.Lock.RUnlock()
+
+	// Apply equalizer effect
+	m.mouseEqualizerConfig.Lock.RLock()
+	fx.Equalizer = lo.Ternary(m.mouseEqualizerConfig.Enabled, m.mouseEqualizerConfig.Config.Copy(), nil)
+	m.mouseEqualizerConfig.Lock.RUnlock()
+
+	// Apply doppler effect
+	m.mouseDopplerConfig.Lock.RLock()
+	fx.Doppler = lo.Ternary(m.mouseDopplerConfig.Enabled, m.mouseDopplerConfig.Config.Copy(), nil)
+	m.mouseDopplerConfig.Lock.RUnlock()
+
+	// Apply volume effect
+	m.mouseVolumeLock.RLock()
+	fx.Volume = &audio.VolumeConfig{
+		Volume: m.mouseVolume,
+	}
+	m.mouseVolumeLock.RUnlock()
+
+	err = m.audioPlayer.Play(sound, fx)
+	if err != nil {
+		slog.Error("failed to play audio", "error", err)
 	}
 }
 

@@ -35,153 +35,118 @@ func (m *Manager) keyboardEventWorker() {
 			slog.Debug("Keyboard event received", "event", event)
 
 			go func(e listenertypes.KeyEvent) {
-				// Ignore key repeat.
-				if e.Action == listenertypes.ActionPress {
-					var keyDown bool
-					m.keyboardKeysDownLock.RLock()
-					if len(m.keyboardKeysDown) > 0 {
-						keyDown = lo.Contains(m.keyboardKeysDown, e.Key)
-					}
-					m.keyboardKeysDownLock.RUnlock()
-					if keyDown {
-						return
-					}
-				}
-
-				// Update the keys that are currently down.
-				m.keyboardKeysDownLock.Lock()
-
-				if e.Action == listenertypes.ActionPress {
-					m.keyboardKeysDown = append(m.keyboardKeysDown, e.Key)
-				} else {
-					m.keyboardKeysDown = lo.Filter(m.keyboardKeysDown, func(key key.Key, _ int) bool {
-						return key != e.Key
-					})
-				}
-
-				if m.GetOSKHelperEnabled() {
-					m.oskHelperLock.RLock()
-
-					if e.Action == listenertypes.ActionPress {
-						if len(m.keyboardKeysDown) > 1 && key.IsModifierKey(m.keyboardKeysDown[0]) {
-							err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, strings.Join(
-								lo.Map(m.keyboardKeysDown, func(key key.Key, _ int) string {
-									return key.Name
-								}),
-								" + ",
-							))
-							if err != nil {
-								slog.Error("failed to set on screen text", "error", err)
-							}
-						} else {
-							m.oskHelper.ClearOnScreenText()
-						}
-					} else {
-						if len(m.keyboardKeysDown) == 0 || !key.IsModifierKey(m.keyboardKeysDown[0]) {
-							m.oskHelper.ClearOnScreenText()
-						}
-					}
-
-					m.oskHelperLock.RUnlock()
-				}
-
-				m.keyboardKeysDownLock.Unlock()
-
-				// On release, determine if a hot key was triggered.
-				if e.Action == listenertypes.ActionRelease {
-					// Make a copy of the keys down to avoid race conditions.
-					m.keyboardKeysDownLock.RLock()
-					keysDown := make([]key.Key, len(m.keyboardKeysDown))
-					copy(keysDown, m.keyboardKeysDown)
-					m.keyboardKeysDownLock.RUnlock()
-
-					// TODO: Also copy hot key configs to avoid race conditions.
-
-					go func() {
-						err := hotkeys.GetHotKeys().Execute(hotkeys.ExecuteArg{
-							Event:    e,
-							KeysDown: keysDown,
-						})
-
-						if err != nil {
-							slog.Error("failed to execute hot key", "error", err)
-						}
-					}()
-				}
-
-				if m.keyboardProfile == nil {
+				if m.isKeyRepeat(e) {
 					return
 				}
 
-				// Check the current focus action with proper locking
-				m.currentProfilesLock.RLock()
-				shouldPlay := m.currentProfiles.Keyboard != nil
-				m.currentProfilesLock.RUnlock()
-
-				// Only play the audio if the current focus action is not "Disable".
-				if shouldPlay {
-					sound, err := m.getAudioForKeyEvent(e)
-					if err != nil {
-						slog.Error("failed to get audio for key event", "error", err)
-						return
-					}
-
-					if sound == nil {
-						return
-					}
-
-					fx := audio.EffectsConfig{}
-
-					// Apply pitch shift effect
-					m.keyboardPitchShiftConfig.Lock.RLock()
-					fx.Pitch = lo.Ternary(m.keyboardPitchShiftConfig.Enabled, &audio.PitchConfig{
-						SemitoneRange: [2]float64{m.keyboardPitchShiftConfig.Lower, m.keyboardPitchShiftConfig.Upper},
-					}, nil)
-					m.keyboardPitchShiftConfig.Lock.RUnlock()
-
-					// Apply pan effect
-					m.keyboardPanConfig.Lock.RLock()
-					audioPanEnabled := m.keyboardPanConfig.Enabled
-					var panValue float64
-					switch m.keyboardPanConfig.PanType {
-					case PanTypeRandom:
-						if audioPanEnabled {
-							panValue = rand.Float64()*2 - 1
-						}
-					case PanTypeKeyPosition:
-						if audioPanEnabled && e.Key.GetPosition() != nil {
-							panValue = key.PanValueForKeyPosition(*e.Key.GetPosition(), m.keyboardPanConfig.MaxX)
-						}
-					}
-					fx.Pan = lo.Ternary(audioPanEnabled && panValue != 0, &audio.PanConfig{
-						Pan: panValue,
-					}, nil)
-					m.keyboardPanConfig.Lock.RUnlock()
-
-					// Apply equalizer effect
-					m.keyboardEqualizerConfig.Lock.RLock()
-					fx.Equalizer = lo.Ternary(m.keyboardEqualizerConfig.Enabled, m.keyboardEqualizerConfig.Config.Copy(), nil)
-					m.keyboardEqualizerConfig.Lock.RUnlock()
-
-					// Apply doppler effect
-					m.keyboardDopplerConfig.Lock.RLock()
-					fx.Doppler = lo.Ternary(m.keyboardDopplerConfig.Enabled, m.keyboardDopplerConfig.Config.Copy(), nil)
-					m.keyboardDopplerConfig.Lock.RUnlock()
-
-					// Apply volume effect
-					m.keyboardVolumeLock.RLock()
-					fx.Volume = &audio.VolumeConfig{
-						Volume: m.keyboardVolume,
-					}
-					m.keyboardVolumeLock.RUnlock()
-
-					err = m.audioPlayer.Play(sound, fx)
-					if err != nil {
-						slog.Error("failed to play audio", "error", err)
-					}
+				if m.shouldPlayKeyboard() {
+					go m.playAudioForKeyEvent(e)
 				}
+
+				m.updateKeyboardKeysDown(e)
+				m.processOSKHelper(e)
+				m.processHotKeys(e)
 			}(event)
 		}
+	}
+}
+
+// isKeyRepeat checks if a given key event is a key repeat.
+func (m *Manager) isKeyRepeat(e listenertypes.KeyEvent) bool {
+	return e.Action == listenertypes.ActionPress && m.isKeyDown(e.Key)
+}
+
+// isKeyDown checks if a given key is currently down.
+func (m *Manager) isKeyDown(k key.Key) bool {
+	var keyDown bool
+
+	m.keyboardKeysDownLock.RLock()
+	if len(m.keyboardKeysDown) > 0 {
+		keyDown = lo.Contains(m.keyboardKeysDown, k)
+	}
+	m.keyboardKeysDownLock.RUnlock()
+
+	return keyDown
+}
+
+// shouldPlayKeyboard checks if the audio should be played for the current keyboard profile.
+//
+// It checks if a keyboard profile is currently loaded into memory and if the currently
+// focused application has a keyboard profile set.
+func (m *Manager) shouldPlayKeyboard() bool {
+	if m.keyboardProfile != nil {
+		m.currentProfilesLock.RLock()
+		shouldPlay := m.currentProfiles.Keyboard != nil
+		m.currentProfilesLock.RUnlock()
+
+		return shouldPlay
+	}
+
+	return false
+}
+
+// playAudioForKeyEvent plays the audio for a given key event.
+//
+// Before playing the audio, this function applies any configured audio effects and volume to the audio.
+func (m *Manager) playAudioForKeyEvent(e listenertypes.KeyEvent) {
+	sound, err := m.getAudioForKeyEvent(e)
+	if err != nil {
+		slog.Error("failed to get audio for key event", "error", err)
+		return
+	}
+
+	if sound == nil {
+		return
+	}
+
+	fx := audio.EffectsConfig{}
+
+	// Apply pitch shift effect
+	m.keyboardPitchShiftConfig.Lock.RLock()
+	fx.Pitch = lo.Ternary(m.keyboardPitchShiftConfig.Enabled, &audio.PitchConfig{
+		SemitoneRange: [2]float64{m.keyboardPitchShiftConfig.Lower, m.keyboardPitchShiftConfig.Upper},
+	}, nil)
+	m.keyboardPitchShiftConfig.Lock.RUnlock()
+
+	// Apply pan effect
+	m.keyboardPanConfig.Lock.RLock()
+	audioPanEnabled := m.keyboardPanConfig.Enabled
+	var panValue float64
+	switch m.keyboardPanConfig.PanType {
+	case PanTypeRandom:
+		if audioPanEnabled {
+			panValue = rand.Float64()*2 - 1
+		}
+	case PanTypeKeyPosition:
+		if audioPanEnabled && e.Key.GetPosition() != nil {
+			panValue = key.PanValueForKeyPosition(*e.Key.GetPosition(), m.keyboardPanConfig.MaxX)
+		}
+	}
+	fx.Pan = lo.Ternary(audioPanEnabled && panValue != 0, &audio.PanConfig{
+		Pan: panValue,
+	}, nil)
+	m.keyboardPanConfig.Lock.RUnlock()
+
+	// Apply equalizer effect
+	m.keyboardEqualizerConfig.Lock.RLock()
+	fx.Equalizer = lo.Ternary(m.keyboardEqualizerConfig.Enabled, m.keyboardEqualizerConfig.Config.Copy(), nil)
+	m.keyboardEqualizerConfig.Lock.RUnlock()
+
+	// Apply doppler effect
+	m.keyboardDopplerConfig.Lock.RLock()
+	fx.Doppler = lo.Ternary(m.keyboardDopplerConfig.Enabled, m.keyboardDopplerConfig.Config.Copy(), nil)
+	m.keyboardDopplerConfig.Lock.RUnlock()
+
+	// Apply volume effect
+	m.keyboardVolumeLock.RLock()
+	fx.Volume = &audio.VolumeConfig{
+		Volume: m.keyboardVolume,
+	}
+	m.keyboardVolumeLock.RUnlock()
+
+	err = m.audioPlayer.Play(sound, fx)
+	if err != nil {
+		slog.Error("failed to play audio", "error", err)
 	}
 }
 
@@ -260,4 +225,76 @@ func (m *Manager) getAudioForKeyEvent(event listenertypes.KeyEvent) (*audio.Audi
 	}
 
 	return nil, nil
+}
+
+// updateKeyboardKeysDown updates the keys that are currently down.
+func (m *Manager) updateKeyboardKeysDown(e listenertypes.KeyEvent) {
+	m.keyboardKeysDownLock.Lock()
+	if e.Action == listenertypes.ActionPress {
+		m.keyboardKeysDown = append(m.keyboardKeysDown, e.Key)
+	} else {
+		m.keyboardKeysDown = lo.Filter(m.keyboardKeysDown, func(key key.Key, _ int) bool {
+			return key != e.Key
+		})
+	}
+	m.keyboardKeysDownLock.Unlock()
+}
+
+// processOSKHelper processes the OSK helper for a given key event.
+//
+// This function is called to update the OSK helper with the current keys down.
+// If the OSK helper is enabled and a modifier key is pressed, this function will set the on screen text to the current keys down.
+// If the OSK helper is disabled or the modifier keys have been released, this function will clear the on screen text.
+func (m *Manager) processOSKHelper(e listenertypes.KeyEvent) {
+	m.keyboardKeysDownLock.RLock()
+	if m.GetOSKHelperEnabled() {
+		m.oskHelperLock.RLock()
+
+		if e.Action == listenertypes.ActionPress {
+			if len(m.keyboardKeysDown) > 1 && key.IsModifierKey(m.keyboardKeysDown[0]) {
+				err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, strings.Join(
+					lo.Map(m.keyboardKeysDown, func(key key.Key, _ int) string {
+						return key.Name
+					}),
+					" + ",
+				))
+				if err != nil {
+					slog.Error("failed to set on screen text", "error", err)
+				}
+			} else {
+				m.oskHelper.ClearOnScreenText()
+			}
+		} else {
+			if len(m.keyboardKeysDown) == 0 || !key.IsModifierKey(m.keyboardKeysDown[0]) {
+				m.oskHelper.ClearOnScreenText()
+			}
+		}
+
+		m.oskHelperLock.RUnlock()
+	}
+	m.keyboardKeysDownLock.RUnlock()
+}
+
+// processHotKeys processes the hot keys for a given key event.
+func (m *Manager) processHotKeys(e listenertypes.KeyEvent) {
+	if e.Action == listenertypes.ActionRelease {
+		// Make a copy of the keys down to avoid race conditions.
+		m.keyboardKeysDownLock.RLock()
+		keysDown := make([]key.Key, len(m.keyboardKeysDown))
+		copy(keysDown, m.keyboardKeysDown)
+		m.keyboardKeysDownLock.RUnlock()
+
+		// TODO: Also copy hot key configs to avoid race conditions.
+
+		go func() {
+			err := hotkeys.GetHotKeys().Execute(hotkeys.ExecuteArg{
+				Event:    e,
+				KeysDown: keysDown,
+			})
+
+			if err != nil {
+				slog.Error("failed to execute hot key", "error", err)
+			}
+		}()
+	}
 }
