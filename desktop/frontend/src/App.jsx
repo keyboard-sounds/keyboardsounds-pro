@@ -8,7 +8,8 @@ import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, Brow
 import { GetStartWithSystem, SetStartWithSystem } from '../wailsjs/go/main/App';
 import { GetState as GetAudioEffectsState, SetKeyboardPitchShift, SetKeyboardPan, SetKeyboardEqualizer, SetMousePitchShift, SetMousePan, SetMouseEqualizer } from '../wailsjs/go/app/AudioEffects';
 import { GetState as GetLibraryState, DeleteProfile, OpenProfileFolder, ImportProfile, ExportProfile } from '../wailsjs/go/app/Library';
-import { EventsOn } from '../wailsjs/runtime/runtime';
+import { EventsOn, Environment } from '../wailsjs/runtime/runtime';
+import { getMenuItemsForPlatform } from './constants';
 import { AddRuleModal } from './components/rules';
 import { initializeAnalytics } from './utils/analytics';
 import './App.css';
@@ -22,6 +23,26 @@ function App() {
   // Navigation state
   const [selectedTab, setSelectedTab] = useState('Application Rules');
   const mainContentRef = useRef(null);
+
+  // Platform (e.g. 'linux', 'windows', 'darwin') for conditional UI
+  const [platform, setPlatform] = useState('');
+  const menuItemsToShow = getMenuItemsForPlatform(platform);
+
+  // Detect platform on mount
+  useEffect(() => {
+    Environment().then((env) => setPlatform(env.platform || ''));
+  }, []);
+
+  // On Linux, Application Rules and On-Screen Modifiers are hidden; ensure selected tab is valid
+  useEffect(() => {
+    if (platform === 'linux') {
+      const items = getMenuItemsForPlatform('linux');
+      if (items.length > 0) {
+        const validNames = new Set(items.map((item) => item.name));
+        setSelectedTab((prev) => (validNames.has(prev) ? prev : items[0].name));
+      }
+    }
+  }, [platform]);
 
   // Scroll to top when changing pages
   useEffect(() => {
@@ -798,6 +819,8 @@ function App() {
 
       {/* Sidebar */}
       <Sidebar
+        menuItems={menuItemsToShow}
+        platform={platform}
         selectedTab={selectedTab}
         setSelectedTab={setSelectedTab}
         isPaused={isPaused}

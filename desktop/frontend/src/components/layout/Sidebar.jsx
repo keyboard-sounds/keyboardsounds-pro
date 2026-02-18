@@ -2,8 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 import StatusBox from './StatusBox';
 import SidebarMenu from './SidebarMenu';
+import { menuItems as defaultMenuItems } from '../../constants';
 
 function Sidebar({
+  menuItems = defaultMenuItems,
+  platform = '',
   selectedTab,
   setSelectedTab,
   isPaused,
@@ -101,6 +104,7 @@ function Sidebar({
         }}
       >
         <StatusBox
+          platform={platform}
           isPaused={isPaused}
           setIsPaused={setIsPaused}
           keyboardVolume={keyboardVolume}
@@ -124,6 +128,7 @@ function Sidebar({
           isLoading={isLoading}
         />
         <SidebarMenu
+          menuItems={menuItems}
           selectedTab={selectedTab}
           setSelectedTab={setSelectedTab}
         />

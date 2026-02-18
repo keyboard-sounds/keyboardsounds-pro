@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	rt "runtime"
 	"strings"
 	"sync"
 
@@ -227,7 +228,14 @@ func main() {
 
 	// Initialize systray
 	onReady, onExit := systray.RunWithExternalLoop(func() {
-		systray.SetIcon(sysTrayIcon)
+		switch rt.GOOS {
+		case "linux":
+			// Linux requires a PNG icon.
+			systray.SetIcon(notifIcon)
+		default:
+			systray.SetIcon(sysTrayIcon)
+		}
+
 		systray.SetTitle("Keyboard Sounds Pro")
 		systray.SetTooltip("Keyboard Sounds Pro")
 		systray.SetOnTapped(func() {
@@ -316,7 +324,9 @@ func main() {
 	}
 
 	// Cleanup systray on exit
-	onExit()
+	if rt.GOOS != "linux" {
+		onExit()
+	}
 
 	if err != nil {
 		println("Error:", err.Error())
