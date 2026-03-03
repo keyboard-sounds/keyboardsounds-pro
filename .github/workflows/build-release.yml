@@ -171,13 +171,8 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Add jammy apt repository
-        run: |
-          sudo add-apt-repository "deb http://gb.archive.ubuntu.com/ubuntu jammy main";
-          sudo apt update;
-
-      - name: Install libwebkit2gtk-4.0-dev
-        run: sudo apt install libwebkit2gtk-4.0-dev
+      - name: Install libwebkit2gtk-4.1-dev
+        run: sudo apt install libwebkit2gtk-4.1-dev
 
       - name: Install alsa
         run: sudo apt install libasound2-dev
