@@ -3,10 +3,7 @@
 [![Discord](https://img.shields.io/badge/-Join%20the%20Community-gray?logo=discord&logoColor=%23ffffff&labelColor=%235865f2)](https://discord.gg/gysskqts6z)
 [![Sponsor Me](https://img.shields.io/badge/%F0%9F%92%B8-Sponsor%20Me!-blue)](https://github.com/sponsors/nathan-fiscaletti)
 
-> [!WARNING]\
-> Keyboard Sounds Pro is currently in beta. If you have issues, please report them [here](https://github.com/keyboard-sounds/keyboardsounds-pro/issues).
-
-Keyboard Sounds Pro is a desktop application that will play customizable keyboard and mouse sounds while you work.
+Keyboard Sounds Pro is a **free** desktop application that will play customizable keyboard and mouse sounds while you work.
 
 ![Keyboard Sounds Pro](./images/preview.png)
 
