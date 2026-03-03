@@ -9,7 +9,7 @@ if [ -z "$1" ]; then
 fi
 
 # Replace version in wails.json
-sed -i "16s/dev/$1" wails.json
+sed -i "16s/dev/$1/" wails.json
 
 # Build it using wails build
 wails build -tags webkit2_41
