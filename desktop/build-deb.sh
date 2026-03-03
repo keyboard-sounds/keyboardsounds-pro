@@ -9,7 +9,7 @@ if [ -z "$1" ]; then
 fi
 
 # Build it using wails build
-wails build
+wails build -tags webkit2_41
 
 # Rename the binary to kbs-pro
 mv ./build/bin/Keyboard\ Sounds\ Pro ./build/bin/kbs-pro

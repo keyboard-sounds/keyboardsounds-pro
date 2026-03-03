@@ -11,6 +11,15 @@ Keyboard Sounds Pro is a **free** desktop application that will play customizabl
 
 Download the latest release from the [releases page](https://github.com/keyboard-sounds/keyboardsounds-pro/releases/latest).
 
+> [!IMPORTANT]
+> On Linux, in order for the application to detect your input devices your user must be added to the `input` group through `usermod`.
+> 
+> ```
+> sudo usermod -aG input $USER
+> ```
+> 
+> After adding your user to the `input` group, you may need to reboot your system for the changes to take effect.
+
 ## Features
 
 - Play customizable keyboard and mouse sounds while you work.
