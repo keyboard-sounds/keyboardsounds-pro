@@ -58,6 +58,7 @@ type UIPreferences struct {
 	StartHidden              bool                    `json:"startHidden"`
 	NotifyOnUpdate           bool                    `json:"notifyOnUpdate"`
 	NotifyOnMinimize         bool                    `json:"notifyOnMinimize"`
+	CustomTitleBarEnabled    bool                    `json:"customTitleBarEnabled"`
 	AudioEffects             AudioEffectsPreferences `json:"audioEffects"`
 	Volume                   VolumePreferences       `json:"volume"`
 	OSKHelper                OSKHelperPreferences    `json:"oskHelper"`
@@ -87,6 +88,7 @@ func loadUIPreferences() {
 		StartHidden:          false,
 		NotifyOnUpdate:       true,
 		NotifyOnMinimize:     true,
+		CustomTitleBarEnabled: true,
 		AudioEffects: AudioEffectsPreferences{
 			KeyboardPitchShift: PitchShiftState{Enabled: false, Lower: -3, Upper: 3},
 			KeyboardPan:        PanState{Enabled: false, PanType: "key-position", MaxX: 14},
@@ -267,6 +269,26 @@ func GetNotifyOnMinimize() bool {
 func SetNotifyOnMinimize(notify bool) error {
 	uiPrefsLock.Lock()
 	uiPrefs.NotifyOnMinimize = notify
+	uiPrefsLock.Unlock()
+
+	return saveUIPreferences()
+}
+
+// GetCustomTitleBarEnabled returns whether the custom title bar is enabled (when true, frameless window with custom title bar; when false, system title bar)
+func GetCustomTitleBarEnabled() bool {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+
+	if uiPrefs == nil {
+		return true
+	}
+	return uiPrefs.CustomTitleBarEnabled
+}
+
+// SetCustomTitleBarEnabled sets whether the custom title bar is enabled. A restart is required for the change to take effect.
+func SetCustomTitleBarEnabled(enabled bool) error {
+	uiPrefsLock.Lock()
+	uiPrefs.CustomTitleBarEnabled = enabled
 	uiPrefsLock.Unlock()
 
 	return saveUIPreferences()

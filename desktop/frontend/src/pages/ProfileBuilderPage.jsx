@@ -433,7 +433,7 @@ function DirectorySelectionStep({ profileType, onBack, onSelect }) {
 }
 
 // Source Modal Component
-function SourceModal({ open, onClose, onSave, source, audioFiles, existingSources }) {
+function SourceModal({ open, onClose, onSave, source, audioFiles, existingSources, customTitleBarEnabled = true }) {
   const [name, setName] = useState('');
   const [pressSound, setPressSound] = useState('');
   const [releaseSound, setReleaseSound] = useState('');
@@ -491,7 +491,7 @@ function SourceModal({ open, onClose, onSave, source, audioFiles, existingSource
         onClick={(e) => e.target === e.currentTarget && onClose()}
         sx={{
           position: 'fixed',
-          top: '40px',
+          top: customTitleBarEnabled ? '40px' : 0,
           left: 0,
           right: 0,
           bottom: 0,
@@ -731,7 +731,7 @@ function SourceModal({ open, onClose, onSave, source, audioFiles, existingSource
 }
 
 // Key Assignment Modal
-function KeyAssignmentModal({ open, onClose, selectedKeys, sources, keyAssignments, onSave }) {
+function KeyAssignmentModal({ open, onClose, selectedKeys, sources, keyAssignments, onSave, customTitleBarEnabled = true }) {
   const [selectedSources, setSelectedSources] = useState([]);
 
   useEffect(() => {
@@ -771,7 +771,7 @@ function KeyAssignmentModal({ open, onClose, selectedKeys, sources, keyAssignmen
         onClick={(e) => e.target === e.currentTarget && onClose()}
         sx={{
           position: 'fixed',
-          top: '40px',
+          top: customTitleBarEnabled ? '40px' : 0,
           left: 0,
           right: 0,
           bottom: 0,
@@ -1048,7 +1048,7 @@ function KeyboardSection({ layout, selectedKeys, keyAssignments, onKeyClick, sx 
 }
 
 // Build Profile Modal
-function BuildProfileModal({ open, onClose, onBuild, metadata, setMetadata, profileType, isBuilding, buildError }) {
+function BuildProfileModal({ open, onClose, onBuild, metadata, setMetadata, profileType, isBuilding, buildError, customTitleBarEnabled = true }) {
   const [error, setError] = useState('');
 
   const handleBuild = () => {
@@ -1071,7 +1071,7 @@ function BuildProfileModal({ open, onClose, onBuild, metadata, setMetadata, prof
         onClick={(e) => e.target === e.currentTarget && onClose()}
         sx={{
           position: 'fixed',
-          top: '40px',
+          top: customTitleBarEnabled ? '40px' : 0,
           left: 0,
           right: 0,
           bottom: 0,
@@ -1283,7 +1283,7 @@ function BuildProfileModal({ open, onClose, onBuild, metadata, setMetadata, prof
 }
 
 // Step 3: Profile Editor
-function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFiles, onBack, onSuccess }) {
+function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFiles, onBack, onSuccess, customTitleBarEnabled = true }) {
   const [audioFiles, setAudioFiles] = useState(initialAudioFiles);
   const [sources, setSources] = useState([]);
   const [metadata, setMetadata] = useState({ name: '', description: '', author: '' });
@@ -1872,6 +1872,7 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
         source={editingSource}
         audioFiles={audioFiles}
         existingSources={sources}
+        customTitleBarEnabled={customTitleBarEnabled}
       />
 
       {/* Key Assignment Modal */}
@@ -1882,6 +1883,7 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
         sources={sources}
         keyAssignments={keyAssignments}
         onSave={handleSaveKeyAssignments}
+        customTitleBarEnabled={customTitleBarEnabled}
       />
 
       {/* Build Profile Modal */}
@@ -1897,6 +1899,7 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
         profileType={profileType}
         isBuilding={isBuilding}
         buildError={buildError}
+        customTitleBarEnabled={customTitleBarEnabled}
       />
     </Box>
   );
@@ -2116,7 +2119,7 @@ function SuccessMessage({ profile, onDismiss, onGoToLibrary }) {
 }
 
 // Main Component
-function ProfileBuilderPage({ onProfileCreated, onNavigateToLibrary }) {
+function ProfileBuilderPage({ onProfileCreated, onNavigateToLibrary, customTitleBarEnabled = true }) {
   const [step, setStep] = useState('type'); // 'type', 'directory', 'editor', 'success'
   const [profileType, setProfileType] = useState(null);
   const [directory, setDirectory] = useState('');
@@ -2192,6 +2195,7 @@ function ProfileBuilderPage({ onProfileCreated, onNavigateToLibrary }) {
           audioFiles={audioFiles}
           onBack={handleBack}
           onSuccess={handleBuildSuccess}
+          customTitleBarEnabled={customTitleBarEnabled}
         />
       );
     case 'success':

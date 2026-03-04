@@ -274,12 +274,15 @@ func main() {
 	// Get StartHidden preference
 	startHidden := app.GetStartHidden()
 
+	// Custom title bar requires frameless window; system title bar uses native window chrome
+	enableCustomTitleBar := app.GetCustomTitleBarEnabled()
+
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:       "Keyboard Sounds Pro",
 		Width:       1250,
 		Height:      768,
-		Frameless:   true,
+		Frameless:   enableCustomTitleBar,
 		StartHidden: startHidden,
 		AssetServer: &assetserver.Options{
 			Assets: assets,

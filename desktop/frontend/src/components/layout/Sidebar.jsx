@@ -5,6 +5,7 @@ import SidebarMenu from './SidebarMenu';
 import { menuItems as defaultMenuItems } from '../../constants';
 
 function Sidebar({
+  customTitleBarEnabled = true,
   menuItems = defaultMenuItems,
   platform = '',
   selectedTab,
@@ -78,8 +79,8 @@ function Sidebar({
         width: `${sidebarWidth}px`,
         flexShrink: 0,
         position: 'relative',
-        marginTop: '40px',
-        height: 'calc(100vh - 40px)',
+        marginTop: customTitleBarEnabled ? '40px' : 0,
+        height: customTitleBarEnabled ? 'calc(100vh - 40px)' : '100vh',
         overflow: 'visible',
         zIndex: 1000,
       }}
