@@ -186,6 +186,16 @@ func (a *AppRules) SetStartHidden(startHidden bool) error {
 	return SetStartHidden(startHidden)
 }
 
+// GetCustomTitleBarEnabled returns whether the custom title bar is enabled
+func (a *AppRules) GetCustomTitleBarEnabled() bool {
+	return GetCustomTitleBarEnabled()
+}
+
+// SetCustomTitleBarEnabled sets whether the custom title bar is enabled. A restart is required for the change to take effect.
+func (a *AppRules) SetCustomTitleBarEnabled(enabled bool) error {
+	return SetCustomTitleBarEnabled(enabled)
+}
+
 // GetInstalledApplications returns a list of installed applications on the system
 func (a *AppRules) GetInstalledApplications() []rules.InstalledApplication {
 	return rules.GetInstalledApplications()

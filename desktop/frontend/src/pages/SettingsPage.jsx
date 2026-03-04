@@ -26,6 +26,8 @@ function SettingsPage({
   setNotifyOnMinimize,
   notifyOnUpdate,
   setNotifyOnUpdate,
+  customTitleBarEnabled,
+  onCustomTitleBarChange,
 }) {
   const { theme, setTheme } = useTheme();
   const [version, setVersion] = useState('Loading...');
@@ -77,7 +79,7 @@ function SettingsPage({
         </Typography>
 
         {/* Theme Selection */}
-        <Box sx={{ marginBottom: '20px' }}>
+        <Box sx={{ marginBottom: '28px' }}>
           <Typography
             sx={{
               color: 'var(--text-primary)',
@@ -86,7 +88,7 @@ function SettingsPage({
               marginBottom: '6px',
             }}
           >
-            Theme
+            Application Theme
           </Typography>
           <Typography
             sx={{
@@ -174,6 +176,52 @@ function SettingsPage({
               </Typography>
             </Box>
           </Box>
+        </Box>
+
+        {/* Custom Title Bar */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ flexGrow: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <Typography
+                sx={{
+                  color: 'var(--text-primary)',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                }}
+              >
+                Use Custom Title Bar
+              </Typography>
+              <Chip
+                label="Restart required"
+                size="small"
+                sx={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  height: '20px',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--input-border)',
+                  '& .MuiChip-label': {
+                    px: '8px',
+                    marginTop: '2px',
+                  },
+                }}
+              />
+            </Box>
+            <Typography
+              sx={{
+                color: 'var(--text-tertiary)',
+                fontSize: '13px',
+              }}
+            >
+              Use the application's custom title bar. When disabled, the system title bar is used.
+            </Typography>
+          </Box>
+          <Switch
+            checked={customTitleBarEnabled}
+            onChange={(e) => onCustomTitleBarChange(e.target.checked)}
+            sx={greenSwitchStyle}
+          />
         </Box>
       </GlassCard>
 

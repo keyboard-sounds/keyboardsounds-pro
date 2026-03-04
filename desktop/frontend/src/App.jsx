@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Box } from '@mui/material';
+import { Box, Divider, Fade, IconButton, Tooltip, Typography } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { TitleBar, Sidebar } from './components/layout';
 import { AudioEffectsPage, ApplicationRulesPage, LibraryPage, SettingsPage, PlaceholderPage, CommunityPage, ProfileBuilderPage, HotkeysPage, OSKHelperPage } from './pages';
 import { defaultEqualizerBands } from './constants';
 import { GetState, Enable, Disable, SetKeyboardVolume, SetMouseVolume, SetDefaultKeyboardProfile, SetDefaultMouseProfile, ClearDefaultKeyboardProfile, ClearDefaultMouseProfile, ToggleMuteKeyboard, ToggleMuteMouse, MuteKeyboard, UnmuteKeyboard, MuteMouse, UnmuteMouse } from '../wailsjs/go/app/StatusPanel';
-import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden } from '../wailsjs/go/app/AppRules';
-import { GetStartWithSystem, SetStartWithSystem } from '../wailsjs/go/main/App';
+import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden, GetCustomTitleBarEnabled, SetCustomTitleBarEnabled } from '../wailsjs/go/app/AppRules';
+import { GetStartWithSystem, SetStartWithSystem, ShouldShowInputGroupWarning, CloseApplication } from '../wailsjs/go/main/App';
 import { GetState as GetAudioEffectsState, SetKeyboardPitchShift, SetKeyboardPan, SetKeyboardEqualizer, SetMousePitchShift, SetMousePan, SetMouseEqualizer } from '../wailsjs/go/app/AudioEffects';
 import { GetState as GetLibraryState, DeleteProfile, OpenProfileFolder, ImportProfile, ExportProfile } from '../wailsjs/go/app/Library';
 import { EventsOn, Environment } from '../wailsjs/runtime/runtime';
@@ -141,6 +143,16 @@ function App() {
         // Load start with system preference
         const startWithSystemValue = await GetStartWithSystem();
         setStartWithSystem(startWithSystemValue);
+
+        // Load custom title bar preference (frameless vs system title bar - set at startup, requires restart to change)
+        const customTitleBarValue = await GetCustomTitleBarEnabled();
+        setCustomTitleBarEnabled(customTitleBarValue);
+
+        // On Linux, check if user is in input group; show modal if not
+        const showInputGroupWarning = await ShouldShowInputGroupWarning();
+        if (showInputGroupWarning) {
+          setInputGroupWarningOpen(true);
+        }
         
         // Initialize analytics tracking (sends ping if needed and schedules future pings)
         initializeAnalytics();
@@ -497,6 +509,17 @@ function App() {
   const [rules, setRules] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddRuleModalOpen, setIsAddRuleModalOpen] = useState(false);
+
+  // Linux input group warning (shown when user is not in input group)
+  const [inputGroupWarningOpen, setInputGroupWarningOpen] = useState(false);
+  const [inputGroupCommandCopied, setInputGroupCommandCopied] = useState(false);
+  const INPUT_GROUP_COMMAND = 'sudo usermod -aG input $USER';
+  const handleCopyInputGroupCommand = useCallback(() => {
+    navigator.clipboard.writeText(INPUT_GROUP_COMMAND).then(() => {
+      setInputGroupCommandCopied(true);
+      setTimeout(() => setInputGroupCommandCopied(false), 2000);
+    });
+  }, []);
   
   // Settings state
   const [audioDevice, setAudioDevice] = useState('default');
@@ -505,6 +528,8 @@ function App() {
   const [startHidden, setStartHidden] = useState(false);
   const [notifyOnMinimize, setNotifyOnMinimizeState] = useState(true);
   const [notifyOnUpdate, setNotifyOnUpdateState] = useState(true);
+  const [customTitleBarEnabled, setCustomTitleBarEnabled] = useState(true);
+  const [restartDialogOpen, setRestartDialogOpen] = useState(false);
 
   // Handlers for rules
   const handleAddRule = () => {
@@ -722,6 +747,7 @@ function App() {
               onBrowse={handleBrowseForExecutable}
               keyboardProfiles={keyboardProfiles}
               mouseProfiles={mouseProfiles}
+              customTitleBarEnabled={customTitleBarEnabled}
             />
           </>
         );
@@ -792,6 +818,15 @@ function App() {
                 console.error('Failed to set notify on update preference:', error);
               }
             }}
+            customTitleBarEnabled={customTitleBarEnabled}
+            onCustomTitleBarChange={async (value) => {
+              try {
+                await SetCustomTitleBarEnabled(value);
+                setRestartDialogOpen(true);
+              } catch (error) {
+                console.error('Failed to set custom title bar preference:', error);
+              }
+            }}
           />
         );
       case 'Community':
@@ -805,6 +840,7 @@ function App() {
           <ProfileBuilderPage
             onProfileCreated={refreshProfiles}
             onNavigateToLibrary={() => setSelectedTab('Library')}
+            customTitleBarEnabled={customTitleBarEnabled}
           />
         );
       default:
@@ -814,11 +850,201 @@ function App() {
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* Custom Title Bar */}
-      <TitleBar />
+      {/* Linux input group warning modal - custom overlay like AddRuleModal (top: 40px keeps title bar draggable) */}
+      {/* Non-dismissable restart dialog - shown when custom title bar setting is toggled */}
+      {restartDialogOpen && (
+        <Fade in={restartDialogOpen} timeout={200}>
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1400,
+            }}
+          >
+            <Box
+              sx={{
+                width: '400px',
+                maxWidth: 'calc(100vw - 48px)',
+                background: 'var(--card-bg)',
+                backdropFilter: 'blur(25px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(25px) saturate(180%)',
+                borderRadius: '20px',
+                boxShadow: '0 24px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--card-border), inset 0 1px 0 var(--card-highlight)',
+                border: '1px solid var(--card-border)',
+                overflow: 'hidden',
+                padding: '24px',
+              }}
+            >
+              <Typography sx={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>
+                Restart Required
+              </Typography>
+              <Typography sx={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
+                The custom title bar setting has been saved. Close the application and start it again manually for the change to take effect.
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Box
+                  component="button"
+                  onClick={() => {
+                    CloseApplication();
+                  }}
+                  sx={{
+                    padding: '10px 24px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: 'white',
+                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-dark, #0d9488) 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px var(--accent-shadow)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, var(--accent-primary-hover) 0%, var(--accent-primary) 100%)',
+                      boxShadow: '0 6px 16px var(--accent-shadow)',
+                      transform: 'translateY(-1px)',
+                    },
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  Close Application
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+        </Fade>
+      )}
+
+      {inputGroupWarningOpen && (
+        <Fade in={inputGroupWarningOpen} timeout={200}>
+          <Box
+            sx={{
+              position: 'fixed',
+              top: customTitleBarEnabled ? '40px' : 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1200,
+            }}
+          >
+            <Box
+              onClick={(e) => e.stopPropagation()}
+              sx={{
+                width: '500px',
+                maxWidth: 'calc(100vw - 48px)',
+                background: 'var(--card-bg)',
+                backdropFilter: 'blur(25px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(25px) saturate(180%)',
+                borderRadius: '20px',
+                boxShadow: '0 24px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--card-border), inset 0 1px 0 var(--card-highlight)',
+                border: '1px solid var(--card-border)',
+                overflow: 'hidden',
+                animation: 'modalSlideIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                '@keyframes modalSlideIn': {
+                  '0%': { opacity: 0, transform: 'scale(0.95) translateY(-20px)' },
+                  '100%': { opacity: 1, transform: 'scale(1) translateY(0)' },
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '24px 24px 16px',
+                  borderBottom: '1px solid var(--card-border)',
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--danger-bg)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                  }}
+                >
+                  <WarningAmberIcon sx={{ fontSize: '22px', color: 'var(--danger)' }} />
+                </Box>
+                <Typography sx={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                  Input Group Required
+                </Typography>
+              </Box>
+              <Box sx={{ padding: '24px' }}>
+                <Typography sx={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6 }}>
+                  You must be a member of the &quot;input&quot; user group for Keyboard Sounds Pro to function. The app relies on the Linux input subsystem to capture keyboard and mouse events.
+                </Typography>
+                <Divider sx={{marginTop: '8px', marginBottom: '8px', background: 'var(--card-border)' }} />
+                <Typography sx={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginTop: '12px' }}>
+                  To add yourself to the input group, run this command:
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    backgroundColor: 'var(--card-border)',
+                    padding: '12px 12px 12px 16px',
+                    borderRadius: '8px',
+                    margin: '12px 0',
+                  }}
+                >
+                  <Box
+                    component="code"
+                    sx={{
+                      flex: 1,
+                      fontFamily: 'monospace',
+                      fontSize: '13px',
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {INPUT_GROUP_COMMAND}
+                  </Box>
+                  <Tooltip title={inputGroupCommandCopied ? 'Copied!' : 'Copy'} arrow placement="left">
+                    <IconButton
+                      size="small"
+                      onClick={handleCopyInputGroupCommand}
+                      sx={{
+                        color: 'var(--text-secondary)',
+                        '&:hover': { color: 'var(--text-primary)', backgroundColor: 'var(--card-bg)' },
+                      }}
+                      aria-label="Copy command"
+                    >
+                      <ContentCopyIcon sx={{ fontSize: '18px' }} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Typography sx={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6 }}>
+                  After running the command, you must reboot your system for the change to take effect.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Fade>
+      )}
+
+      {/* Custom Title Bar - only shown when enabled (frameless window); when disabled, system title bar is used */}
+      {customTitleBarEnabled && <TitleBar />}
 
       {/* Sidebar */}
       <Sidebar
+        customTitleBarEnabled={customTitleBarEnabled}
         menuItems={menuItemsToShow}
         platform={platform}
         selectedTab={selectedTab}
@@ -853,8 +1079,8 @@ function App() {
         sx={{
           flexGrow: 1,
           background: 'var(--bg-gradient)',
-          marginTop: '40px',
-          height: 'calc(100vh - 40px)',
+          marginTop: customTitleBarEnabled ? '40px' : 0,
+          height: customTitleBarEnabled ? 'calc(100vh - 40px)' : '100vh',
           overflow: 'auto',
           padding: '32px 40px',
           position: 'relative',

@@ -35,6 +35,7 @@ function AddRuleModal({
   onBrowse,
   keyboardProfiles,
   mouseProfiles,
+  customTitleBarEnabled = true,
 }) {
   const [appPath, setAppPath] = useState('');
   const [keyboardProfile, setKeyboardProfile] = useState('None');
@@ -230,7 +231,7 @@ function AddRuleModal({
         onClick={handleBackdropClick}
         sx={{
           position: 'fixed',
-          top: '40px', // Start below title bar
+          top: customTitleBarEnabled ? '40px' : 0,
           left: 0,
           right: 0,
           bottom: 0,
