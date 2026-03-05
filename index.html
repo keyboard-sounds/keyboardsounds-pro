@@ -60,7 +60,7 @@
 
   <main>
     <section class="hero">
-      <div class="hero-container">
+      <div class="hero-container scroll-reveal">
       <div class="hero-content">
         <h1>Type. Click. <span class="highlight">Sound.</span></h1>
         <p class="hero-tagline">A free desktop app that plays customizable keyboard and mouse sounds while you work. Make every keystroke satisfying.</p>
@@ -92,11 +92,11 @@
       </div>
     </section>
 
-    <hr class="section-divider">
+    <hr class="section-divider scroll-reveal">
 
     <section id="features" class="feature-showcase">
-      <h2>Features</h2>
-      <article class="showcase-item">
+      <h2 class="scroll-reveal">Features</h2>
+      <article class="showcase-item scroll-reveal">
         <div class="showcase-image">
           <img src="images/app-rules-rounded-shadow.png" alt="Application rules">
         </div>
@@ -107,7 +107,7 @@
         </div>
       </article>
 
-      <article class="showcase-item reverse">
+      <article class="showcase-item reverse scroll-reveal">
         <div class="showcase-image">
           <img src="images/on-screen-modifiers.png" alt="On-screen modifiers">
         </div>
@@ -118,7 +118,7 @@
         </div>
       </article>
 
-      <article class="showcase-item">
+      <article class="showcase-item scroll-reveal">
         <div class="showcase-image">
           <img src="images/audio-effects-rounded-shadow.png" alt="Audio effects">
         </div>
@@ -128,7 +128,7 @@
         </div>
       </article>
 
-      <article class="showcase-item reverse">
+      <article class="showcase-item reverse scroll-reveal">
         <div class="showcase-image">
           <img src="images/library-rounded-shadow.png" alt="Library with custom profiles">
         </div>
@@ -138,7 +138,7 @@
         </div>
       </article>
 
-      <article class="showcase-item">
+      <article class="showcase-item scroll-reveal">
         <div class="showcase-image">
           <img src="images/profile-builder-rounded-shadow.png" alt="Profile builder">
         </div>
@@ -149,11 +149,11 @@
       </article>
     </section>
 
-    <hr class="section-divider">
+    <hr class="section-divider scroll-reveal">
 
     <section id="comparison" class="comparison">
-      <h2>Keyboard Sounds Pro vs. Other Apps</h2>
-      <div class="comparison-card">
+      <h2 class="scroll-reveal">Keyboard Sounds Pro vs. Other Apps</h2>
+      <div class="comparison-card scroll-reveal">
         <div class="comparison-table-wrap">
           <table class="comparison-table">
             <thead>
@@ -269,11 +269,11 @@
       </div>
     </section>
 
-    <hr class="section-divider">
+    <hr class="section-divider scroll-reveal">
 
     <section id="discord" class="discord-community">
-      <h2 class="discord-community-title">Community</h2>
-      <div class="discord-card">
+      <h2 class="discord-community-title scroll-reveal">Community</h2>
+      <div class="discord-card scroll-reveal">
         <div class="discord-hero">
           <div class="discord-logo-wrap">
             <svg class="discord-logo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -363,7 +363,7 @@
       </div>
     </section>
 
-    <section class="footer">
+    <section class="footer scroll-reveal">
       <div class="footer-links">
         <a href="https://github.com/keyboard-sounds/keyboardsounds-pro" target="_blank" rel="noopener">GitHub</a>
         <a href="https://discord.gg/gysskqts6z" target="_blank" rel="noopener">Discord</a>
@@ -395,6 +395,18 @@
           if (typeof online === 'number') onlineEl.textContent = online.toLocaleString();
         })
         .catch(function() {});
+    })();
+    (function() {
+      var reveals = document.querySelectorAll('.scroll-reveal');
+      if (!reveals.length) return;
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      }, { rootMargin: '0px 0px -60px 0px', threshold: 0 });
+      reveals.forEach(function(el) { observer.observe(el); });
     })();
   </script>
 </body>
