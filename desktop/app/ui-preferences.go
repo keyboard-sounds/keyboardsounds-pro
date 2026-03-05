@@ -58,6 +58,7 @@ type UIPreferences struct {
 	StartHidden              bool                    `json:"startHidden"`
 	NotifyOnUpdate           bool                    `json:"notifyOnUpdate"`
 	NotifyOnMinimize         bool                    `json:"notifyOnMinimize"`
+	SystemTrayEnabled        bool                    `json:"systemTrayEnabled"`
 	CustomTitleBarEnabled    bool                    `json:"customTitleBarEnabled"`
 	AudioEffects             AudioEffectsPreferences `json:"audioEffects"`
 	Volume                   VolumePreferences       `json:"volume"`
@@ -88,6 +89,7 @@ func loadUIPreferences() {
 		StartHidden:          false,
 		NotifyOnUpdate:       true,
 		NotifyOnMinimize:     true,
+		SystemTrayEnabled:    true,
 		CustomTitleBarEnabled: true,
 		AudioEffects: AudioEffectsPreferences{
 			KeyboardPitchShift: PitchShiftState{Enabled: false, Lower: -3, Upper: 3},
@@ -269,6 +271,26 @@ func GetNotifyOnMinimize() bool {
 func SetNotifyOnMinimize(notify bool) error {
 	uiPrefsLock.Lock()
 	uiPrefs.NotifyOnMinimize = notify
+	uiPrefsLock.Unlock()
+
+	return saveUIPreferences()
+}
+
+// GetSystemTrayEnabled returns whether the system tray icon is enabled
+func GetSystemTrayEnabled() bool {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+
+	if uiPrefs == nil {
+		return true
+	}
+	return uiPrefs.SystemTrayEnabled
+}
+
+// SetSystemTrayEnabled sets whether the system tray icon is enabled. When disabled, closing the window quits the application.
+func SetSystemTrayEnabled(enabled bool) error {
+	uiPrefsLock.Lock()
+	uiPrefs.SystemTrayEnabled = enabled
 	uiPrefsLock.Unlock()
 
 	return saveUIPreferences()

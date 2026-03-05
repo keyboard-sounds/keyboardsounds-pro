@@ -22,6 +22,8 @@ function SettingsPage({
   setStartPlayingOnLaunch,
   startHidden,
   setStartHidden,
+  systemTrayEnabled,
+  setSystemTrayEnabled,
   notifyOnMinimize,
   setNotifyOnMinimize,
   notifyOnUpdate,
@@ -298,7 +300,7 @@ function SettingsPage({
         </Box>
 
         {/* Hide On Launch */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <Box sx={{ flexGrow: 1 }}>
             <Typography
               sx={{
@@ -322,6 +324,52 @@ function SettingsPage({
           <Switch
             checked={startHidden}
             onChange={(e) => setStartHidden(e.target.checked)}
+            sx={greenSwitchStyle}
+          />
+        </Box>
+
+        {/* System Tray */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ flexGrow: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <Typography
+                sx={{
+                  color: 'var(--text-primary)',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                }}
+              >
+                System Tray Icon
+              </Typography>
+              <Chip
+                label="Restart required"
+                size="small"
+                sx={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  height: '20px',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--input-border)',
+                  '& .MuiChip-label': {
+                    px: '8px',
+                    marginTop: '2px',
+                  },
+                }}
+              />
+            </Box>
+            <Typography
+              sx={{
+                color: 'var(--text-tertiary)',
+                fontSize: '13px',
+              }}
+            >
+              When enabled, closing the window minimizes the application to the system tray.
+            </Typography>
+          </Box>
+          <Switch
+            checked={systemTrayEnabled}
+            onChange={(e) => setSystemTrayEnabled(e.target.checked)}
             sx={greenSwitchStyle}
           />
         </Box>

@@ -156,6 +156,16 @@ func (a *AppRules) SetNotifyOnMinimize(notify bool) error {
 	return SetNotifyOnMinimize(notify)
 }
 
+// GetSystemTrayEnabled returns whether the system tray icon is enabled
+func (a *AppRules) GetSystemTrayEnabled() bool {
+	return GetSystemTrayEnabled()
+}
+
+// SetSystemTrayEnabled sets whether the system tray icon is enabled. When disabled, closing the window quits the application.
+func (a *AppRules) SetSystemTrayEnabled(enabled bool) error {
+	return SetSystemTrayEnabled(enabled)
+}
+
 // GetNotifyOnUpdate returns whether notifications should be shown when an update is available
 func (a *AppRules) GetNotifyOnUpdate() bool {
 	return GetNotifyOnUpdate()

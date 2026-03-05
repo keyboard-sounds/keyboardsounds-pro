@@ -36,8 +36,9 @@ var sysTrayIcon []byte
 var notifIcon []byte
 
 var (
-	wailsCtx context.Context
-	ctxMutex sync.RWMutex
+	wailsCtx      context.Context
+	ctxMutex      sync.RWMutex
+	systrayOnExit func()
 )
 
 func setWailsContext(ctx context.Context) {
@@ -50,6 +51,49 @@ func getWailsContext() context.Context {
 	ctxMutex.RLock()
 	defer ctxMutex.RUnlock()
 	return wailsCtx
+}
+
+// startSystray runs the system tray in a new goroutine. Safe to call if the tray is already running or starting.
+func startSystray() {
+	onReady, onExit := systray.RunWithExternalLoop(func() {
+		switch rt.GOOS {
+		case "linux":
+			systray.SetIcon(notifIcon)
+		default:
+			systray.SetIcon(sysTrayIcon)
+		}
+		systray.SetTitle("Keyboard Sounds Pro")
+		systray.SetTooltip("Keyboard Sounds Pro")
+		systray.SetOnTapped(func() {
+			ctx := getWailsContext()
+			if ctx != nil {
+				runtime.WindowShow(ctx)
+			}
+		})
+
+		mShow := systray.AddMenuItem("Show", "Show the main window")
+		go func() {
+			for {
+				<-mShow.ClickedCh
+				ctx := getWailsContext()
+				if ctx != nil {
+					runtime.WindowShow(ctx)
+				}
+			}
+		}()
+
+		mQuit := systray.AddMenuItem("Quit", "Quit the application")
+		go func() {
+			<-mQuit.ClickedCh
+			systray.Quit()
+			os.Exit(0)
+		}()
+	}, func() {})
+
+	systrayOnExit = onExit
+	go func() {
+		onReady()
+	}()
 }
 
 type wailsConfig struct {
@@ -226,53 +270,18 @@ func main() {
 	}
 	updateDetails = ud
 
-	// Initialize systray
-	onReady, onExit := systray.RunWithExternalLoop(func() {
-		switch rt.GOOS {
-		case "linux":
-			// Linux requires a PNG icon.
-			systray.SetIcon(notifIcon)
-		default:
-			systray.SetIcon(sysTrayIcon)
-		}
+	// System tray is only shown when enabled; when disabled, closing the window quits the app
+	systemTrayEnabled := app.GetSystemTrayEnabled()
 
-		systray.SetTitle("Keyboard Sounds Pro")
-		systray.SetTooltip("Keyboard Sounds Pro")
-		systray.SetOnTapped(func() {
-			ctx := getWailsContext()
-			if ctx != nil {
-				runtime.WindowShow(ctx)
-			}
-		})
+	if systemTrayEnabled {
+		startSystray()
+	}
 
-		// Add Show menu item (handles icon click via menu)
-		mShow := systray.AddMenuItem("Show", "Show the main window")
-		go func() {
-			for {
-				<-mShow.ClickedCh
-				ctx := getWailsContext()
-				if ctx != nil {
-					runtime.WindowShow(ctx)
-				}
-			}
-		}()
-
-		// Add Quit menu item
-		mQuit := systray.AddMenuItem("Quit", "Quit the application")
-		go func() {
-			<-mQuit.ClickedCh
-			systray.Quit()
-			os.Exit(0)
-		}()
-	}, func() {
-		// Cleanup on exit
-	})
-
-	// Start systray
-	go onReady()
-
-	// Get StartHidden preference
-	startHidden := app.GetStartHidden()
+	// StartHidden: when tray enabled and "Hide Window" on, window is fully hidden (restore via tray).
+	// When tray disabled and "Hide Window" on, window starts minimized (visible in taskbar).
+	startHiddenPref := app.GetStartHidden()
+	startHidden := startHiddenPref && systemTrayEnabled
+	startMinimized := startHiddenPref && !systemTrayEnabled
 
 	// Custom title bar requires frameless window; system title bar uses native window chrome
 	enableCustomTitleBar := app.GetCustomTitleBarEnabled()
@@ -291,9 +300,19 @@ func main() {
 		OnStartup: func(ctx context.Context) {
 			setWailsContext(ctx)
 			application.startup(ctx)
+			if startMinimized {
+				runtime.WindowMinimise(ctx)
+				if app.GetNotifyOnMinimize() {
+					beeep.AppName = "Keyboard Sounds Pro"
+					beeep.Notify("Keyboard Sounds Pro", "Keyboard Sounds Pro is running in the background", notifIcon)
+				}
+			}
 		},
 		OnBeforeClose: func(ctx context.Context) (prevent bool) {
-			// Hide the window instead of closing
+			if !app.GetSystemTrayEnabled() {
+				return false // Allow close: quit the application
+			}
+			// Hide the window instead of closing (system tray is enabled)
 			runtime.WindowHide(ctx)
 			// Only show notification if the preference is enabled
 			if app.GetNotifyOnMinimize() {
@@ -327,8 +346,8 @@ func main() {
 	}
 
 	// Cleanup systray on exit
-	if rt.GOOS != "linux" {
-		onExit()
+	if rt.GOOS != "linux" && systrayOnExit != nil {
+		systrayOnExit()
 	}
 
 	if err != nil {

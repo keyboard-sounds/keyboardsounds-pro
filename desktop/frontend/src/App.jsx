@@ -6,7 +6,7 @@ import { TitleBar, Sidebar } from './components/layout';
 import { AudioEffectsPage, ApplicationRulesPage, LibraryPage, SettingsPage, PlaceholderPage, CommunityPage, ProfileBuilderPage, HotkeysPage, OSKHelperPage } from './pages';
 import { defaultEqualizerBands } from './constants';
 import { GetState, Enable, Disable, SetKeyboardVolume, SetMouseVolume, SetDefaultKeyboardProfile, SetDefaultMouseProfile, ClearDefaultKeyboardProfile, ClearDefaultMouseProfile, ToggleMuteKeyboard, ToggleMuteMouse, MuteKeyboard, UnmuteKeyboard, MuteMouse, UnmuteMouse } from '../wailsjs/go/app/StatusPanel';
-import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden, GetCustomTitleBarEnabled, SetCustomTitleBarEnabled } from '../wailsjs/go/app/AppRules';
+import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden, GetSystemTrayEnabled, SetSystemTrayEnabled, GetCustomTitleBarEnabled, SetCustomTitleBarEnabled } from '../wailsjs/go/app/AppRules';
 import { GetStartWithSystem, SetStartWithSystem, ShouldShowInputGroupWarning, CloseApplication } from '../wailsjs/go/main/App';
 import { GetState as GetAudioEffectsState, SetKeyboardPitchShift, SetKeyboardPan, SetKeyboardEqualizer, SetMousePitchShift, SetMousePan, SetMouseEqualizer } from '../wailsjs/go/app/AudioEffects';
 import { GetState as GetLibraryState, DeleteProfile, OpenProfileFolder, ImportProfile, ExportProfile } from '../wailsjs/go/app/Library';
@@ -139,6 +139,10 @@ function App() {
         // Load start hidden preference
         const startHiddenValue = await GetStartHidden();
         setStartHidden(startHiddenValue);
+
+        // Load system tray enabled preference
+        const systemTrayEnabledValue = await GetSystemTrayEnabled();
+        setSystemTrayEnabled(systemTrayEnabledValue);
         
         // Load start with system preference
         const startWithSystemValue = await GetStartWithSystem();
@@ -526,10 +530,11 @@ function App() {
   const [startWithSystem, setStartWithSystem] = useState(false);
   const [startPlayingOnLaunch, setStartPlayingOnLaunch] = useState(false);
   const [startHidden, setStartHidden] = useState(false);
+  const [systemTrayEnabled, setSystemTrayEnabled] = useState(true);
   const [notifyOnMinimize, setNotifyOnMinimizeState] = useState(true);
   const [notifyOnUpdate, setNotifyOnUpdateState] = useState(true);
   const [customTitleBarEnabled, setCustomTitleBarEnabled] = useState(true);
-  const [restartDialogOpen, setRestartDialogOpen] = useState(false);
+  const [restartDialogReason, setRestartDialogReason] = useState(null); // 'customTitleBar' | 'systemTray' when restart needed
 
   // Handlers for rules
   const handleAddRule = () => {
@@ -800,6 +805,16 @@ function App() {
                 console.error('Failed to set start hidden preference:', error);
               }
             }}
+            systemTrayEnabled={systemTrayEnabled}
+            setSystemTrayEnabled={async (value) => {
+              setSystemTrayEnabled(value);
+              try {
+                await SetSystemTrayEnabled(value);
+                setRestartDialogReason('systemTray');
+              } catch (error) {
+                console.error('Failed to set system tray preference:', error);
+              }
+            }}
             notifyOnMinimize={notifyOnMinimize}
             setNotifyOnMinimize={async (value) => {
               setNotifyOnMinimizeState(value);
@@ -822,7 +837,7 @@ function App() {
             onCustomTitleBarChange={async (value) => {
               try {
                 await SetCustomTitleBarEnabled(value);
-                setRestartDialogOpen(true);
+                setRestartDialogReason('customTitleBar');
               } catch (error) {
                 console.error('Failed to set custom title bar preference:', error);
               }
@@ -851,9 +866,9 @@ function App() {
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Linux input group warning modal - custom overlay like AddRuleModal (top: 40px keeps title bar draggable) */}
-      {/* Non-dismissable restart dialog - shown when custom title bar setting is toggled */}
-      {restartDialogOpen && (
-        <Fade in={restartDialogOpen} timeout={200}>
+      {/* Non-dismissable restart dialog - shown when a setting that requires restart is toggled */}
+      {restartDialogReason && (
+        <Fade in={!!restartDialogReason} timeout={200}>
           <Box
             sx={{
               position: 'fixed',
@@ -887,7 +902,11 @@ function App() {
                 Restart Required
               </Typography>
               <Typography sx={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
-                The custom title bar setting has been saved. Close the application and start it again manually for the change to take effect.
+                {restartDialogReason === 'customTitleBar'
+                  ? 'The custom title bar setting has been saved. Close the application and start it again manually for the change to take effect.'
+                  : restartDialogReason === 'systemTray'
+                    ? 'The system tray icon setting has been saved. Close the application and start it again manually for the change to take effect.'
+                    : 'Your settings have been saved. Close the application and start it again manually for the changes to take effect.'}
               </Typography>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Box
