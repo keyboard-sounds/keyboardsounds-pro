@@ -521,7 +521,7 @@ function SettingsPage({
             Website
           </Typography>
           <Box
-            onClick={() => BrowserOpenURL('https://keyboardsounds.net')}
+            onClick={() => BrowserOpenURL('https://keyboardsounds.pro/')}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -537,7 +537,7 @@ function SettingsPage({
               },
             }}
           >
-            keyboardsounds.net
+            keyboardsounds.pro
             <LaunchIcon sx={{ fontSize: '14px' }} />
           </Box>
         </Box>
