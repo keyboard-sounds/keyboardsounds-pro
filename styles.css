@@ -264,9 +264,9 @@ a:hover {
 
 /* Feature showcase */
 .feature-showcase {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 2rem 2.5rem 4rem;
 }
 
 .feature-showcase h2 {
@@ -280,7 +280,7 @@ a:hover {
   grid-template-columns: 1fr 1fr;
   gap: 5rem;
   align-items: center;
-  margin-bottom: 4rem;
+  margin-bottom: 6rem;
 }
 
 .showcase-item:last-child {
@@ -417,6 +417,200 @@ a:hover {
 
 .comparison-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* Discord community */
+.discord-community {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.discord-community .discord-community-title {
+  font-size: 2rem;
+  margin: 0 0 2.5rem;
+  text-align: center;
+}
+
+.discord-card {
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.discord-hero {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.discord-logo-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.discord-logo {
+  width: 44px;
+  height: 44px;
+  color: #5865F2;
+}
+
+.discord-hero-text {
+  min-width: 0;
+}
+
+.discord-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+  line-height: 1.25;
+}
+
+.discord-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.discord-join-btn {
+  flex-shrink: 0;
+}
+
+.discord-stats-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.discord-stat-box {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.discord-stat-members {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+}
+
+.discord-stat-members .discord-stat-value {
+  color: var(--accent);
+}
+
+.discord-stat-online {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+}
+
+.discord-stat-online .discord-stat-value {
+  color: var(--accent);
+}
+
+.discord-stat-box .discord-stat-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.discord-stat-box .discord-stat-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.discord-find {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.discord-find-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 1rem;
+}
+
+.discord-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.discord-feature {
+  display: flex;
+  gap: 0.875rem;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.discord-feature:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.discord-feature:hover .discord-feature-icon {
+  border-color: var(--feature-color);
+  box-shadow: 0 0 0 1px var(--feature-color);
+}
+
+.discord-feature-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.discord-feature-icon svg {
+  width: 22px;
+  height: 22px;
+  color: var(--feature-color);
+}
+
+.discord-feature-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.discord-feature-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.discord-join-btn:hover {
+  text-decoration: none;
 }
 
 /* Download */
@@ -607,6 +801,24 @@ a:hover {
 
   .showcase-image {
     order: -1;
+  }
+
+  .discord-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .discord-logo-wrap {
+    margin: 0 auto;
+  }
+
+  .discord-join-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .discord-features {
+    grid-template-columns: 1fr;
   }
 }
 
