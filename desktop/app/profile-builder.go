@@ -3,22 +3,29 @@ package app
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/profile"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gopkg.in/yaml.v2"
 )
 
 // ProfileBuilder is the Wails binding for the profile builder UI
-type ProfileBuilder struct{}
+type ProfileBuilder struct {
+	audioPlayer audio.AudioPlayer
+}
 
 // NewProfileBuilder creates a new ProfileBuilder instance
 func NewProfileBuilder() *ProfileBuilder {
-	return &ProfileBuilder{}
+	return &ProfileBuilder{
+		audioPlayer: audio.GetAudioPlayer(),
+	}
 }
 
 // AudioFile represents an audio file in the selected directory
@@ -132,6 +139,66 @@ func (pb *ProfileBuilder) RefreshAudioFiles(directory string) ([]AudioFile, erro
 	}
 
 	return audioFiles, nil
+}
+
+// PreviewSource plays a source preview: press sound, 30ms delay, then release sound.
+// directory is the full path to the folder containing the audio files.
+// releaseSound may be empty if the source has no release sound.
+// Runs in a goroutine so the Wails binding returns immediately and does not block.
+func (pb *ProfileBuilder) PreviewSource(directory, pressSound, releaseSound string) error {
+	slog.Info("PreviewSource called", "directory", directory, "pressSound", pressSound, "releaseSound", releaseSound)
+	if directory == "" || pressSound == "" {
+		return nil
+	}
+
+	go func() {
+		pressPath := filepath.Join(directory, pressSound)
+		pressFile, err := os.Open(pressPath)
+		if err != nil {
+			return
+		}
+		defer pressFile.Close()
+
+		format, err := audio.AudioFormatForFile(pressPath)
+		if err != nil {
+			return
+		}
+
+		pressAudio, err := audio.NewAudio(format, pressFile)
+		if err != nil {
+			return
+		}
+
+		player := pb.audioPlayer
+		if err := player.Play(pressAudio, audio.EffectsConfig{}); err != nil {
+			return
+		}
+
+		if releaseSound != "" {
+			time.Sleep(30 * time.Millisecond)
+
+			releasePath := filepath.Join(directory, releaseSound)
+			releaseFile, err := os.Open(releasePath)
+			if err != nil {
+				return
+			}
+			defer releaseFile.Close()
+
+			releaseFormat, err := audio.AudioFormatForFile(releasePath)
+			if err != nil {
+				return
+			}
+
+			releaseAudio, err := audio.NewAudio(releaseFormat, releaseFile)
+			if err != nil {
+				return
+			}
+
+			_ = player.Play(releaseAudio, audio.EffectsConfig{})
+		}
+	}()
+
+	return nil
 }
 
 // BuildKeyboardProfile builds a keyboard profile from the provided data

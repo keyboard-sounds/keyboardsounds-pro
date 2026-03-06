@@ -23,12 +23,13 @@ import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BuildIcon from '@mui/icons-material/Build';
 import { GlassCard, PageHeader } from '../components/common';
 import { selectMenuProps } from '../constants';
-import { BrowseForDirectory, RefreshAudioFiles, BuildKeyboardProfile, BuildMouseProfile } from '../../wailsjs/go/app/ProfileBuilder';
+import { BrowseForDirectory, RefreshAudioFiles, BuildKeyboardProfile, BuildMouseProfile, PreviewSource } from '../../wailsjs/go/app/ProfileBuilder';
 
 const KEY_SIZE = 44;
 const KEY_GAP = 4;
@@ -731,8 +732,9 @@ function SourceModal({ open, onClose, onSave, source, audioFiles, existingSource
 }
 
 // Key Assignment Modal
-function KeyAssignmentModal({ open, onClose, selectedKeys, sources, keyAssignments, onSave, customTitleBarEnabled = true }) {
+function KeyAssignmentModal({ open, onClose, selectedKeys, sources, keyAssignments, onSave, directory = '', customTitleBarEnabled = true }) {
   const [selectedSources, setSelectedSources] = useState([]);
+  const [playingSourceName, setPlayingSourceName] = useState(null);
 
   useEffect(() => {
     if (open && selectedKeys.size > 0) {
@@ -761,6 +763,19 @@ function KeyAssignmentModal({ open, onClose, selectedKeys, sources, keyAssignmen
 
   const handleClear = () => {
     setSelectedSources([]);
+  };
+
+  const handlePlayPreview = (e, source) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!directory || !source?.pressSound) return;
+    setPlayingSourceName(source.name);
+    PreviewSource(directory, source.pressSound, source.releaseSound || '')
+      .catch(() => {})
+      .finally(() => {
+        // Clear highlight after playback (press + 30ms + release; typical key sounds ~100-400ms each)
+        setTimeout(() => setPlayingSourceName(null), 500);
+      });
   };
 
   if (!open) return null;
@@ -846,18 +861,27 @@ function KeyAssignmentModal({ open, onClose, selectedKeys, sources, keyAssignmen
                       justifyContent: 'space-between',
                       padding: '12px 16px',
                       borderRadius: '12px',
-                      backgroundColor: selectedSources.includes(source.name) 
-                        ? 'var(--accent-bg)' 
-                        : 'var(--hover-bg-light)',
-                      border: selectedSources.includes(source.name)
-                        ? '1px solid var(--accent-border)'
-                        : '1px solid var(--card-border)',
+                      backgroundColor: playingSourceName === source.name
+                        ? 'var(--accent-bg)'
+                        : selectedSources.includes(source.name) 
+                          ? 'var(--accent-bg)' 
+                          : 'var(--hover-bg-light)',
+                      border: playingSourceName === source.name
+                        ? '1px solid var(--accent-primary)'
+                        : selectedSources.includes(source.name)
+                          ? '1px solid var(--accent-border)'
+                          : '1px solid var(--card-border)',
+                      boxShadow: playingSourceName === source.name
+                        ? '0 0 12px 2px rgba(139, 92, 246, 0.35)'
+                        : 'none',
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
+                      transition: 'all 0.2s ease',
                       '&:hover': {
-                        backgroundColor: selectedSources.includes(source.name)
-                          ? 'var(--accent-bg-hover)'
-                          : 'var(--hover-bg)',
+                        backgroundColor: playingSourceName === source.name
+                          ? 'var(--accent-bg)'
+                          : selectedSources.includes(source.name)
+                            ? 'var(--accent-bg-hover)'
+                            : 'var(--hover-bg)',
                       },
                     }}
                   >
@@ -872,9 +896,36 @@ function KeyAssignmentModal({ open, onClose, selectedKeys, sources, keyAssignmen
                         </Typography>
                       </Box>
                     </Box>
-                    {selectedSources.includes(source.name) && (
-                      <CheckCircleIcon sx={{ fontSize: '20px', color: 'var(--accent-primary)' }} />
-                    )}
+                    <Box
+                      sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Box
+                        component="button"
+                        type="button"
+                        onClick={(e) => handlePlayPreview(e, source)}
+                        title="Listen to source"
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '28px',
+                          height: '28px',
+                          padding: 0,
+                          border: 'none',
+                          borderRadius: '4px',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
+                          '&:hover': { color: 'var(--accent-primary)', backgroundColor: 'var(--hover-bg)' },
+                        }}
+                      >
+                        <PlayArrowIcon sx={{ fontSize: '16px' }} />
+                      </Box>
+                      {selectedSources.includes(source.name) && (
+                        <CheckCircleIcon sx={{ fontSize: '20px', color: 'var(--accent-primary)' }} />
+                      )}
+                    </Box>
                   </Box>
                 ))}
               </Box>
@@ -1302,6 +1353,7 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
   const [isBuildModalOpen, setIsBuildModalOpen] = useState(false);
   const [isBuilding, setIsBuilding] = useState(false);
   const [buildError, setBuildError] = useState('');
+  const [playingSourceName, setPlayingSourceName] = useState(null);
   const containerRef = useRef(null);
 
   // Check if at least one default source exists
@@ -1403,6 +1455,18 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
       });
       return updated;
     });
+  };
+
+  const handlePlayPreview = (e, source) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!directory || !source?.pressSound) return;
+    setPlayingSourceName(source.name);
+    PreviewSource(directory, source.pressSound, source.releaseSound || '')
+      .catch(() => {})
+      .finally(() => {
+        setTimeout(() => setPlayingSourceName(null), 1000);
+      });
   };
 
   const handleSaveSource = (sourceData) => {
@@ -1592,11 +1656,12 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
                   justifyContent: 'space-between',
                   padding: '14px 16px',
                   borderRadius: '12px',
-                  backgroundColor: 'var(--hover-bg-light)',
-                  border: '1px solid var(--card-border)',
-                  transition: 'all 0.15s ease',
+                  backgroundColor: playingSourceName === source.name ? 'var(--accent-bg)' : 'var(--hover-bg-light)',
+                  border: playingSourceName === source.name ? '1px solid var(--accent-primary)' : '1px solid var(--card-border)',
+                  boxShadow: playingSourceName === source.name ? '0 0 12px 2px rgba(139, 92, 246, 0.35)' : 'none',
+                  transition: 'all 0.2s ease',
                   '&:hover': {
-                    borderColor: 'var(--input-border-hover)',
+                    borderColor: playingSourceName === source.name ? 'var(--accent-primary)' : 'var(--input-border-hover)',
                   },
                 }}
               >
@@ -1649,6 +1714,20 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
+                  <Tooltip title="Listen to source" arrow>
+                    <IconButton
+                      onClick={(e) => handlePlayPreview(e, source)}
+                      sx={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        color: 'var(--text-muted)',
+                        '&:hover': { backgroundColor: 'var(--hover-bg)', color: 'var(--accent-primary)' },
+                      }}
+                    >
+                      <PlayArrowIcon sx={{ fontSize: '16px' }} />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="Edit source" arrow>
                     <IconButton
                       onClick={() => handleEditSource(source)}
@@ -1693,7 +1772,7 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
                 Keyboard Layout
               </Typography>
               <Typography sx={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>
-                Select keys and assign sound sources to them. Purple keys have sources assigned.
+                Select keys and assign sound sources to them.
               </Typography>
             </Box>
             {selectedKeys.size > 0 && (
@@ -1883,6 +1962,7 @@ function ProfileEditorStep({ profileType, directory, audioFiles: initialAudioFil
         sources={sources}
         keyAssignments={keyAssignments}
         onSave={handleSaveKeyAssignments}
+        directory={directory}
         customTitleBarEnabled={customTitleBarEnabled}
       />
 
