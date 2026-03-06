@@ -31,7 +31,7 @@ func main() {
 		panic(err)
 	}
 
-	audioPlayer := audio.NewAudioPlayer()
+	audioPlayer := audio.GetAudioPlayer()
 
 	listener := listener.NewKeyboardListener()
 	if listener == nil {

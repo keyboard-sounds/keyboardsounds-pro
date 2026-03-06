@@ -198,7 +198,7 @@ func NewManager(cfgDir string) (*Manager, error) {
 	mgr := &Manager{
 		rootDir:          cfgDir,
 		enabled:          false,
-		audioPlayer:      audio.NewAudioPlayer(),
+		audioPlayer:      audio.GetAudioPlayer(),
 		keyboardListener: listener.NewKeyboardListener(),
 		mouseListener:    listener.NewMouseListener(),
 		focusDetector:    rules.NewFocusDetector(),

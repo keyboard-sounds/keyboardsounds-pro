@@ -61,14 +61,23 @@ type AudioPlayer interface {
 // Buffer duration for the speaker (10ms provides low latency)
 const bufferDuration = time.Second / 10
 
+var (
+	audioPlayer     AudioPlayer
+	audioPlayerOnce sync.Once
+)
+
 type audioPlayerImpl struct {
 	initialized bool
 	initMutex   sync.Mutex
 }
 
-// NewAudioPlayer creates a new audio player instance
-func NewAudioPlayer() AudioPlayer {
-	return &audioPlayerImpl{}
+// GetAudioPlayer retrieves the audio player instance
+func GetAudioPlayer() AudioPlayer {
+	audioPlayerOnce.Do(func() {
+		audioPlayer = &audioPlayerImpl{}
+	})
+
+	return audioPlayer
 }
 
 // ensureInitialized initializes the speaker if it hasn't been initialized yet.
