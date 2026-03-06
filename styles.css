@@ -369,6 +369,7 @@ a:hover {
 
 .comparison-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .comparison-table {
@@ -795,25 +796,61 @@ a:hover {
   color: var(--text-muted);
 }
 
-/* Responsive */
+/* Responsive – mobile only, desktop unchanged */
 @media (max-width: 900px) {
+  .header {
+    padding: 0 1.25rem;
+    padding-left: max(1.25rem, env(safe-area-inset-left));
+    padding-right: max(1.25rem, env(safe-area-inset-right));
+  }
+
+  .nav {
+    padding: 1rem 0;
+  }
+
+  .hero {
+    padding: 2.5rem 1.25rem 3.5rem;
+  }
+
   .hero-container {
     grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 1.5rem;
     text-align: center;
   }
 
   .hero-tagline {
     margin-left: auto;
     margin-right: auto;
+    font-size: 1.1rem;
   }
 
   .hero-actions {
     justify-content: center;
   }
 
+  .hero-preview {
+    order: 1;
+  }
+
+  .hero-content {
+    order: 0;
+  }
+
+  .feature-showcase {
+    padding: 1.5rem 1.25rem 3rem;
+  }
+
+  .feature-showcase h2 {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+  }
+
   .showcase-item,
   .showcase-item.reverse {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
     direction: ltr;
     text-align: center;
   }
@@ -822,51 +859,250 @@ a:hover {
     order: -1;
   }
 
+  .comparison {
+    padding: 2.5rem 1rem;
+  }
+
+  .comparison h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .comparison-card {
+    border-radius: var(--radius-sm);
+  }
+
+  .discord-community {
+    padding: 2.5rem 1rem;
+  }
+
+  .discord-community .discord-community-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .discord-card {
+    padding: 1.5rem;
+  }
+
   .discord-hero {
     grid-template-columns: 1fr;
+    gap: 1rem;
     text-align: center;
   }
 
   .discord-logo-wrap {
     margin: 0 auto;
+    width: 64px;
+    height: 64px;
+  }
+
+  .discord-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .discord-title {
+    font-size: 1.25rem;
+  }
+
+  .discord-desc {
+    font-size: 0.9rem;
   }
 
   .discord-join-btn {
     width: 100%;
     justify-content: center;
+    min-height: 44px;
+  }
+
+  .discord-stats-row {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .discord-find {
+    margin-top: 1rem;
+    padding-top: 1rem;
   }
 
   .discord-features {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .discord-feature {
+    padding: 0.875rem;
+  }
+
+  .footer {
+    padding: 2rem 1rem max(2rem, env(safe-area-inset-bottom)) 1rem;
+  }
+
+  .footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
   }
 }
 
 @media (max-width: 600px) {
+  .header {
+    padding: 0 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .nav {
+    padding: 0.875rem 0;
+  }
+
+  .logo-text {
+    font-size: 1rem;
+  }
+
   .nav-links {
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.75rem;
+  }
+
+  .nav-links a {
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .hero {
+    padding: 1.5rem 1rem 2.5rem;
+  }
+
+  .hero-container {
+    padding: 1.25rem;
   }
 
   .hero h1 {
-    font-size: 2.25rem;
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .hero-tagline {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .hero-actions {
     flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
   }
 
   .btn {
     width: 100%;
+    min-height: 44px;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .highlights-text {
+    font-size: 0.95rem;
+  }
+
+  .highlights-text .sep {
+    margin: 0 0.5rem;
+  }
+
+  .feature-showcase {
+    padding: 1.25rem 1rem 2.5rem;
+  }
+
+  .feature-showcase h2 {
+    font-size: 1.5rem;
+  }
+
+  .showcase-item,
+  .showcase-item.reverse {
+    margin-bottom: 2.5rem;
+    gap: 1.25rem;
+  }
+
+  .showcase-content h3 {
+    font-size: 1.25rem;
+  }
+
+  .showcase-content p {
+    font-size: 0.95rem;
+  }
+
+  .comparison {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .comparison h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1.25rem;
   }
 
   .comparison-table th,
   .comparison-table td {
-    padding: 0.75rem 0.75rem;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.75rem;
   }
 
   .comparison-app-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .comparison-app-header span {
+    font-size: 0.75rem;
+  }
+
+  .discord-community {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .discord-card {
+    padding: 1.25rem;
+  }
+
+  .discord-title {
+    font-size: 1.1rem;
+  }
+
+  .discord-desc {
+    font-size: 0.85rem;
+  }
+
+  .discord-feature-name {
+    font-size: 0.85rem;
+  }
+
+  .discord-feature-desc {
+    font-size: 0.75rem;
+  }
+
+  .footer {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .footer-links {
+    gap: 0.75rem;
+  }
+
+  .copyright {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .logo-text {
+    display: none;
+  }
+
+  .logo {
+    gap: 0;
   }
 }
