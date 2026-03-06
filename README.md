@@ -121,3 +121,7 @@ func main() {
 	select {}
 }
 ```
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/keyboard-sounds/keyboardsounds-pro.svg?variant=adaptive)](https://starchart.cc/keyboard-sounds/keyboardsounds-pro)
