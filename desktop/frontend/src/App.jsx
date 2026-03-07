@@ -7,6 +7,7 @@ import { AudioEffectsPage, ApplicationRulesPage, LibraryPage, SettingsPage, Plac
 import { defaultEqualizerBands } from './constants';
 import { GetState, Enable, Disable, SetKeyboardVolume, SetMouseVolume, SetDefaultKeyboardProfile, SetDefaultMouseProfile, ClearDefaultKeyboardProfile, ClearDefaultMouseProfile, ToggleMuteKeyboard, ToggleMuteMouse, MuteKeyboard, UnmuteKeyboard, MuteMouse, UnmuteMouse } from '../wailsjs/go/app/StatusPanel';
 import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden, GetSystemTrayEnabled, SetSystemTrayEnabled, GetCustomTitleBarEnabled, SetCustomTitleBarEnabled } from '../wailsjs/go/app/AppRules';
+import { IsFedora } from '../wailsjs/go/app/FedoraCheck';
 import { GetStartWithSystem, SetStartWithSystem, ShouldShowInputGroupWarning, CloseApplication } from '../wailsjs/go/main/App';
 import { GetState as GetAudioEffectsState, SetKeyboardPitchShift, SetKeyboardPan, SetKeyboardEqualizer, SetMousePitchShift, SetMousePan, SetMouseEqualizer } from '../wailsjs/go/app/AudioEffects';
 import { GetState as GetLibraryState, DeleteProfile, OpenProfileFolder, ImportProfile, ExportProfile } from '../wailsjs/go/app/Library';
@@ -28,11 +29,13 @@ function App() {
 
   // Platform (e.g. 'linux', 'windows', 'darwin') for conditional UI
   const [platform, setPlatform] = useState('');
+  const [isFedora, setIsFedora] = useState(false);
   const menuItemsToShow = getMenuItemsForPlatform(platform);
 
   // Detect platform on mount
   useEffect(() => {
     Environment().then((env) => setPlatform(env.platform || ''));
+    IsFedora().then(v => setIsFedora(v));
   }, []);
 
   // On Linux, Application Rules and On-Screen Modifiers are hidden; ensure selected tab is valid
@@ -777,6 +780,7 @@ function App() {
         return (
           <SettingsPage
             audioDevice={audioDevice}
+            isFedora={isFedora}
             setAudioDevice={setAudioDevice}
             startWithSystem={startWithSystem}
             setStartWithSystem={async (value) => {
