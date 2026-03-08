@@ -53,18 +53,19 @@ type OSKHelperPreferences struct {
 
 // UIPreferences stores persistent UI state
 type UIPreferences struct {
-	InfoBannerDismissed      bool                    `json:"infoBannerDismissed"`
-	StartPlayingOnLaunch     bool                    `json:"startPlayingOnLaunch"`
-	StartHidden              bool                    `json:"startHidden"`
-	NotifyOnUpdate           bool                    `json:"notifyOnUpdate"`
-	NotifyOnMinimize         bool                    `json:"notifyOnMinimize"`
-	SystemTrayEnabled        bool                    `json:"systemTrayEnabled"`
-	CustomTitleBarEnabled    bool                    `json:"customTitleBarEnabled"`
-	AudioEffects             AudioEffectsPreferences `json:"audioEffects"`
-	Volume                   VolumePreferences       `json:"volume"`
-	OSKHelper                OSKHelperPreferences    `json:"oskHelper"`
-	UpdateNotifiedAndIgnored string                  `json:"updateNotifiedAndIgnored"`
-	Analytics                Analytics               `json:"analytics"`
+	InfoBannerDismissed         bool                    `json:"infoBannerDismissed"`
+	StartPlayingOnLaunch        bool                    `json:"startPlayingOnLaunch"`
+	StartHidden                 bool                    `json:"startHidden"`
+	NotifyOnUpdate              bool                    `json:"notifyOnUpdate"`
+	NotifyOnMinimize            bool                    `json:"notifyOnMinimize"`
+	SystemTrayEnabled           bool                    `json:"systemTrayEnabled"`
+	CustomTitleBarEnabled       bool                    `json:"customTitleBarEnabled"`
+	HideStatusBoxDefaultProfile bool                    `json:"hideStatusBoxDefaultProfile"`
+	AudioEffects                AudioEffectsPreferences `json:"audioEffects"`
+	Volume                      VolumePreferences       `json:"volume"`
+	OSKHelper                   OSKHelperPreferences    `json:"oskHelper"`
+	UpdateNotifiedAndIgnored    string                  `json:"updateNotifiedAndIgnored"`
+	Analytics                   Analytics               `json:"analytics"`
 }
 
 var (
@@ -84,12 +85,12 @@ func loadUIPreferences() {
 
 	// Initialize with defaults
 	uiPrefs = &UIPreferences{
-		InfoBannerDismissed:  false,
-		StartPlayingOnLaunch: false,
-		StartHidden:          false,
-		NotifyOnUpdate:       true,
-		NotifyOnMinimize:     true,
-		SystemTrayEnabled:    true,
+		InfoBannerDismissed:   false,
+		StartPlayingOnLaunch:  false,
+		StartHidden:           false,
+		NotifyOnUpdate:        true,
+		NotifyOnMinimize:      true,
+		SystemTrayEnabled:     true,
 		CustomTitleBarEnabled: true,
 		AudioEffects: AudioEffectsPreferences{
 			KeyboardPitchShift: PitchShiftState{Enabled: false, Lower: -3, Upper: 3},
@@ -311,6 +312,26 @@ func GetCustomTitleBarEnabled() bool {
 func SetCustomTitleBarEnabled(enabled bool) error {
 	uiPrefsLock.Lock()
 	uiPrefs.CustomTitleBarEnabled = enabled
+	uiPrefsLock.Unlock()
+
+	return saveUIPreferences()
+}
+
+// GetHideStatusBoxDefaultProfile returns whether the default profile section should be hidden in the status box
+func GetHideStatusBoxDefaultProfile() bool {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+
+	if uiPrefs == nil {
+		return false
+	}
+	return uiPrefs.HideStatusBoxDefaultProfile
+}
+
+// SetHideStatusBoxDefaultProfile sets whether the default profile section should be hidden in the status box
+func SetHideStatusBoxDefaultProfile(hide bool) error {
+	uiPrefsLock.Lock()
+	uiPrefs.HideStatusBoxDefaultProfile = hide
 	uiPrefsLock.Unlock()
 
 	return saveUIPreferences()

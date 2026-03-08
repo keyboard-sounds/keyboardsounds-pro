@@ -31,6 +31,7 @@ function Sidebar({
   keyboardProfiles,
   mouseProfiles,
   isLoading,
+  hideStatusBoxDefaultProfile = false,
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(350);
   const [isResizing, setIsResizing] = useState(false);
@@ -127,6 +128,7 @@ function Sidebar({
           keyboardProfiles={keyboardProfiles}
           mouseProfiles={mouseProfiles}
           isLoading={isLoading}
+          hideDefaultProfileSection={hideStatusBoxDefaultProfile}
         />
         <SidebarMenu
           menuItems={menuItems}

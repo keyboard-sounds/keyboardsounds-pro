@@ -206,6 +206,16 @@ func (a *AppRules) SetCustomTitleBarEnabled(enabled bool) error {
 	return SetCustomTitleBarEnabled(enabled)
 }
 
+// GetHideStatusBoxDefaultProfile returns whether the default profile section should be hidden in the status box
+func (a *AppRules) GetHideStatusBoxDefaultProfile() bool {
+	return GetHideStatusBoxDefaultProfile()
+}
+
+// SetHideStatusBoxDefaultProfile sets whether the default profile section should be hidden in the status box. Default profiles remain accessible from Application Rules.
+func (a *AppRules) SetHideStatusBoxDefaultProfile(hide bool) error {
+	return SetHideStatusBoxDefaultProfile(hide)
+}
+
 // GetInstalledApplications returns a list of installed applications on the system
 func (a *AppRules) GetInstalledApplications() []rules.InstalledApplication {
 	return rules.GetInstalledApplications()

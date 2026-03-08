@@ -32,6 +32,7 @@ function StatusBox({
   keyboardProfiles = [],
   mouseProfiles = [],
   isLoading = false,
+  hideDefaultProfileSection = false,
 }) {
   const isLinux = platform === 'linux';
   const keyboardLabel = isLinux ? 'Keyboard' : 'Default Keyboard';
@@ -189,7 +190,7 @@ function StatusBox({
       />
 
       {/* Volume Section */}
-      <Box sx={{ marginBottom: '12px', opacity: isPaused ? 0.5 : 1, transition: 'opacity 0.2s ease' }}>
+      <Box sx={{ marginBottom: !hideDefaultProfileSection ? '12px' : '0px', opacity: isPaused ? 0.5 : 1, transition: 'opacity 0.2s ease' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
           <VolumeUpIcon sx={{ fontSize: '16px', color: 'var(--text-secondary)' }} />
           <Typography
@@ -362,16 +363,20 @@ function StatusBox({
         </Box>
       </Box>
 
-      {/* Divider */}
-      <Divider
-        sx={{
-          marginBottom: '14px',
-          borderColor: 'var(--card-border)',
-          opacity: 0.5,
-        }}
-      />
+      {/* Divider before Default Profile section - only when section is shown */}
+      {!hideDefaultProfileSection && (
+        <Divider
+          sx={{
+            marginBottom: '14px',
+            borderColor: 'var(--card-border)',
+            opacity: 0.5,
+          }}
+        />
+      )}
 
-      {/* Keyboard Profile */}
+      {/* Default Profile section - Keyboard and Mouse profile selectors */}
+      {!hideDefaultProfileSection && (
+        <>
       <Box sx={{ marginBottom: '12px', opacity: isPaused ? 0.5 : 1, transition: 'opacity 0.2s ease' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
           <KeyboardIcon sx={{ fontSize: '16px', color: 'var(--text-secondary)' }} />
@@ -478,6 +483,8 @@ function StatusBox({
           </Select>
         </FormControl>
       </Box>
+        </>
+      )}
     </Box>
   );
 }

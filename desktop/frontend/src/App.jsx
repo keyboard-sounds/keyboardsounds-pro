@@ -6,7 +6,7 @@ import { TitleBar, Sidebar } from './components/layout';
 import { AudioEffectsPage, ApplicationRulesPage, LibraryPage, SettingsPage, PlaceholderPage, CommunityPage, ProfileBuilderPage, HotkeysPage, OSKHelperPage } from './pages';
 import { defaultEqualizerBands } from './constants';
 import { GetState, Enable, Disable, SetKeyboardVolume, SetMouseVolume, SetDefaultKeyboardProfile, SetDefaultMouseProfile, ClearDefaultKeyboardProfile, ClearDefaultMouseProfile, ToggleMuteKeyboard, ToggleMuteMouse, MuteKeyboard, UnmuteKeyboard, MuteMouse, UnmuteMouse } from '../wailsjs/go/app/StatusPanel';
-import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden, GetSystemTrayEnabled, SetSystemTrayEnabled, GetCustomTitleBarEnabled, SetCustomTitleBarEnabled } from '../wailsjs/go/app/AppRules';
+import { ListRules, UpsertRule, RemoveRule, ToggleRule, UpdateRuleProfiles, BrowseForExecutable, GetNotifyOnMinimize, SetNotifyOnMinimize, GetNotifyOnUpdate, SetNotifyOnUpdate, GetStartPlayingOnLaunch, SetStartPlayingOnLaunch, GetStartHidden, SetStartHidden, GetSystemTrayEnabled, SetSystemTrayEnabled, GetCustomTitleBarEnabled, SetCustomTitleBarEnabled, GetHideStatusBoxDefaultProfile, SetHideStatusBoxDefaultProfile } from '../wailsjs/go/app/AppRules';
 import { IsFedora } from '../wailsjs/go/app/FedoraCheck';
 import { GetStartWithSystem, SetStartWithSystem, ShouldShowInputGroupWarning, CloseApplication } from '../wailsjs/go/main/App';
 import { GetState as GetAudioEffectsState, SetKeyboardPitchShift, SetKeyboardPan, SetKeyboardEqualizer, SetMousePitchShift, SetMousePan, SetMouseEqualizer } from '../wailsjs/go/app/AudioEffects';
@@ -154,6 +154,10 @@ function App() {
         // Load custom title bar preference (frameless vs system title bar - set at startup, requires restart to change)
         const customTitleBarValue = await GetCustomTitleBarEnabled();
         setCustomTitleBarEnabled(customTitleBarValue);
+
+        // Load hide status box default profile preference
+        const hideStatusBoxDefaultProfileValue = await GetHideStatusBoxDefaultProfile();
+        setHideStatusBoxDefaultProfile(hideStatusBoxDefaultProfileValue);
 
         // On Linux, check if user is in input group; show modal if not
         const showInputGroupWarning = await ShouldShowInputGroupWarning();
@@ -537,6 +541,7 @@ function App() {
   const [notifyOnMinimize, setNotifyOnMinimizeState] = useState(true);
   const [notifyOnUpdate, setNotifyOnUpdateState] = useState(true);
   const [customTitleBarEnabled, setCustomTitleBarEnabled] = useState(true);
+  const [hideStatusBoxDefaultProfile, setHideStatusBoxDefaultProfile] = useState(false);
   const [restartDialogReason, setRestartDialogReason] = useState(null); // 'customTitleBar' | 'systemTray' when restart needed
 
   // Handlers for rules
@@ -779,6 +784,7 @@ function App() {
       case 'Settings':
         return (
           <SettingsPage
+            isLinux={platform === 'linux'}
             audioDevice={audioDevice}
             isFedora={isFedora}
             setAudioDevice={setAudioDevice}
@@ -844,6 +850,15 @@ function App() {
                 setRestartDialogReason('customTitleBar');
               } catch (error) {
                 console.error('Failed to set custom title bar preference:', error);
+              }
+            }}
+            hideStatusBoxDefaultProfile={hideStatusBoxDefaultProfile}
+            onHideStatusBoxDefaultProfileChange={async (value) => {
+              setHideStatusBoxDefaultProfile(value);
+              try {
+                await SetHideStatusBoxDefaultProfile(value);
+              } catch (error) {
+                console.error('Failed to set hide status box default profile preference:', error);
               }
             }}
           />
@@ -1093,6 +1108,7 @@ function App() {
         keyboardProfiles={keyboardProfiles}
         mouseProfiles={mouseProfiles}
         isLoading={isLoading}
+        hideStatusBoxDefaultProfile={hideStatusBoxDefaultProfile}
       />
 
       {/* Main Content Area */}

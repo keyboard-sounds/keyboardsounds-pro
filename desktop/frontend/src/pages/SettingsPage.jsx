@@ -16,6 +16,7 @@ import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 function SettingsPage({
   audioDevice,
   setAudioDevice,
+  isLinux,
   isFedora,
   startWithSystem,
   setStartWithSystem,
@@ -31,6 +32,8 @@ function SettingsPage({
   setNotifyOnUpdate,
   customTitleBarEnabled,
   onCustomTitleBarChange,
+  hideStatusBoxDefaultProfile,
+  onHideStatusBoxDefaultProfileChange,
 }) {
   const { theme, setTheme } = useTheme();
   const [version, setVersion] = useState('Loading...');
@@ -226,6 +229,37 @@ function SettingsPage({
             sx={greenSwitchStyle}
           />
         </Box>
+
+        {/* Hide Default Profile in Status Box */}
+        {!isLinux && (
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+            <Box sx={{ flexGrow: 1, marginRight: '8px' }}>
+              <Typography
+                sx={{
+                  color: 'var(--text-primary)',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  marginBottom: '4px',
+                }}
+              >
+                Hide Default Profile in Status Box
+              </Typography>
+              <Typography
+                sx={{
+                  color: 'var(--text-tertiary)',
+                  fontSize: '13px',
+                }}
+              >
+                Hide the default keyboard and mouse profile selector in the sidebar. This is useful if you rely entirely on application rules to determine the profile.
+              </Typography>
+            </Box>
+            <Switch
+              checked={hideStatusBoxDefaultProfile}
+              onChange={(e) => onHideStatusBoxDefaultProfileChange(e.target.checked)}
+              sx={greenSwitchStyle}
+            />
+          </Box>
+        )}
       </GlassCard>
 
       {/* Application Settings Section */}
