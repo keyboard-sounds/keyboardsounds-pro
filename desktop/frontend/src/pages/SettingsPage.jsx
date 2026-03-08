@@ -16,6 +16,7 @@ import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 function SettingsPage({
   audioDevice,
   setAudioDevice,
+  isFedora,
   startWithSystem,
   setStartWithSystem,
   startPlayingOnLaunch,
@@ -300,7 +301,7 @@ function SettingsPage({
         </Box>
 
         {/* Hide On Launch */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: !isFedora ? '20px' : '0px' }}>
           <Box sx={{ flexGrow: 1 }}>
             <Typography
               sx={{
@@ -329,50 +330,52 @@ function SettingsPage({
         </Box>
 
         {/* System Tray */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ flexGrow: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+        {!isFedora && (
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Typography
+                  sx={{
+                    color: 'var(--text-primary)',
+                    fontSize: '15px',
+                    fontWeight: 500,
+                  }}
+                >
+                  System Tray Icon
+                </Typography>
+                <Chip
+                  label="Restart required"
+                  size="small"
+                  sx={{
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    height: '20px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--input-border)',
+                    '& .MuiChip-label': {
+                      px: '8px',
+                      marginTop: '2px',
+                    },
+                  }}
+                />
+              </Box>
               <Typography
                 sx={{
-                  color: 'var(--text-primary)',
-                  fontSize: '15px',
-                  fontWeight: 500,
+                  color: 'var(--text-tertiary)',
+                  fontSize: '13px',
                 }}
               >
-                System Tray Icon
+                When enabled, closing the window minimizes the application to the system tray.
               </Typography>
-              <Chip
-                label="Restart required"
-                size="small"
-                sx={{
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  height: '20px',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--input-border)',
-                  '& .MuiChip-label': {
-                    px: '8px',
-                    marginTop: '2px',
-                  },
-                }}
-              />
             </Box>
-            <Typography
-              sx={{
-                color: 'var(--text-tertiary)',
-                fontSize: '13px',
-              }}
-            >
-              When enabled, closing the window minimizes the application to the system tray.
-            </Typography>
+            <Switch
+              checked={systemTrayEnabled}
+              onChange={(e) => setSystemTrayEnabled(e.target.checked)}
+              sx={greenSwitchStyle}
+            />
           </Box>
-          <Switch
-            checked={systemTrayEnabled}
-            onChange={(e) => setSystemTrayEnabled(e.target.checked)}
-            sx={greenSwitchStyle}
-          />
-        </Box>
+        )}
       </GlassCard>
 
       {/* Notification Settings Section */}

@@ -271,16 +271,24 @@ func main() {
 	updateDetails = ud
 
 	// System tray is only shown when enabled; when disabled, closing the window quits the app
-	systemTrayEnabled := app.GetSystemTrayEnabled()
+	var (
+		fedora            = app.NewFedoraCheck()
+		isFedora          = fedora.IsFedora()
+		systemTrayEnabled bool
+	)
 
-	if systemTrayEnabled {
-		startSystray()
+	if !isFedora {
+		systemTrayEnabled := app.GetSystemTrayEnabled()
+
+		if systemTrayEnabled {
+			startSystray()
+		}
 	}
 
 	// StartHidden: when tray enabled and "Hide Window" on, window is fully hidden (restore via tray).
 	// When tray disabled and "Hide Window" on, window starts minimized (visible in taskbar).
 	startHiddenPref := app.GetStartHidden()
-	startHidden := startHiddenPref && systemTrayEnabled
+	startHidden := startHiddenPref && systemTrayEnabled && !isFedora
 	startMinimized := startHiddenPref && !systemTrayEnabled
 
 	// Custom title bar requires frameless window; system title bar uses native window chrome
@@ -309,6 +317,9 @@ func main() {
 			}
 		},
 		OnBeforeClose: func(ctx context.Context) (prevent bool) {
+			if isFedora {
+				return false // Allow close: quit the application
+			}
 			if !app.GetSystemTrayEnabled() {
 				return false // Allow close: quit the application
 			}
@@ -333,6 +344,7 @@ func main() {
 			oskHelper,
 			wailsCfg,
 			updateDetails,
+			fedora,
 		},
 		SingleInstanceLock: &options.SingleInstanceLock{
 			UniqueId:               "keyboard-sounds-pro",
