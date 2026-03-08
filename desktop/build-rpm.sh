@@ -85,5 +85,3 @@ RPM_OUTPUT=$(basename "$RPM_FILE")
 rm -rf "$RPM_BUILD_DIR"
 
 echo "✓ .rpm package created: ./build/$RPM_OUTPUT"
-<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
-Read
