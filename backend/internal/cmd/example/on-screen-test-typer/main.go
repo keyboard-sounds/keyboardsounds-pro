@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"runtime"
 	"time"
 
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
@@ -10,6 +11,11 @@ import (
 )
 
 func main() {
+	// Pin main goroutine to the main OS thread so RunMainLoop() runs the Cocoa main run loop
+	// and the on-screen overlay can be shown from keyboard events.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	mgr, err := manager.NewManager(kbs.GetHomeDirectory())
 	if err != nil {
 		panic(err)
@@ -24,7 +30,7 @@ func main() {
 		CornerRadius:      10,
 		Position:          oskhelpers.OSKPositionBottom,
 		Offset:            48,
-		DismissAfter:      1 * time.Second,
+		DismissAfter:      5 * time.Second,
 	})
 
 	slog.Info("Enabling manager")
@@ -33,6 +39,7 @@ func main() {
 		panic(err)
 	}
 
-	slog.Info("Waiting for terminate...")
-	select {}
+	slog.Info("Press modifier keys to see the on-screen display. Waiting for terminate...")
+	// On macOS, RunMainLoop must run on the main thread so the OSK overlay can be updated from keyboard events.
+	oskhelpers.RunMainLoop()
 }

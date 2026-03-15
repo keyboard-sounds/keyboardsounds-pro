@@ -95,10 +95,12 @@ type Manager struct {
 	// Lock for the keyboard keys down
 	keyboardKeysDownLock sync.RWMutex
 
-	oskHelperLock    sync.RWMutex
-	oskHelperEnabled bool
-	oskHelper        oskhelpers.OSKHelper
-	oskHelperConfig  *oskhelpers.OSKHelperConfig
+	oskHelperLock           sync.RWMutex
+	oskHelperEnabled        bool
+	oskHelper               oskhelpers.OSKHelper
+	oskHelperConfig         *oskhelpers.OSKHelperConfig
+	lastOSKComboDisplay     string // last "modifier + key" string shown; kept visible until modifier state or combo changes
+	oskForceDismissedByUser bool   // user clicked X; keep overlay hidden until all keys released
 
 	// Mouse Listener
 	mouseListener listener.MouseListener
@@ -213,9 +215,13 @@ func NewManager(cfgDir string) (*Manager, error) {
 	// by the user clicking the close button.
 	mgr.oskHelperConfig.OnForceDismiss = func() {
 		mgr.keyboardKeysDownLock.Lock()
-		defer mgr.keyboardKeysDownLock.Unlock()
-
 		mgr.keyboardKeysDown = nil
+		mgr.keyboardKeysDownLock.Unlock()
+
+		mgr.oskHelperLock.Lock()
+		mgr.lastOSKComboDisplay = ""
+		mgr.oskForceDismissedByUser = true
+		mgr.oskHelperLock.Unlock()
 	}
 
 	mgr.setKeyboardProfile(keyboardProfile)
@@ -564,9 +570,13 @@ func (m *Manager) SetOSKHelperConfig(config oskhelpers.OSKHelperConfig) {
 
 	config.OnForceDismiss = func() {
 		m.keyboardKeysDownLock.Lock()
-		defer m.keyboardKeysDownLock.Unlock()
-
 		m.keyboardKeysDown = nil
+		m.keyboardKeysDownLock.Unlock()
+
+		m.oskHelperLock.Lock()
+		m.lastOSKComboDisplay = ""
+		m.oskForceDismissedByUser = true
+		m.oskHelperLock.Unlock()
 	}
 
 	m.oskHelperConfig = &config

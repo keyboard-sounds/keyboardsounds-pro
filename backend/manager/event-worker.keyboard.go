@@ -245,34 +245,122 @@ func (m *Manager) updateKeyboardKeysDown(e listenertypes.KeyEvent) {
 // This function is called to update the OSK helper with the current keys down.
 // If the OSK helper is enabled and a modifier key is pressed, this function will set the on screen text to the current keys down.
 // If the OSK helper is disabled or the modifier keys have been released, this function will clear the on screen text.
+//
+// Keys to display are merged from keyboardKeysDown (from key events) and e.ModifierKeys (from event flags).
+// This handles cases where the platform does not deliver separate key events for modifiers (e.g. Ctrl+A in a terminal only sends A).
 func (m *Manager) processOSKHelper(e listenertypes.KeyEvent) {
 	m.keyboardKeysDownLock.RLock()
-	if m.GetOSKHelperEnabled() {
-		m.oskHelperLock.RLock()
+	enabled := m.GetOSKHelperEnabled()
+	// Merge keys from key events with modifiers from this event's flags (so Ctrl+A shows even when only A event is delivered).
+	// Put modifiers first so we show "LeftControl + A" not "A + LeftControl"; skip keys with no name.
+	displayKeys := make([]key.Key, 0, len(m.keyboardKeysDown)+len(e.ModifierKeys))
+	seen := make(map[uint32]bool)
+	for _, k := range e.ModifierKeys {
+		if k.Name != "" && !seen[k.Code] {
+			seen[k.Code] = true
+			displayKeys = append(displayKeys, k)
+		}
+	}
+	for _, k := range m.keyboardKeysDown {
+		if k.Name != "" && !seen[k.Code] {
+			seen[k.Code] = true
+			displayKeys = append(displayKeys, k)
+		}
+	}
+	// Trigger modifier = Ctrl/Alt/Cmd. Shift alone must not show the overlay; Shift is still shown in combos.
+	hasTriggerModifier := len(displayKeys) > 0 && lo.ContainsBy(displayKeys, key.IsTriggerModifierKey)
+	hasNonModifier := len(displayKeys) > 0 && lo.SomeBy(displayKeys, func(k key.Key) bool { return !key.IsModifierKey(k) })
+	m.keyboardKeysDownLock.RUnlock()
 
-		if e.Action == listenertypes.ActionPress {
-			if len(m.keyboardKeysDown) > 1 && key.IsModifierKey(m.keyboardKeysDown[0]) {
-				err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, strings.Join(
-					lo.Map(m.keyboardKeysDown, func(key key.Key, _ int) string {
-						return key.Name
-					}),
-					" + ",
-				))
-				if err != nil {
-					slog.Error("failed to set on screen text", "error", err)
-				}
+	if enabled {
+		m.oskHelperLock.Lock()
+
+		// User clicked X: keep overlay hidden until they release all keys or press a new chord.
+		if m.oskForceDismissedByUser {
+			if len(displayKeys) == 0 {
+				m.oskForceDismissedByUser = false
+			} else if len(displayKeys) > 0 && (hasTriggerModifier || lo.SomeBy(displayKeys, func(k key.Key) bool { return !key.IsModifierKey(k) })) {
+				// User is pressing a chord (modifier + key). Treat as new combo and show again.
+				m.oskForceDismissedByUser = false
 			} else {
-				m.oskHelper.ClearOnScreenText()
-			}
-		} else {
-			if len(m.keyboardKeysDown) == 0 || !key.IsModifierKey(m.keyboardKeysDown[0]) {
-				m.oskHelper.ClearOnScreenText()
+				// Only modifiers still down (or stale). Keep overlay hidden.
+				_ = m.oskHelper.ClearOnScreenText()
+				m.oskHelperLock.Unlock()
+				return
 			}
 		}
 
-		m.oskHelperLock.RUnlock()
+		// Only include keys with non-empty name; trim result so we never show trailing " + ".
+		keyNames := strings.TrimSpace(strings.Join(
+			lo.FilterMap(displayKeys, func(k key.Key, _ int) (string, bool) {
+				name := strings.TrimSpace(k.Name)
+				return name, name != ""
+			}),
+			" + ",
+		))
+
+		if len(displayKeys) == 0 || !hasTriggerModifier {
+			m.lastOSKComboDisplay = ""
+			m.oskHelper.ClearOnScreenText()
+			m.oskHelperLock.Unlock()
+			return
+		}
+
+		keyCount := len(strings.Split(keyNames, " + "))
+		lastCount := 0
+		lastParts := []string{}
+		if m.lastOSKComboDisplay != "" {
+			lastParts = strings.Split(m.lastOSKComboDisplay, " + ")
+			lastCount = len(lastParts)
+		}
+
+		// If we have modifier(s) + at least one other key: upgrade stored combo when it's a new combo or has more keys.
+		if hasNonModifier && keyNames != "" {
+			currentParts := strings.Split(keyNames, " + ")
+			lastSet := make(map[string]bool)
+			for _, p := range lastParts {
+				lastSet[strings.TrimSpace(p)] = true
+			}
+			currentIsSubsetOfLast := m.lastOSKComboDisplay != "" && keyCount <= lastCount
+			if currentIsSubsetOfLast {
+				for _, p := range currentParts {
+					if !lastSet[strings.TrimSpace(p)] {
+						currentIsSubsetOfLast = false
+						break
+					}
+				}
+			}
+			// New combo (different keys): replace stored and show current.
+			if !currentIsSubsetOfLast || keyCount > lastCount {
+				m.lastOSKComboDisplay = keyNames
+			}
+			// Released a key from same combo (current is subset): keep showing the larger combo.
+			toShow := keyNames
+			if currentIsSubsetOfLast && keyCount < lastCount {
+				toShow = m.lastOSKComboDisplay
+			}
+			err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, toShow)
+			if err != nil {
+				slog.Error("failed to set on screen text", "error", err)
+			}
+			m.oskHelperLock.Unlock()
+			return
+		}
+
+		// Only modifiers down: keep showing last combo until modifier state or combo changes.
+		if m.lastOSKComboDisplay != "" {
+			err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, m.lastOSKComboDisplay)
+			if err != nil {
+				slog.Error("failed to set on screen text", "error", err)
+			}
+		} else {
+			err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, keyNames)
+			if err != nil {
+				slog.Error("failed to set on screen text", "error", err)
+			}
+		}
+		m.oskHelperLock.Unlock()
 	}
-	m.keyboardKeysDownLock.RUnlock()
 }
 
 // processHotKeys processes the hot keys for a given key event.

@@ -15,6 +15,7 @@ typedef struct {
 	uint32_t keyCode;
 	int isKeyDown;
 	uint64_t timestamp;
+	uint64_t modifierFlags;  // CGEventGetFlags(event) — modifiers held when this event occurred
 	int listenerID;
 } ring_ev_t;
 
@@ -33,6 +34,7 @@ static CGEventRef keyTapCallback(CGEventTapProxy proxy, CGEventType type, CGEven
 	uint64_t timestamp = CGEventGetTimestamp(event);
 	int isKeyDown = (type == kCGEventKeyDown);
 	int keyCode = (int)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+	CGEventFlags flags = CGEventGetFlags(event);
 
 	uint32_t wp = atomic_fetch_add(&writePos, 1);
 	uint32_t rp = atomic_load(&readPos);
@@ -42,6 +44,7 @@ static CGEventRef keyTapCallback(CGEventTapProxy proxy, CGEventType type, CGEven
 	ring[slot].keyCode = (uint32_t)keyCode;
 	ring[slot].isKeyDown = isKeyDown;
 	ring[slot].timestamp = timestamp;
+	ring[slot].modifierFlags = (uint64_t)flags;
 	ring[slot].listenerID = listenerID;
 
 	return event;
@@ -53,7 +56,7 @@ static void timerCallback(CFRunLoopTimerRef timer, void *info) {
 	}
 }
 
-int pollEvent(uint32_t *keyCode, int *isKeyDown, uint64_t *timestamp, int *listenerID) {
+int pollEvent(uint32_t *keyCode, int *isKeyDown, uint64_t *timestamp, uint64_t *modifierFlags, int *listenerID) {
 	uint32_t rp = atomic_load(&readPos);
 	uint32_t wp = atomic_load(&writePos);
 	if (rp >= wp)
@@ -62,6 +65,7 @@ int pollEvent(uint32_t *keyCode, int *isKeyDown, uint64_t *timestamp, int *liste
 	*keyCode = ring[slot].keyCode;
 	*isKeyDown = ring[slot].isKeyDown;
 	*timestamp = ring[slot].timestamp;
+	*modifierFlags = ring[slot].modifierFlags;
 	*listenerID = ring[slot].listenerID;
 	atomic_fetch_add(&readPos, 1);
 	return 1;
@@ -252,7 +256,16 @@ func (l *darwinKeyboardListener) worker(ctx context.Context) {
 	var keyCode C.uint32_t
 	var isKeyDown C.int
 	var timestamp C.uint64_t
+	var modifierFlags C.uint64_t
 	var listenerID C.int
+
+	// CGEventFlags mask bits (match NSEventModifierFlags / CGEventFlags in CoreGraphics).
+	const (
+		cgEventFlagMaskShift     = 1 << 17 // kCGEventFlagMaskShift
+		cgEventFlagMaskControl  = 1 << 18 // kCGEventFlagMaskControl
+		cgEventFlagMaskAlternate = 1 << 19 // kCGEventFlagMaskAlternate (Option)
+		cgEventFlagMaskCommand  = 1 << 20 // kCGEventFlagMaskCommand
+	)
 
 	for {
 		select {
@@ -260,7 +273,7 @@ func (l *darwinKeyboardListener) worker(ctx context.Context) {
 			return
 		default:
 		}
-		if C.pollEvent(&keyCode, &isKeyDown, &timestamp, &listenerID) != 1 {
+		if C.pollEvent(&keyCode, &isKeyDown, &timestamp, &modifierFlags, &listenerID) != 1 {
 			time.Sleep(100 * time.Microsecond)
 			continue
 		}
@@ -278,11 +291,28 @@ func (l *darwinKeyboardListener) worker(ctx context.Context) {
 		if isKeyDown == 0 {
 			action = listenertypes.ActionRelease
 		}
+		// Decode modifier flags so OSK can show "Ctrl+Shift+A" when only the A key event is delivered (e.g. in terminal).
+		// Shift is included so it appears in the combo display; "Shift alone" still does not trigger the overlay (see hasTriggerModifier in event-worker).
+		flags := uint64(modifierFlags)
+		var modifierKeys []key.Key
+		if flags&cgEventFlagMaskShift != 0 {
+			modifierKeys = append(modifierKeys, key.LeftShift)
+		}
+		if flags&cgEventFlagMaskControl != 0 {
+			modifierKeys = append(modifierKeys, key.LeftControl)
+		}
+		if flags&cgEventFlagMaskAlternate != 0 {
+			modifierKeys = append(modifierKeys, key.LeftAlt)
+		}
+		if flags&cgEventFlagMaskCommand != 0 {
+			modifierKeys = append(modifierKeys, key.LeftWin)
+		}
 		keyEvent := listenertypes.KeyEvent{
-			Device:    &DarwinDevice,
-			Key:       key.FindKeyCode(uint32(keyCode)),
-			Action:    action,
-			Timestamp: ts,
+			Device:       &DarwinDevice,
+			Key:          key.FindKeyCode(uint32(keyCode)),
+			Action:       action,
+			Timestamp:    ts,
+			ModifierKeys: modifierKeys,
 		}
 		select {
 		case li.events <- keyEvent:

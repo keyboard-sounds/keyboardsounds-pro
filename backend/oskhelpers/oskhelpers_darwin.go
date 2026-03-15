@@ -10,11 +10,12 @@ package oskhelpers
 
 // Panel functions are implemented in oskhelpers_darwin_panel.go
 extern void darwin_osk_create(void);
-extern void darwin_osk_run(void);
-extern void darwin_osk_show(const char *text, int fontSize, double fontR, double fontG, double fontB,
-                            double bgR, double bgG, double bgB, double bgAlpha, int cornerRadius,
-                            int positionBottom, int offset, int monitorIndex, int width, int height);
+extern void darwin_osk_run_iteration(void);
+extern void darwin_osk_show_dispatch(int fontSize, double fontR, double fontG, double fontB,
+                                     double bgR, double bgG, double bgB, double bgAlpha, int cornerRadius,
+                                     int positionBottom, int offset, int monitorIndex, int width, int height);
 extern void darwin_osk_hide(void);
+extern void darwin_osk_hide_now(void);  // hide panel immediately (must be called from main thread)
 extern void darwin_osk_force_dismiss(void);
 
 // getDisplayList fills displayIDs with up to maxDisplays active display IDs, returns count.
@@ -39,11 +40,17 @@ static void getDisplayBounds(uint32_t displayID, int *x, int *y, int *w, int *h)
 import "C"
 
 import (
-	"runtime"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
 	"unsafe"
+)
+
+// Pending OSK show text queue so the main-thread block gets the exact string we set (avoids C copy/async issues).
+var (
+	pendingOSKTexts   []string
+	pendingOSKTextsMu sync.Mutex
 )
 
 func getMonitorsDarwin() []MonitorInfo {
@@ -92,47 +99,55 @@ type darwinOSKHelper struct {
 }
 
 var (
-	darwinOSKReadyChan   chan struct{}
-	darwinOSKReadyOnce   sync.Once
 	darwinOSKHelperMu    sync.Mutex
 	darwinOSKHelperGlobal *darwinOSKHelper
 )
 
 func newOSKHelper() (OSKHelper, error) {
-	darwinOSKReadyOnce.Do(func() {
-		darwinOSKReadyChan = make(chan struct{})
-		go darwinOSKRunLoop()
-	})
+	// Panel is created lazily on first show inside doShow (on the main queue) so it is always on the main thread.
+	// Caller must invoke RunMainLoop() from the main goroutine so the Cocoa run loop runs on the main thread.
 	h := &darwinOSKHelper{}
 	darwinOSKHelperMu.Lock()
 	darwinOSKHelperGlobal = h
 	darwinOSKHelperMu.Unlock()
-	<-darwinOSKReadyChan
 	return h, nil
 }
 
-// darwinOSKRunLoop runs the AppKit run loop on a locked OS thread (must be same thread that creates the panel).
-func darwinOSKRunLoop() {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-	C.darwin_osk_create()
-	C.darwin_osk_run()
-}
-
-// oskReadyCallback is called from Objective-C when the overlay panel is created.
-//export oskReadyCallback
-func oskReadyCallback() {
-	close(darwinOSKReadyChan)
+// RunMainLoop runs the Cocoa main run loop and blocks forever. On macOS, any app that uses the OSK helper
+// must call RunMainLoop() from the main goroutine (e.g. at the end of main()), so that dispatch_get_main_queue
+// is serviced and SetOnScreenText from other goroutines (e.g. keyboard events) actually shows the overlay.
+//
+// We run the run loop in short iterations (CFRunLoopRunInMode with 50ms timeout) instead of one long
+// [NSApp run] CGO call to avoid SIGTRAP "signal arrived during cgo execution" on macOS (see golang.org/issue/57263).
+func RunMainLoop() {
+	for {
+		C.darwin_osk_run_iteration()
+	}
 }
 
 // oskForceDismissCallback is called from Objective-C when the user clicks the close button.
+// We hide the panel immediately (we're on the main thread) and then run the delegate.
 //export oskForceDismissCallback
 func oskForceDismissCallback() {
+	slog.Info("OSK: close button callback invoked")
 	darwinOSKHelperMu.Lock()
 	h := darwinOSKHelperGlobal
 	darwinOSKHelperMu.Unlock()
-	if h != nil && h.onForceDismiss != nil {
-		h.onForceDismiss()
+	if h == nil {
+		slog.Info("OSK: close callback skipped (no helper)")
+		return
+	}
+	// Hide panel now (called from main thread from the button action).
+	C.darwin_osk_hide_now()
+	h.mu.Lock()
+	if h.dismissTimer != nil {
+		h.dismissTimer.Stop()
+		h.dismissTimer = nil
+	}
+	cb := h.onForceDismiss
+	h.mu.Unlock()
+	if cb != nil {
+		cb()
 	}
 }
 
@@ -150,7 +165,18 @@ func (d *darwinOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) e
 	if text == "" {
 		return d.ClearOnScreenText()
 	}
-	return darwinOSKShow(d, config, text)
+	if err := darwinOSKShow(d, config, text); err != nil {
+		return err
+	}
+	// Start auto-dismiss timer when DismissAfter is set (match Windows behavior).
+	if config.DismissAfter > 0 {
+		d.mu.Lock()
+		d.dismissTimer = time.AfterFunc(config.DismissAfter, func() {
+			darwinOSKHide()
+		})
+		d.mu.Unlock()
+	}
+	return nil
 }
 
 func (d *darwinOSKHelper) ClearOnScreenText() error {
@@ -234,14 +260,41 @@ func darwinOSKShow(h *darwinOSKHelper, config OSKHelperConfig, text string) erro
 		monitorIndex = 0
 	}
 	width, height := 400, 60
-	ctext := C.CString(text)
-	defer C.free(unsafe.Pointer(ctext))
-	C.darwin_osk_show(ctext, C.int(fontSize),
+	// Queue text so the main-thread block retrieves it from Go (avoids C string copy/async truncation).
+	pendingOSKTextsMu.Lock()
+	pendingOSKTexts = append(pendingOSKTexts, text)
+	pendingOSKTextsMu.Unlock()
+	C.darwin_osk_show_dispatch(C.int(fontSize),
 		C.double(fr), C.double(fg), C.double(fb),
 		C.double(br), C.double(bg), C.double(bb), C.double(bgAlpha),
 		C.int(cornerRadius), C.int(positionBottom), C.int(offset), C.int(monitorIndex),
 		C.int(width), C.int(height))
 	return nil
+}
+
+// darwin_osk_get_next_show_text is called from C (main thread) to get the next queued text. Copies into buf, returns length.
+//export darwin_osk_get_next_show_text
+func darwin_osk_get_next_show_text(buf *C.char, bufSize C.size_t) C.size_t {
+	if buf == nil || bufSize == 0 {
+		return 0
+	}
+	pendingOSKTextsMu.Lock()
+	if len(pendingOSKTexts) == 0 {
+		pendingOSKTextsMu.Unlock()
+		return 0
+	}
+	text := pendingOSKTexts[0]
+	pendingOSKTexts = pendingOSKTexts[1:]
+	pendingOSKTextsMu.Unlock()
+	n := len(text)
+	if n > int(bufSize)-1 {
+		n = int(bufSize) - 1
+	}
+	for i := 0; i < n; i++ {
+		*(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(buf)) + uintptr(i))) = text[i]
+	}
+	*(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(buf)) + uintptr(n))) = 0
+	return C.size_t(n)
 }
 
 func darwinOSKHide() {

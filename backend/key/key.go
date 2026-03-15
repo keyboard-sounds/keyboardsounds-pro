@@ -271,6 +271,23 @@ var modifierKeys = []Key{
 	RightWin,
 }
 
+// triggerModifierKeys are modifiers that can "trigger" the OSK display (e.g. Ctrl alone or Ctrl+A).
+// Shift is not included: Shift alone should not show the overlay, but Shift is still shown in combos (e.g. Ctrl+Shift+A).
+var triggerModifierKeys = []Key{
+	LeftControl,
+	RightControl,
+	LeftAlt,
+	RightAlt,
+	LeftWin,
+	RightWin,
+}
+
+// IsTriggerModifierKey returns true if the key is a modifier that can trigger the OSK display (Ctrl, Alt, Win).
+// Returns false for Shift so that "Shift alone" does not show the overlay; Shift is still included in displayed combos.
+func IsTriggerModifierKey(k Key) bool {
+	return lo.Contains(lo.Map(triggerModifierKeys, func(key Key, _ int) uint32 { return key.Code }), k.Code)
+}
+
 // RegisterModifierKey registers a new modifier key.
 func AddModifierKey(key Key) {
 	modifierKeys = append(modifierKeys, key)
