@@ -287,7 +287,7 @@ func (m *Manager) Enable() error {
 		}
 	}
 
-	// Start the focus detector if available (Windows only)
+	// Start the focus detector if available (Windows and macOS)
 	if m.focusDetector != nil {
 		err = m.focusDetector.Listen(m.listenerCtx)
 		if err != nil {

@@ -62,7 +62,11 @@ func startSystray() {
 		default:
 			systray.SetIcon(sysTrayIcon)
 		}
-		systray.SetTitle("Keyboard Sounds Pro")
+		switch rt.GOOS {
+		case "darwin":
+		default:
+			systray.SetTitle("Keyboard Sounds Pro")
+		}
 		systray.SetTooltip("Keyboard Sounds Pro")
 		systray.SetOnTapped(func() {
 			ctx := getWailsContext()
@@ -91,9 +95,15 @@ func startSystray() {
 	}, func() {})
 
 	systrayOnExit = onExit
-	go func() {
+
+	case rt.GOOS {
+	case "darwin":
 		onReady()
-	}()
+	default:
+		go func() {
+			onReady()
+		}()
+	}
 }
 
 type wailsConfig struct {

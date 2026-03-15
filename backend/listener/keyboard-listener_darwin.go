@@ -1,0 +1,293 @@
+//go:build darwin
+
+package listener
+
+/*
+#cgo LDFLAGS: -framework ApplicationServices -framework CoreFoundation
+
+#include <ApplicationServices/ApplicationServices.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <stdatomic.h>
+#include <stdint.h>
+
+#define RING_SIZE 256
+typedef struct {
+	uint32_t keyCode;
+	int isKeyDown;
+	uint64_t timestamp;
+	int listenerID;
+} ring_ev_t;
+
+static ring_ev_t ring[RING_SIZE];
+static _Atomic uint32_t writePos = 0;
+static _Atomic uint32_t readPos = 0;
+
+static volatile int g_stop = 0;
+
+void setStopFlag(int v) {
+	g_stop = v;
+}
+
+static CGEventRef keyTapCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
+	int listenerID = (int)(intptr_t)refcon;
+	uint64_t timestamp = CGEventGetTimestamp(event);
+	int isKeyDown = (type == kCGEventKeyDown);
+	int keyCode = (int)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+
+	uint32_t wp = atomic_fetch_add(&writePos, 1);
+	uint32_t rp = atomic_load(&readPos);
+	if (wp - rp >= RING_SIZE)
+		atomic_fetch_add(&readPos, 1);
+	uint32_t slot = wp % RING_SIZE;
+	ring[slot].keyCode = (uint32_t)keyCode;
+	ring[slot].isKeyDown = isKeyDown;
+	ring[slot].timestamp = timestamp;
+	ring[slot].listenerID = listenerID;
+
+	return event;
+}
+
+static void timerCallback(CFRunLoopTimerRef timer, void *info) {
+	if (g_stop) {
+		CFRunLoopStop(CFRunLoopGetCurrent());
+	}
+}
+
+int pollEvent(uint32_t *keyCode, int *isKeyDown, uint64_t *timestamp, int *listenerID) {
+	uint32_t rp = atomic_load(&readPos);
+	uint32_t wp = atomic_load(&writePos);
+	if (rp >= wp)
+		return 0;
+	uint32_t slot = rp % RING_SIZE;
+	*keyCode = ring[slot].keyCode;
+	*isKeyDown = ring[slot].isKeyDown;
+	*timestamp = ring[slot].timestamp;
+	*listenerID = ring[slot].listenerID;
+	atomic_fetch_add(&readPos, 1);
+	return 1;
+}
+
+static int runEventLoop(int listenerID) {
+	CGEventMask mask = (1 << kCGEventKeyDown) | (1 << kCGEventKeyUp);
+	CFMachPortRef tap = CGEventTapCreate(
+		kCGSessionEventTap,
+		kCGHeadInsertEventTap,
+		kCGEventTapOptionListenOnly,
+		mask,
+		keyTapCallback,
+		(void *)(intptr_t)listenerID
+	);
+
+	if (!tap) {
+		return -1; // e.g. accessibility permission denied
+	}
+
+	CFRunLoopSourceRef source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0);
+	CFRelease(tap);
+	CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopCommonModes);
+	CFRelease(source);
+
+	CFRunLoopTimerContext ctx = {0};
+	CFRunLoopTimerRef stopTimer = CFRunLoopTimerCreate(
+		kCFAllocatorDefault,
+		CFAbsoluteTimeGetCurrent() + 0.1,
+		0.1,
+		0,
+		0,
+		timerCallback,
+		&ctx
+	);
+	CFRunLoopAddTimer(CFRunLoopGetCurrent(), stopTimer, kCFRunLoopCommonModes);
+	CFRelease(stopTimer);
+
+	CFRunLoopRun();
+	return 0;
+}
+*/
+import "C"
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/key"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/listener/listenertypes"
+)
+
+// DarwinDevice represents the keyboard event source on macOS (CGEventTap).
+var DarwinDevice = listenertypes.Device{
+	Name: "macOS (CGEventTap)",
+}
+
+// listenerRegistry maps IDs to listeners so the C callback can reach the current listener
+// without storing a Go pointer in C.
+var (
+	listenerRegistry   = make(map[int]*darwinKeyboardListener)
+	listenerRegistryMu  sync.Mutex
+	nextListenerID     int
+)
+
+func registerListener(l *darwinKeyboardListener) int {
+	listenerRegistryMu.Lock()
+	defer listenerRegistryMu.Unlock()
+	nextListenerID++
+	id := nextListenerID
+	listenerRegistry[id] = l
+	return id
+}
+
+func unregisterListener(id int) {
+	listenerRegistryMu.Lock()
+	defer listenerRegistryMu.Unlock()
+	delete(listenerRegistry, id)
+}
+
+func getListener(id int) *darwinKeyboardListener {
+	listenerRegistryMu.Lock()
+	defer listenerRegistryMu.Unlock()
+	return listenerRegistry[id]
+}
+
+type darwinKeyboardListener struct {
+	events     chan listenertypes.KeyEvent
+	mu         sync.Mutex
+	runLoopCtx context.Context
+	cancel     context.CancelFunc
+	workerDone chan struct{}
+	listenerID int
+}
+
+// NewKeyboardListener creates a new keyboard listener for macOS using CGEventTap.
+func NewKeyboardListener() KeyboardListener {
+	return &darwinKeyboardListener{
+		events:     make(chan listenertypes.KeyEvent, 100),
+		workerDone: make(chan struct{}),
+	}
+}
+
+// Events returns the channel of key events.
+func (l *darwinKeyboardListener) Events() chan listenertypes.KeyEvent {
+	return l.events
+}
+
+// Listen starts the CGEventTap and emits key events until ctx is cancelled.
+func (l *darwinKeyboardListener) Listen(ctx context.Context) error {
+	l.mu.Lock()
+
+	// Cancel any existing run loop
+	if l.cancel != nil {
+		l.cancel()
+		l.mu.Unlock()
+		select {
+		case <-l.workerDone:
+		case <-time.After(2 * time.Second):
+			slog.Warn("timeout waiting for previous darwin keyboard worker")
+		}
+		l.mu.Lock()
+	}
+
+	runLoopCtx, cancel := context.WithCancel(ctx)
+	l.runLoopCtx = runLoopCtx
+	l.cancel = cancel
+	l.workerDone = make(chan struct{})
+	l.listenerID = registerListener(l)
+
+	C.setStopFlag(0)
+
+	// Worker that reads from eventCh and sends to events
+	go l.worker(runLoopCtx)
+
+	// Run the event loop in a separate goroutine (C.runEventLoop blocks)
+	done := make(chan struct{})
+	var runLoopErr atomic.Value
+	listenerID := l.listenerID
+	go func() {
+		defer close(done)
+		ret := C.runEventLoop(C.int(listenerID))
+		unregisterListener(listenerID)
+		if ret != 0 {
+			runLoopErr.Store(fmt.Errorf("CGEventTapCreate failed (accessibility permission may be required)"))
+		}
+	}()
+
+	l.mu.Unlock()
+
+	// Wait for run loop to start and possibly fail quickly (e.g. no permission)
+	select {
+	case <-done:
+		if err, ok := runLoopErr.Load().(error); ok && err != nil {
+			cancel()
+			<-l.workerDone
+			return err
+		}
+	case <-runLoopCtx.Done():
+		C.setStopFlag(1)
+		<-done
+		<-l.workerDone
+		return runLoopCtx.Err()
+	case <-time.After(500 * time.Millisecond):
+		// Run loop is running
+	}
+
+	// When context is cancelled, signal C to stop the run loop; worker exits on ctx.Done()
+	go func() {
+		<-runLoopCtx.Done()
+		C.setStopFlag(1)
+		<-done
+	}()
+
+	slog.Info("darwin keyboard listener started", "listenerID", l.listenerID)
+	return nil
+}
+
+func (l *darwinKeyboardListener) worker(ctx context.Context) {
+	defer close(l.workerDone)
+
+	var timeBase time.Time
+	var timeBaseSet bool
+	var keyCode C.uint32_t
+	var isKeyDown C.int
+	var timestamp C.uint64_t
+	var listenerID C.int
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		if C.pollEvent(&keyCode, &isKeyDown, &timestamp, &listenerID) != 1 {
+			time.Sleep(100 * time.Microsecond)
+			continue
+		}
+		li := getListener(int(listenerID))
+		if li == nil {
+			continue
+		}
+		tsNanos := time.Duration(timestamp) * time.Nanosecond
+		if !timeBaseSet {
+			timeBase = time.Now().Add(-tsNanos)
+			timeBaseSet = true
+		}
+		ts := timeBase.Add(tsNanos)
+		action := listenertypes.ActionPress
+		if isKeyDown == 0 {
+			action = listenertypes.ActionRelease
+		}
+		keyEvent := listenertypes.KeyEvent{
+			Device:    &DarwinDevice,
+			Key:       key.FindKeyCode(uint32(keyCode)),
+			Action:    action,
+			Timestamp: ts,
+		}
+		select {
+		case li.events <- keyEvent:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
