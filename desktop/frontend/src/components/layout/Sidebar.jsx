@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { Box } from '@mui/material';
-import StatusBox from './StatusBox';
-import SidebarMenu from './SidebarMenu';
-import { menuItems as defaultMenuItems } from '../../constants';
+import { useState, useEffect, useRef } from "react";
+import { Box } from "@mui/material";
+import StatusBox from "./StatusBox";
+import SidebarMenu from "./SidebarMenu";
+import { menuItems as defaultMenuItems } from "../../constants";
 
 function Sidebar({
   customTitleBarEnabled = true,
   menuItems = defaultMenuItems,
-  platform = '',
+  platform = "",
   selectedTab,
   setSelectedTab,
   isPaused,
@@ -40,11 +40,11 @@ function Sidebar({
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizing) return;
-      
+
       const newWidth = e.clientX;
       const minWidth = 300;
       const maxWidth = 400;
-      
+
       if (newWidth >= minWidth && newWidth <= maxWidth) {
         setSidebarWidth(newWidth);
       } else if (newWidth < minWidth) {
@@ -59,17 +59,17 @@ function Sidebar({
     };
 
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
   }, [isResizing]);
 
@@ -79,30 +79,33 @@ function Sidebar({
       sx={{
         width: `${sidebarWidth}px`,
         flexShrink: 0,
-        position: 'relative',
-        marginTop: customTitleBarEnabled ? '40px' : 0,
-        height: customTitleBarEnabled ? 'calc(100vh - 40px)' : '100vh',
-        overflow: 'visible',
+        position: "relative",
+        marginTop: customTitleBarEnabled ? "40px" : 0,
+        height: customTitleBarEnabled ? "calc(100vh)" : "100vh",
+        top: "-40px",
+        overflow: "visible",
         zIndex: 1000,
       }}
     >
       <Box
         sx={{
           width: sidebarWidth,
-          height: '100%',
-          background: 'var(--sidebar-bg)',
-          backdropFilter: 'blur(30px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
-          position: 'absolute',
+          height: "100%",
+          background: "var(--sidebar-bg)",
+          backdropFilter: "blur(30px) saturate(180%)",
+          WebkitBackdropFilter: "blur(30px) saturate(180%)",
+          position: "absolute",
           left: 0,
           top: 0,
           zIndex: 1000,
-          boxShadow: 'var(--sidebar-shadow), inset -1px 0 0 var(--card-highlight)',
-          overflowX: 'hidden',
-          overflowY: 'hidden',
-          borderRight: '1px solid var(--sidebar-border)',
-          display: 'flex',
-          flexDirection: 'column',
+          boxShadow:
+            "var(--sidebar-shadow), inset -1px 0 0 var(--card-highlight)",
+          overflowX: "hidden",
+          overflowY: "hidden",
+          borderRight: "1px solid var(--sidebar-border)",
+          display: "flex",
+          flexDirection: "column",
+          paddingTop: "35px",
         }}
       >
         <StatusBox
@@ -136,7 +139,7 @@ function Sidebar({
           setSelectedTab={setSelectedTab}
         />
       </Box>
-      
+
       {/* Resize Handle */}
       <Box
         className="sidebar-resize-handle"
@@ -146,37 +149,37 @@ function Sidebar({
           setIsResizing(true);
         }}
         sx={{
-          position: 'absolute',
-          right: '-6px',
+          position: "absolute",
+          right: "-6px",
           top: 0,
-          width: '12px',
-          height: '100%',
-          cursor: 'col-resize',
-          backgroundColor: 'transparent',
+          width: "12px",
+          height: "100%",
+          cursor: "col-resize",
+          backgroundColor: "transparent",
           zIndex: 1001,
-          pointerEvents: 'auto',
-          transition: 'background-color 0.2s',
-          '--wails-draggable': 'no-drag',
-          '&:hover': {
-            backgroundColor: 'var(--accent-bg)',
+          pointerEvents: "auto",
+          transition: "background-color 0.2s",
+          "--wails-draggable": "no-drag",
+          "&:hover": {
+            backgroundColor: "var(--accent-bg)",
           },
-          '&::before': {
+          "&::before": {
             content: '""',
-            position: 'absolute',
-            left: '6px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: '2px',
-            height: '60px',
-            backgroundColor: 'var(--resize-handle)',
-            borderRadius: '1px',
-            transition: 'all 0.2s',
+            position: "absolute",
+            left: "6px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: "2px",
+            height: "60px",
+            backgroundColor: "var(--resize-handle)",
+            borderRadius: "1px",
+            transition: "all 0.2s",
           },
-          '&:hover::before': {
-            backgroundColor: 'var(--accent-primary)',
-            height: '80px',
-            width: '3px',
-            boxShadow: '0 0 8px var(--accent-shadow)',
+          "&:hover::before": {
+            backgroundColor: "var(--accent-primary)",
+            height: "80px",
+            width: "3px",
+            boxShadow: "0 0 8px var(--accent-shadow)",
           },
         }}
       />

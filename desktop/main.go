@@ -20,6 +20,8 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -96,7 +98,7 @@ func startSystray() {
 
 	systrayOnExit = onExit
 
-	case rt.GOOS {
+	switch rt.GOOS {
 	case "darwin":
 		onReady()
 	default:
@@ -303,18 +305,41 @@ func main() {
 
 	// Custom title bar requires frameless window; system title bar uses native window chrome
 	enableCustomTitleBar := app.GetCustomTitleBarEnabled()
+	useFramelessWindow := enableCustomTitleBar && rt.GOOS != "darwin"
+	useMacNativeCustomTitleBar := enableCustomTitleBar && rt.GOOS == "darwin"
+	backgroundColor := &options.RGBA{R: 255, G: 255, B: 255, A: 255}
+	if useMacNativeCustomTitleBar {
+		backgroundColor = &options.RGBA{R: 0, G: 0, B: 0, A: 0}
+	}
 
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:       "Keyboard Sounds Pro",
 		Width:       1250,
 		Height:      768,
-		Frameless:   enableCustomTitleBar,
+		Frameless:   useFramelessWindow,
 		StartHidden: startHidden,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 1},
+		BackgroundColour: backgroundColor,
+		Windows: &windows.Options{
+			// Keep rounded corners and shadow even in frameless (custom title bar) mode.
+			DisableFramelessWindowDecorations: false,
+		},
+		Mac: &mac.Options{
+			Appearance:           mac.DefaultAppearance,
+			WindowIsTranslucent:  useMacNativeCustomTitleBar,
+			WebviewIsTransparent: useMacNativeCustomTitleBar,
+			TitleBar: func() *mac.TitleBar {
+				if useMacNativeCustomTitleBar {
+					titleBar := mac.TitleBarHiddenInset()
+					titleBar.TitlebarAppearsTransparent = true
+					return titleBar
+				}
+				return mac.TitleBarDefault()
+			}(),
+		},
 		OnStartup: func(ctx context.Context) {
 			setWailsContext(ctx)
 			application.startup(ctx)

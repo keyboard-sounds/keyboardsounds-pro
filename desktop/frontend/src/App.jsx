@@ -543,6 +543,8 @@ function App() {
   const [customTitleBarEnabled, setCustomTitleBarEnabled] = useState(true);
   const [hideStatusBoxDefaultProfile, setHideStatusBoxDefaultProfile] = useState(false);
   const [restartDialogReason, setRestartDialogReason] = useState(null); // 'customTitleBar' | 'systemTray' when restart needed
+  const hasFrontendCustomTitleBar = customTitleBarEnabled && platform !== 'darwin';
+  const hasMacInsetTitleBar = customTitleBarEnabled && platform === 'darwin';
 
   // Handlers for rules
   const handleAddRule = () => {
@@ -964,7 +966,7 @@ function App() {
           <Box
             sx={{
               position: 'fixed',
-              top: customTitleBarEnabled ? '40px' : 0,
+              top: hasFrontendCustomTitleBar ? '40px' : 0,
               left: 0,
               right: 0,
               bottom: 0,
@@ -1078,7 +1080,21 @@ function App() {
       )}
 
       {/* Custom Title Bar - only shown when enabled (frameless window); when disabled, system title bar is used */}
-      {customTitleBarEnabled && <TitleBar />}
+      {hasFrontendCustomTitleBar && <TitleBar platform={platform} />}
+      {hasMacInsetTitleBar && (
+        <Box
+          className="title-bar-drag"
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: '80px',
+            right: 0,
+            height: '36px',
+            zIndex: 1250,
+            background: 'transparent',
+          }}
+        />
+      )}
 
       {/* Sidebar */}
       <Sidebar
@@ -1118,8 +1134,8 @@ function App() {
         sx={{
           flexGrow: 1,
           background: 'var(--bg-gradient)',
-          marginTop: customTitleBarEnabled ? '40px' : 0,
-          height: customTitleBarEnabled ? 'calc(100vh - 40px)' : '100vh',
+          marginTop: hasFrontendCustomTitleBar ? '40px' : 0,
+          height: hasFrontendCustomTitleBar ? 'calc(100vh - 40px)' : '100vh',
           overflow: 'auto',
           padding: '32px 40px',
           position: 'relative',
