@@ -372,6 +372,22 @@ func (m *Manager) processHotKeys(e listenertypes.KeyEvent) {
 		copy(keysDown, m.keyboardKeysDown)
 		m.keyboardKeysDownLock.RUnlock()
 
+		// On macOS, modifier key events are delivered via kCGEventFlagsChanged and may
+		// lose the race against the trigger key release goroutine. Merge e.ModifierKeys
+		// (populated from CGEventFlags on every darwin event) into keysDown so that
+		// modifier state is always accurate. On other platforms ModifierKeys is empty.
+		if len(e.ModifierKeys) > 0 {
+			seen := make(map[uint32]bool, len(keysDown))
+			for _, k := range keysDown {
+				seen[k.Code] = true
+			}
+			for _, mk := range e.ModifierKeys {
+				if !seen[mk.Code] {
+					keysDown = append(keysDown, mk)
+				}
+			}
+		}
+
 		// TODO: Also copy hot key configs to avoid race conditions.
 
 		go func() {

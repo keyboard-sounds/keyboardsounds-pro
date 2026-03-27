@@ -29,12 +29,48 @@ void setStopFlag(int v) {
 	g_stop = v;
 }
 
+// Modifier key codes on macOS (kVK_* from Carbon / HIToolbox).
+#define kVK_Shift       0x38
+#define kVK_RightShift  0x3C
+#define kVK_Control     0x3B
+#define kVK_RightControl 0x3E
+#define kVK_Option      0x3A
+#define kVK_RightOption 0x3D
+#define kVK_Command     0x37
+#define kVK_RightCommand 0x36
+#define kVK_CapsLock    0x39
+#define kVK_Function    0x3F
+
 static CGEventRef keyTapCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
 	int listenerID = (int)(intptr_t)refcon;
 	uint64_t timestamp = CGEventGetTimestamp(event);
-	int isKeyDown = (type == kCGEventKeyDown);
 	int keyCode = (int)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
 	CGEventFlags flags = CGEventGetFlags(event);
+
+	int isKeyDown;
+	if (type == kCGEventFlagsChanged) {
+		// Derive press/release from whether the modifier's own flag bit is now set.
+		switch (keyCode) {
+			case kVK_Shift:
+			case kVK_RightShift:
+				isKeyDown = (flags & kCGEventFlagMaskShift) != 0; break;
+			case kVK_Control:
+			case kVK_RightControl:
+				isKeyDown = (flags & kCGEventFlagMaskControl) != 0; break;
+			case kVK_Option:
+			case kVK_RightOption:
+				isKeyDown = (flags & kCGEventFlagMaskAlternate) != 0; break;
+			case kVK_Command:
+			case kVK_RightCommand:
+				isKeyDown = (flags & kCGEventFlagMaskCommand) != 0; break;
+			case kVK_CapsLock:
+				isKeyDown = (flags & kCGEventFlagMaskAlphaShift) != 0; break;
+			default:
+				isKeyDown = 1; break;
+		}
+	} else {
+		isKeyDown = (type == kCGEventKeyDown);
+	}
 
 	uint32_t wp = atomic_fetch_add(&writePos, 1);
 	uint32_t rp = atomic_load(&readPos);
@@ -72,7 +108,7 @@ int pollEvent(uint32_t *keyCode, int *isKeyDown, uint64_t *timestamp, uint64_t *
 }
 
 static int runEventLoop(int listenerID) {
-	CGEventMask mask = (1 << kCGEventKeyDown) | (1 << kCGEventKeyUp);
+	CGEventMask mask = (1 << kCGEventKeyDown) | (1 << kCGEventKeyUp) | (1 << kCGEventFlagsChanged);
 	CFMachPortRef tap = CGEventTapCreate(
 		kCGSessionEventTap,
 		kCGHeadInsertEventTap,
@@ -291,25 +327,28 @@ func (l *darwinKeyboardListener) worker(ctx context.Context) {
 		if isKeyDown == 0 {
 			action = listenertypes.ActionRelease
 		}
-		// Decode modifier flags so OSK can show "Ctrl+Shift+A" when only the A key event is delivered (e.g. in terminal).
-		// Shift is included so it appears in the combo display; "Shift alone" still does not trigger the overlay (see hasTriggerModifier in event-worker).
+		// Decode modifier flags for companion modifier display (e.g. "Ctrl+Shift+A").
+		// Exclude the primary key itself from ModifierKeys to avoid duplication when
+		// a modifier key is pressed alone (e.g. pressing Shift should not also list
+		// Shift in ModifierKeys).
+		primaryKey := key.FindKeyCode(uint32(keyCode))
 		flags := uint64(modifierFlags)
 		var modifierKeys []key.Key
-		if flags&cgEventFlagMaskShift != 0 {
+		if flags&cgEventFlagMaskShift != 0 && primaryKey != key.LeftShift && primaryKey != key.RightShift {
 			modifierKeys = append(modifierKeys, key.LeftShift)
 		}
-		if flags&cgEventFlagMaskControl != 0 {
+		if flags&cgEventFlagMaskControl != 0 && primaryKey != key.LeftControl && primaryKey != key.RightControl {
 			modifierKeys = append(modifierKeys, key.LeftControl)
 		}
-		if flags&cgEventFlagMaskAlternate != 0 {
+		if flags&cgEventFlagMaskAlternate != 0 && primaryKey != key.LeftAlt && primaryKey != key.RightAlt {
 			modifierKeys = append(modifierKeys, key.LeftAlt)
 		}
-		if flags&cgEventFlagMaskCommand != 0 {
+		if flags&cgEventFlagMaskCommand != 0 && primaryKey != key.LeftWin {
 			modifierKeys = append(modifierKeys, key.LeftWin)
 		}
 		keyEvent := listenertypes.KeyEvent{
 			Device:       &DarwinDevice,
-			Key:          key.FindKeyCode(uint32(keyCode)),
+			Key:          primaryKey,
 			Action:       action,
 			Timestamp:    ts,
 			ModifierKeys: modifierKeys,

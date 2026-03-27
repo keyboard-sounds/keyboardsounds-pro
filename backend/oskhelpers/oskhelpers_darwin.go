@@ -42,6 +42,7 @@ import "C"
 import (
 	"log/slog"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -99,7 +100,7 @@ type darwinOSKHelper struct {
 }
 
 var (
-	darwinOSKHelperMu    sync.Mutex
+	darwinOSKHelperMu     sync.Mutex
 	darwinOSKHelperGlobal *darwinOSKHelper
 )
 
@@ -127,6 +128,7 @@ func RunMainLoop() {
 
 // oskForceDismissCallback is called from Objective-C when the user clicks the close button.
 // We hide the panel immediately (we're on the main thread) and then run the delegate.
+//
 //export oskForceDismissCallback
 func oskForceDismissCallback() {
 	slog.Info("OSK: close button callback invoked")
@@ -152,6 +154,11 @@ func oskForceDismissCallback() {
 }
 
 func (d *darwinOSKHelper) SetOnScreenText(config OSKHelperConfig, text string) error {
+	text = strings.ReplaceAll(text, "LeftWin", "⌘")
+	text = strings.ReplaceAll(text, "RightWin", "⌘")
+	text = strings.ReplaceAll(text, "LeftAlt", "⌥")
+	text = strings.ReplaceAll(text, "RightAlt", "⌥")
+
 	d.mu.Lock()
 	if d.dismissTimer != nil {
 		d.dismissTimer.Stop()
@@ -273,6 +280,7 @@ func darwinOSKShow(h *darwinOSKHelper, config OSKHelperConfig, text string) erro
 }
 
 // darwin_osk_get_next_show_text is called from C (main thread) to get the next queued text. Copies into buf, returns length.
+//
 //export darwin_osk_get_next_show_text
 func darwin_osk_get_next_show_text(buf *C.char, bufSize C.size_t) C.size_t {
 	if buf == nil || bufSize == 0 {

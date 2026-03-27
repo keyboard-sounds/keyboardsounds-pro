@@ -2,3 +2,4 @@ desktop/build/windows/installer/tmp
 desktop/build/windows/installer/wails_tools.nsh
 desktop/frontend/wailsjs
 *.deb
+.DS_Store
