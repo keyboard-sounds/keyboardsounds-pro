@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { Box } from "@mui/material";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import StatusBox from "./StatusBox";
 import SidebarMenu from "./SidebarMenu";
 import { menuItems as defaultMenuItems } from "../../constants";
+import DiscordIcon from "../icons/DiscordIcon";
+import GitHubIcon from "@mui/icons-material/GitHub";
+import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
 
 function Sidebar({
   customTitleBarEnabled = true,
@@ -84,7 +87,7 @@ function Sidebar({
         height: customTitleBarEnabled ? "calc(100vh)" : "100vh",
         top: "-40px",
         overflow: "visible",
-        zIndex: 1000,
+        zIndex: customTitleBarEnabled ? 1400 : 1000,
       }}
     >
       <Box
@@ -105,9 +108,71 @@ function Sidebar({
           borderRight: "1px solid var(--sidebar-border)",
           display: "flex",
           flexDirection: "column",
-          paddingTop: "35px",
+          paddingTop: 0,
         }}
       >
+        <Box
+          className="title-bar-drag"
+          sx={{
+            height: "38px",
+            marginTop: "8px",
+            display: "flex",
+            alignItems: "center",
+            padding: "16px",
+            justifyContent: "right",
+            gap: "10px",
+            color: "var(--text-secondary)",
+            fontSize: "14px",
+            fontWeight: 600,
+            letterSpacing: "0.3px",
+            flexShrink: 0,
+            position: "relative",
+            zIndex: 1401,
+            pointerEvents: "auto",
+            "--wails-draggable": "drag",
+          }}
+        >
+          <Tooltip title="Open GitHub repository" arrow>
+            <IconButton
+              size="small"
+              onClick={() =>
+                BrowserOpenURL("https://github.com/keyboard-sounds/keyboardsounds-pro")
+              }
+              aria-label="Open GitHub repository"
+              sx={{
+                width: "30px",
+                height: "30px",
+                color: "var(--text-secondary)",
+                "--wails-draggable": "no-drag",
+                "&:hover": {
+                  backgroundColor: "var(--hover-bg)",
+                  color: "var(--text-primary)",
+                },
+              }}
+            >
+              <GitHubIcon sx={{ width: "20px", height: "20px" }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Join Discord community" arrow>
+            <IconButton
+              size="small"
+              onClick={() => BrowserOpenURL("https://discord.gg/5jM9ER8fJ7")}
+              aria-label="Join Discord community"
+              sx={{
+                width: "30px",
+                height: "30px",
+                color: "var(--text-secondary)",
+                "--wails-draggable": "no-drag",
+                "&:hover": {
+                  backgroundColor: "var(--hover-bg)",
+                  color: "var(--text-primary)",
+                },
+              }}
+            >
+              <DiscordIcon sx={{ width: "20px", height: "20px", objectFit: "contain" }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
         <StatusBox
           platform={platform}
           isPaused={isPaused}
