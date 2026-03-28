@@ -53,6 +53,7 @@ require (
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
+	howett.net/plist v1.0.1 // indirect
 )
 
 replace github.com/keyboard-sounds/keyboardsounds-pro/backend => ../backend
