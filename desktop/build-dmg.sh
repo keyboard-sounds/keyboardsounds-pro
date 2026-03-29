@@ -41,6 +41,8 @@ if [[ $# -ne 1 ]]; then
   exit 1
 fi
 
+wails build
+
 VERSION="$1"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP="${SCRIPT_DIR}/build/bin/Keyboard Sounds Pro.app"

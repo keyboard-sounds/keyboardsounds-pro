@@ -1,23 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Switch, Chip, IconButton, Tooltip } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import LaunchIcon from '@mui/icons-material/Launch';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import DownloadIcon from '@mui/icons-material/Download';
-import { GlassCard, PageHeader } from '../components/common';
-import { greenSwitchStyle } from '../constants';
-import { useTheme } from '../context';
-import { GetVersion } from '../../wailsjs/go/main/wailsConfig';
-import { IsUpdateAvailable, GetLatestVersion, GetDownloadURL, CheckForUpdate } from '../../wailsjs/go/main/UpdateDetails';
-import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import { useState, useEffect, useCallback } from "react";
+import {
+  Box,
+  Typography,
+  Switch,
+  Chip,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import LaunchIcon from "@mui/icons-material/Launch";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import DownloadIcon from "@mui/icons-material/Download";
+import { GlassCard, PageHeader } from "../components/common";
+import { greenSwitchStyle } from "../constants";
+import { useTheme } from "../context";
+import { GetVersion } from "../../wailsjs/go/main/wailsConfig";
+import {
+  IsUpdateAvailable,
+  GetLatestVersion,
+  GetDownloadURL,
+  CheckForUpdate,
+} from "../../wailsjs/go/main/UpdateDetails";
+import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
 
 function SettingsPage({
   audioDevice,
   setAudioDevice,
   isLinux,
   isFedora,
+  isMacOS,
   startWithSystem,
   setStartWithSystem,
   startPlayingOnLaunch,
@@ -36,10 +49,10 @@ function SettingsPage({
   onHideStatusBoxDefaultProfileChange,
 }) {
   const { theme, setTheme } = useTheme();
-  const [version, setVersion] = useState('Loading...');
+  const [version, setVersion] = useState("Loading...");
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [latestVersion, setLatestVersion] = useState('Loading...');
-  const [downloadURL, setDownloadURL] = useState('Loading...');
+  const [latestVersion, setLatestVersion] = useState("Loading...");
+  const [downloadURL, setDownloadURL] = useState("Loading...");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const refreshUpdateInfo = useCallback(async () => {
@@ -48,21 +61,23 @@ function SettingsPage({
       await CheckForUpdate();
       const [available, latest, url] = await Promise.all([
         IsUpdateAvailable().catch(() => false),
-        GetLatestVersion().catch(() => 'Unknown'),
-        GetDownloadURL().catch(() => 'Unknown'),
+        GetLatestVersion().catch(() => "Unknown"),
+        GetDownloadURL().catch(() => "Unknown"),
       ]);
       setUpdateAvailable(available);
       setLatestVersion(latest);
       setDownloadURL(url);
     } catch (error) {
-      console.error('Failed to check for updates:', error);
+      console.error("Failed to check for updates:", error);
     } finally {
       setIsRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    GetVersion().then(setVersion).catch(() => setVersion('Unknown'));
+    GetVersion()
+      .then(setVersion)
+      .catch(() => setVersion("Unknown"));
     refreshUpdateInfo();
   }, [refreshUpdateInfo]);
 
@@ -71,111 +86,137 @@ function SettingsPage({
       <PageHeader title="Settings" />
 
       {/* Appearance Section */}
-      <GlassCard sx={{ marginBottom: '24px' }}>
+      <GlassCard sx={{ marginBottom: "24px" }}>
         <Typography
           variant="h6"
           sx={{
-            color: 'var(--text-primary)',
-            fontSize: '18px',
+            color: "var(--text-primary)",
+            fontSize: "18px",
             fontWeight: 600,
-            marginBottom: '24px',
+            marginBottom: "24px",
           }}
         >
           Appearance
         </Typography>
 
         {/* Theme Selection */}
-        <Box sx={{ marginBottom: '28px' }}>
+        <Box sx={{ marginBottom: "28px" }}>
           <Typography
             sx={{
-              color: 'var(--text-primary)',
-              fontSize: '15px',
+              color: "var(--text-primary)",
+              fontSize: "15px",
               fontWeight: 500,
-              marginBottom: '6px',
+              marginBottom: "6px",
             }}
           >
             Application Theme
           </Typography>
           <Typography
             sx={{
-              color: 'var(--text-tertiary)',
-              fontSize: '13px',
-              marginBottom: '12px',
+              color: "var(--text-tertiary)",
+              fontSize: "13px",
+              marginBottom: "12px",
             }}
           >
             Choose the appearance of the application
           </Typography>
-          
+
           {/* Theme Toggle Buttons */}
-          <Box sx={{ display: 'flex', gap: '12px' }}>
+          <Box sx={{ display: "flex", gap: "12px" }}>
             <Box
-              onClick={() => setTheme('dark')}
+              onClick={() => setTheme("dark")}
               sx={{
                 flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '16px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                backgroundColor: theme === 'dark' ? 'var(--accent-bg)' : 'var(--input-bg)',
-                border: theme === 'dark' ? '2px solid var(--accent-primary)' : '2px solid var(--input-border)',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  backgroundColor: theme === 'dark' ? 'var(--accent-bg-hover)' : 'var(--hover-bg)',
-                  transform: 'translateY(-2px)',
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "8px",
+                padding: "16px",
+                borderRadius: "12px",
+                cursor: "pointer",
+                backgroundColor:
+                  theme === "dark" ? "var(--accent-bg)" : "var(--input-bg)",
+                border:
+                  theme === "dark"
+                    ? "2px solid var(--accent-primary)"
+                    : "2px solid var(--input-border)",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  backgroundColor:
+                    theme === "dark"
+                      ? "var(--accent-bg-hover)"
+                      : "var(--hover-bg)",
+                  transform: "translateY(-2px)",
                 },
               }}
             >
-              <DarkModeIcon 
-                sx={{ 
-                  fontSize: '28px', 
-                  color: theme === 'dark' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                }} 
+              <DarkModeIcon
+                sx={{
+                  fontSize: "28px",
+                  color:
+                    theme === "dark"
+                      ? "var(--accent-primary)"
+                      : "var(--text-secondary)",
+                }}
               />
               <Typography
                 sx={{
-                  color: theme === 'dark' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  fontSize: '14px',
-                  fontWeight: theme === 'dark' ? 600 : 500,
+                  color:
+                    theme === "dark"
+                      ? "var(--accent-primary)"
+                      : "var(--text-secondary)",
+                  fontSize: "14px",
+                  fontWeight: theme === "dark" ? 600 : 500,
                 }}
               >
                 Dark
               </Typography>
             </Box>
-            
+
             <Box
-              onClick={() => setTheme('light')}
+              onClick={() => setTheme("light")}
               sx={{
                 flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '16px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                backgroundColor: theme === 'light' ? 'var(--accent-bg)' : 'var(--input-bg)',
-                border: theme === 'light' ? '2px solid var(--accent-primary)' : '2px solid var(--input-border)',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  backgroundColor: theme === 'light' ? 'var(--accent-bg-hover)' : 'var(--hover-bg)',
-                  transform: 'translateY(-2px)',
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "8px",
+                padding: "16px",
+                borderRadius: "12px",
+                cursor: "pointer",
+                backgroundColor:
+                  theme === "light" ? "var(--accent-bg)" : "var(--input-bg)",
+                border:
+                  theme === "light"
+                    ? "2px solid var(--accent-primary)"
+                    : "2px solid var(--input-border)",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  backgroundColor:
+                    theme === "light"
+                      ? "var(--accent-bg-hover)"
+                      : "var(--hover-bg)",
+                  transform: "translateY(-2px)",
                 },
               }}
             >
-              <LightModeIcon 
-                sx={{ 
-                  fontSize: '28px', 
-                  color: theme === 'light' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                }} 
+              <LightModeIcon
+                sx={{
+                  fontSize: "28px",
+                  color:
+                    theme === "light"
+                      ? "var(--accent-primary)"
+                      : "var(--text-secondary)",
+                }}
               />
               <Typography
                 sx={{
-                  color: theme === 'light' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  fontSize: '14px',
-                  fontWeight: theme === 'light' ? 600 : 500,
+                  color:
+                    theme === "light"
+                      ? "var(--accent-primary)"
+                      : "var(--text-secondary)",
+                  fontSize: "14px",
+                  fontWeight: theme === "light" ? 600 : 500,
                 }}
               >
                 Light
@@ -185,77 +226,104 @@ function SettingsPage({
         </Box>
 
         {/* Custom Title Bar */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ flexGrow: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <Typography
+        {!isMacOS && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Box sx={{ flexGrow: 1 }}>
+              <Box
                 sx={{
-                  color: 'var(--text-primary)',
-                  fontSize: '15px',
-                  fontWeight: 500,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "4px",
                 }}
               >
-                Use Custom Title Bar
-              </Typography>
-              <Chip
-                label="Restart required"
-                size="small"
+                <Typography
+                  sx={{
+                    color: "var(--text-primary)",
+                    fontSize: "15px",
+                    fontWeight: 500,
+                  }}
+                >
+                  Use Custom Title Bar
+                </Typography>
+                <Chip
+                  label="Restart required"
+                  size="small"
+                  sx={{
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    height: "20px",
+                    backgroundColor: "var(--input-bg)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--input-border)",
+                    "& .MuiChip-label": {
+                      px: "8px",
+                      marginTop: "2px",
+                    },
+                  }}
+                />
+              </Box>
+              <Typography
                 sx={{
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  height: '20px',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--input-border)',
-                  '& .MuiChip-label': {
-                    px: '8px',
-                    marginTop: '2px',
-                  },
+                  color: "var(--text-tertiary)",
+                  fontSize: "13px",
                 }}
-              />
+              >
+                Use the application's custom title bar. When disabled, the
+                system title bar is used.
+              </Typography>
             </Box>
-            <Typography
-              sx={{
-                color: 'var(--text-tertiary)',
-                fontSize: '13px',
-              }}
-            >
-              Use the application's custom title bar. When disabled, the system title bar is used.
-            </Typography>
+            <Switch
+              checked={customTitleBarEnabled}
+              onChange={(e) => onCustomTitleBarChange(e.target.checked)}
+              sx={greenSwitchStyle}
+            />
           </Box>
-          <Switch
-            checked={customTitleBarEnabled}
-            onChange={(e) => onCustomTitleBarChange(e.target.checked)}
-            sx={greenSwitchStyle}
-          />
-        </Box>
+        )}
 
         {/* Hide Default Profile in Status Box */}
         {!isLinux && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-            <Box sx={{ flexGrow: 1, marginRight: '8px' }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: "20px",
+            }}
+          >
+            <Box sx={{ flexGrow: 1, marginRight: "8px" }}>
               <Typography
                 sx={{
-                  color: 'var(--text-primary)',
-                  fontSize: '15px',
+                  color: "var(--text-primary)",
+                  fontSize: "15px",
                   fontWeight: 500,
-                  marginBottom: '4px',
+                  marginBottom: "4px",
                 }}
               >
                 Hide Default Profile in Status Box
               </Typography>
               <Typography
                 sx={{
-                  color: 'var(--text-tertiary)',
-                  fontSize: '13px',
+                  color: "var(--text-tertiary)",
+                  fontSize: "13px",
                 }}
               >
-                Hide the default keyboard and mouse profile selector in the sidebar. This is useful if you rely entirely on application rules to determine the profile.
+                Hide the default keyboard and mouse profile selector in the
+                sidebar. This is useful if you rely entirely on application
+                rules to determine the profile.
               </Typography>
             </Box>
             <Switch
               checked={hideStatusBoxDefaultProfile}
-              onChange={(e) => onHideStatusBoxDefaultProfileChange(e.target.checked)}
+              onChange={(e) =>
+                onHideStatusBoxDefaultProfileChange(e.target.checked)
+              }
               sx={greenSwitchStyle}
             />
           </Box>
@@ -263,36 +331,43 @@ function SettingsPage({
       </GlassCard>
 
       {/* Application Settings Section */}
-      <GlassCard sx={{ marginBottom: '24px' }}>
+      <GlassCard sx={{ marginBottom: "24px" }}>
         <Typography
           variant="h6"
           sx={{
-            color: 'var(--text-primary)',
-            fontSize: '18px',
+            color: "var(--text-primary)",
+            fontSize: "18px",
             fontWeight: 600,
-            marginBottom: '24px',
+            marginBottom: "24px",
           }}
         >
           Application Settings
         </Typography>
 
         {/* Start with System */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+          }}
+        >
           <Box sx={{ flexGrow: 1 }}>
             <Typography
               sx={{
-                color: 'var(--text-primary)',
-                fontSize: '15px',
+                color: "var(--text-primary)",
+                fontSize: "15px",
                 fontWeight: 500,
-                marginBottom: '4px',
+                marginBottom: "4px",
               }}
             >
               Auto Launch
             </Typography>
             <Typography
               sx={{
-                color: 'var(--text-tertiary)',
-                fontSize: '13px',
+                color: "var(--text-tertiary)",
+                fontSize: "13px",
               }}
             >
               Automatically launch the application when your system starts
@@ -306,25 +381,33 @@ function SettingsPage({
         </Box>
 
         {/* Start Playing on Launch */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+          }}
+        >
           <Box sx={{ flexGrow: 1 }}>
             <Typography
               sx={{
-                color: 'var(--text-primary)',
-                fontSize: '15px',
+                color: "var(--text-primary)",
+                fontSize: "15px",
                 fontWeight: 500,
-                marginBottom: '4px',
+                marginBottom: "4px",
               }}
             >
               Auto Start
             </Typography>
             <Typography
               sx={{
-                color: 'var(--text-tertiary)',
-                fontSize: '13px',
+                color: "var(--text-tertiary)",
+                fontSize: "13px",
               }}
             >
-              Begin playing keyboard and mouse sounds immediately when the application starts
+              Begin playing keyboard and mouse sounds immediately when the
+              application starts
             </Typography>
           </Box>
           <Switch
@@ -335,22 +418,29 @@ function SettingsPage({
         </Box>
 
         {/* Hide On Launch */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: !isFedora ? '20px' : '0px' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: !isFedora ? "20px" : "0px",
+          }}
+        >
           <Box sx={{ flexGrow: 1 }}>
             <Typography
               sx={{
-                color: 'var(--text-primary)',
-                fontSize: '15px',
+                color: "var(--text-primary)",
+                fontSize: "15px",
                 fontWeight: 500,
-                marginBottom: '4px',
+                marginBottom: "4px",
               }}
             >
               Hide Window
             </Typography>
             <Typography
               sx={{
-                color: 'var(--text-tertiary)',
-                fontSize: '13px',
+                color: "var(--text-tertiary)",
+                fontSize: "13px",
               }}
             >
               Automatically hide the application window when launched
@@ -365,13 +455,26 @@ function SettingsPage({
 
         {/* System Tray */}
         {!isFedora && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <Box sx={{ flexGrow: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "4px",
+                }}
+              >
                 <Typography
                   sx={{
-                    color: 'var(--text-primary)',
-                    fontSize: '15px',
+                    color: "var(--text-primary)",
+                    fontSize: "15px",
                     fontWeight: 500,
                   }}
                 >
@@ -381,26 +484,27 @@ function SettingsPage({
                   label="Restart required"
                   size="small"
                   sx={{
-                    fontSize: '11px',
+                    fontSize: "11px",
                     fontWeight: 500,
-                    height: '20px',
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--input-border)',
-                    '& .MuiChip-label': {
-                      px: '8px',
-                      marginTop: '2px',
+                    height: "20px",
+                    backgroundColor: "var(--input-bg)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--input-border)",
+                    "& .MuiChip-label": {
+                      px: "8px",
+                      marginTop: "2px",
                     },
                   }}
                 />
               </Box>
               <Typography
                 sx={{
-                  color: 'var(--text-tertiary)',
-                  fontSize: '13px',
+                  color: "var(--text-tertiary)",
+                  fontSize: "13px",
                 }}
               >
-                When enabled, closing the window minimizes the application to the system tray.
+                When enabled, closing the window minimizes the application to
+                the system tray.
               </Typography>
             </Box>
             <Switch
@@ -413,36 +517,43 @@ function SettingsPage({
       </GlassCard>
 
       {/* Notification Settings Section */}
-      <GlassCard sx={{ marginBottom: '24px' }}>
+      <GlassCard sx={{ marginBottom: "24px" }}>
         <Typography
           variant="h6"
           sx={{
-            color: 'var(--text-primary)',
-            fontSize: '18px',
+            color: "var(--text-primary)",
+            fontSize: "18px",
             fontWeight: 600,
-            marginBottom: '24px',
+            marginBottom: "24px",
           }}
         >
           Notification Settings
         </Typography>
 
         {/* Notify on Minimize */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+          }}
+        >
           <Box sx={{ flexGrow: 1 }}>
             <Typography
               sx={{
-                color: 'var(--text-primary)',
-                fontSize: '15px',
+                color: "var(--text-primary)",
+                fontSize: "15px",
                 fontWeight: 500,
-                marginBottom: '4px',
+                marginBottom: "4px",
               }}
             >
               Application Hidden
             </Typography>
             <Typography
               sx={{
-                color: 'var(--text-tertiary)',
-                fontSize: '13px',
+                color: "var(--text-tertiary)",
+                fontSize: "13px",
               }}
             >
               Notify me when the application is minimized to the system tray
@@ -456,22 +567,28 @@ function SettingsPage({
         </Box>
 
         {/* Notify on Update */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <Box sx={{ flexGrow: 1 }}>
             <Typography
               sx={{
-                color: 'var(--text-primary)',
-                fontSize: '15px',
+                color: "var(--text-primary)",
+                fontSize: "15px",
                 fontWeight: 500,
-                marginBottom: '4px',
+                marginBottom: "4px",
               }}
             >
               Update Available
             </Typography>
             <Typography
               sx={{
-                color: 'var(--text-tertiary)',
-                fontSize: '13px',
+                color: "var(--text-tertiary)",
+                fontSize: "13px",
               }}
             >
               Notify me when an update is available
@@ -487,55 +604,62 @@ function SettingsPage({
 
       {/* Application Details Section */}
       <GlassCard>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "24px",
+          }}
+        >
           <Typography
             variant="h6"
             sx={{
-              color: 'var(--text-primary)',
-              fontSize: '18px',
+              color: "var(--text-primary)",
+              fontSize: "18px",
               fontWeight: 600,
             }}
           >
             Application Details
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {updateAvailable ? (
               <Chip
-                icon={<DownloadIcon sx={{ fontSize: '16px !important' }} />}
+                icon={<DownloadIcon sx={{ fontSize: "16px !important" }} />}
                 label={`Update Available (${latestVersion})`}
                 onClick={() => BrowserOpenURL(downloadURL)}
                 sx={{
-                  backgroundColor: 'var(--accent-bg)',
-                  color: 'var(--accent-primary)',
-                  border: '1px solid var(--accent-border)',
-                  fontSize: '12px',
+                  backgroundColor: "var(--accent-bg)",
+                  color: "var(--accent-primary)",
+                  border: "1px solid var(--accent-border)",
+                  fontSize: "12px",
                   fontWeight: 500,
-                  height: '28px',
-                  cursor: 'pointer',
-                  '& .MuiChip-icon': {
-                    color: 'var(--accent-primary)',
-                    marginLeft: '8px',
-                    marginRight: '-8px'
+                  height: "28px",
+                  cursor: "pointer",
+                  "& .MuiChip-icon": {
+                    color: "var(--accent-primary)",
+                    marginLeft: "8px",
+                    marginRight: "-8px",
                   },
-                  '&:hover': {
-                    backgroundColor: 'var(--accent-bg-hover)',
-                    borderColor: 'var(--accent-primary)',
+                  "&:hover": {
+                    backgroundColor: "var(--accent-bg-hover)",
+                    borderColor: "var(--accent-primary)",
                   },
                 }}
               />
             ) : (
               <Chip
-                icon={<CheckCircleIcon sx={{ fontSize: '16px !important' }} />}
+                icon={<CheckCircleIcon sx={{ fontSize: "16px !important" }} />}
                 label="Up To Date"
                 sx={{
-                  backgroundColor: 'var(--accent-bg)',
-                  color: 'var(--accent-primary)',
-                  border: '1px solid var(--accent-border)',
-                  fontSize: '12px',
+                  backgroundColor: "var(--accent-bg)",
+                  color: "var(--accent-primary)",
+                  border: "1px solid var(--accent-border)",
+                  fontSize: "12px",
                   fontWeight: 500,
-                  height: '28px',
-                  '& .MuiChip-icon': {
-                    color: 'var(--accent-primary)',
+                  height: "28px",
+                  "& .MuiChip-icon": {
+                    color: "var(--accent-primary)",
                   },
                 }}
               />
@@ -545,26 +669,28 @@ function SettingsPage({
                 onClick={refreshUpdateInfo}
                 disabled={isRefreshing}
                 sx={{
-                  mr: '-10px',
-                  color: 'var(--text-secondary)',
-                  '&:hover': {
-                    color: 'var(--accent-primary)',
-                    backgroundColor: 'var(--hover-bg)',
+                  mr: "-10px",
+                  color: "var(--text-secondary)",
+                  "&:hover": {
+                    color: "var(--accent-primary)",
+                    backgroundColor: "var(--hover-bg)",
                   },
-                  '&.Mui-disabled': {
-                    color: 'var(--text-tertiary)',
+                  "&.Mui-disabled": {
+                    color: "var(--text-tertiary)",
                   },
                 }}
               >
-                <RefreshIcon 
-                  sx={{ 
-                    fontSize: '20px',
-                    animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
-                    '@keyframes spin': {
-                      '0%': { transform: 'rotate(0deg)' },
-                      '100%': { transform: 'rotate(360deg)' },
+                <RefreshIcon
+                  sx={{
+                    fontSize: "20px",
+                    animation: isRefreshing
+                      ? "spin 1s linear infinite"
+                      : "none",
+                    "@keyframes spin": {
+                      "0%": { transform: "rotate(0deg)" },
+                      "100%": { transform: "rotate(360deg)" },
                     },
-                  }} 
+                  }}
                 />
               </IconButton>
             </Tooltip>
@@ -572,11 +698,18 @@ function SettingsPage({
         </Box>
 
         {/* Version */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+          }}
+        >
           <Typography
             sx={{
-              color: 'var(--text-secondary)',
-              fontSize: '14px',
+              color: "var(--text-secondary)",
+              fontSize: "14px",
               fontWeight: 500,
             }}
           >
@@ -584,10 +717,10 @@ function SettingsPage({
           </Typography>
           <Typography
             sx={{
-              color: 'var(--text-primary)',
-              fontSize: '14px',
+              color: "var(--text-primary)",
+              fontSize: "14px",
               fontWeight: 600,
-              fontFamily: 'monospace',
+              fontFamily: "monospace",
             }}
           >
             {version}
@@ -595,68 +728,85 @@ function SettingsPage({
         </Box>
 
         {/* Website Link */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+          }}
+        >
           <Typography
             sx={{
-              color: 'var(--text-secondary)',
-              fontSize: '14px',
+              color: "var(--text-secondary)",
+              fontSize: "14px",
               fontWeight: 500,
             }}
           >
             Website
           </Typography>
           <Box
-            onClick={() => BrowserOpenURL('https://keyboardsounds.pro/')}
+            onClick={() => BrowserOpenURL("https://keyboardsounds.pro/")}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--accent-primary)',
-              fontSize: '14px',
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "var(--accent-primary)",
+              fontSize: "14px",
               fontWeight: 500,
-              textDecoration: 'none',
-              cursor: 'pointer',
-              '&:hover': {
-                color: 'var(--accent-light)',
-                textDecoration: 'underline',
+              textDecoration: "none",
+              cursor: "pointer",
+              "&:hover": {
+                color: "var(--accent-light)",
+                textDecoration: "underline",
               },
             }}
           >
             keyboardsounds.pro
-            <LaunchIcon sx={{ fontSize: '14px' }} />
+            <LaunchIcon sx={{ fontSize: "14px" }} />
           </Box>
         </Box>
 
         {/* GitHub Link */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <Typography
             sx={{
-              color: 'var(--text-secondary)',
-              fontSize: '14px',
+              color: "var(--text-secondary)",
+              fontSize: "14px",
               fontWeight: 500,
             }}
           >
             GitHub
           </Typography>
           <Box
-            onClick={() => BrowserOpenURL('https://github.com/keyboard-sounds/keyboardsounds-pro')}
+            onClick={() =>
+              BrowserOpenURL(
+                "https://github.com/keyboard-sounds/keyboardsounds-pro",
+              )
+            }
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--accent-primary)',
-              fontSize: '14px',
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "var(--accent-primary)",
+              fontSize: "14px",
               fontWeight: 500,
-              textDecoration: 'none',
-              cursor: 'pointer',
-              '&:hover': {
-                color: 'var(--accent-light)',
-                textDecoration: 'underline',
+              textDecoration: "none",
+              cursor: "pointer",
+              "&:hover": {
+                color: "var(--accent-light)",
+                textDecoration: "underline",
               },
             }}
           >
             keyboard-sounds/keyboardsounds-pro
-            <LaunchIcon sx={{ fontSize: '14px' }} />
+            <LaunchIcon sx={{ fontSize: "14px" }} />
           </Box>
         </Box>
       </GlassCard>
