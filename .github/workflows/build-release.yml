@@ -275,3 +275,82 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up build environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.4"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: desktop/frontend/package-lock.json
+
+      - name: Install Wails CLI
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Extract version from release tag
+        id: get_version
+        shell: bash
+        run: |
+          tag="${{ github.ref_name }}"
+          version="${tag#desktop/v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: $version"
+
+      - name: Update version in wails.json
+        working-directory: desktop
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          python3 <<'PY'
+          import json, os
+          v = os.environ["VERSION"]
+          path = "wails.json"
+          with open(path, encoding="utf-8") as f:
+              data = json.load(f)
+          data["info"]["productVersion"] = v
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(data, f, indent=2)
+              f.write("\n")
+          print(f"Updated productVersion to: {v}")
+          PY
+
+      - name: Install frontend dependencies
+        working-directory: desktop/frontend
+        run: npm ci
+
+      - name: Build DMG
+        working-directory: desktop
+        run: ./build-dmg.sh "${{ steps.get_version.outputs.version }}"
+
+      - name: Rename DMG for release
+        id: rename_dmg
+        working-directory: desktop
+        run: |
+          src="build/bin/Keyboard-Sounds-Pro_${{ steps.get_version.outputs.version }}_arm64.dmg"
+          dest="build/bin/Keyboard-Sounds-Pro-Installer-macOS-arm64.dmg"
+          mv "$src" "$dest"
+          echo "dmg_path=desktop/$dest" >> "$GITHUB_OUTPUT"
+
+      - name: Upload DMG to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.rename_dmg.outputs.dmg_path }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
