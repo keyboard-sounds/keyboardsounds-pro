@@ -119,6 +119,9 @@ const (
 	axErrorAPIDisabled = 25211
 	// kAXErrorCannotComplete: messaging failed or target app busy; we try a fallback (focused UI element) automatically.
 	axErrorCannotComplete = 25204
+	// kAXErrorNoValue: attribute has no value — common for some Electron apps (e.g. Discord) that do not expose
+	// kAXFocusedApplicationAttribute / kAXFocusedUIElementAttribute reliably to the system-wide observer.
+	axErrorNoValue = 25212
 )
 
 func (d *darwinFocusDetector) pollLoop(ctx context.Context) {
@@ -131,9 +134,10 @@ func (d *darwinFocusDetector) pollLoop(ctx context.Context) {
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
-	// Initial snapshot: try AX first, then AppleScript fallback on 25204
+	// Initial snapshot: try AX first, then AppleScript fallback when AX has no usable frontmost path
+	// (25204 CannotComplete or 25212 NoValue — e.g. some Electron apps).
 	path, axErr := d.getFrontmostPathWithError(bufSize)
-	if path == "" && (axErr == axErrorCannotComplete || axErr == 0) {
+	if path == "" && (axErr == axErrorCannotComplete || axErr == axErrorNoValue || axErr == 0) {
 		path = d.getFrontmostPathViaAppleScript(bufSize)
 	}
 	if axErr != 0 && path == "" && !axErrorLogged {
@@ -154,7 +158,7 @@ func (d *darwinFocusDetector) pollLoop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			path, axErr := d.getFrontmostPathWithError(bufSize)
-			if path == "" && (axErr == axErrorCannotComplete || axErr == 0) {
+			if path == "" && (axErr == axErrorCannotComplete || axErr == axErrorNoValue || axErr == 0) {
 				path = d.getFrontmostPathViaAppleScript(bufSize)
 			}
 			if axErr != 0 && path == "" && !axErrorLogged {
@@ -182,6 +186,8 @@ func (d *darwinFocusDetector) logAXError(axErr int32) {
 		slog.Warn("focus detector: accessibility permission denied — add this app in System Settings → Privacy & Security → Accessibility, then restart")
 	case axErrorCannotComplete:
 		slog.Warn("focus detector: accessibility cannot complete (code 25204); ensure this app has Accessibility permission and no other app is blocking")
+	case axErrorNoValue:
+		slog.Warn("focus detector: accessibility returned no value for focused app (code 25212); if focus still fails, allow Automation for System Events (AppleScript fallback) or try restarting the frontmost app")
 	default:
 		slog.Warn("focus detector: accessibility API error", "code", axErr)
 	}
@@ -202,7 +208,8 @@ func (d *darwinFocusDetector) getFrontmostPathWithError(bufSize int) (path strin
 }
 
 // getFrontmostPathViaAppleScript returns the frontmost application's executable path by asking
-// System Events via osascript. Used when the Accessibility API returns 25204 (CannotComplete).
+// System Events via osascript. Used when the Accessibility API returns 25204 (CannotComplete)
+// or 25212 (NoValue), which some apps (notably Electron) trigger.
 // May prompt for "Automation" permission (Terminal/app to control System Events) the first time.
 func (d *darwinFocusDetector) getFrontmostPathViaAppleScript(bufSize int) string {
 	cmd := exec.Command("osascript", "-e", `tell application "System Events" to get unix id of first process whose frontmost is true`)
