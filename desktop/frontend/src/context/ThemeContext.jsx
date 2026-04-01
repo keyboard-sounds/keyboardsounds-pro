@@ -6,7 +6,11 @@ export function ThemeProvider({ children }) {
   // Load theme from localStorage, default to 'dark'
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('app-theme');
-    return savedTheme || 'dark';
+    const allowed = ['dark', 'dark-modern', 'light'];
+    if (savedTheme && allowed.includes(savedTheme)) {
+      return savedTheme;
+    }
+    return 'dark';
   });
 
   // Apply theme class to document root
@@ -16,14 +20,14 @@ export function ThemeProvider({ children }) {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   const value = {
     theme,
     setTheme,
     toggleTheme,
-    isDark: theme === 'dark',
+    isDark: theme === 'dark' || theme === 'dark-modern',
   };
 
   return (

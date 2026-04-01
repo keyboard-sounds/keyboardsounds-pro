@@ -11,6 +11,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LaunchIcon from "@mui/icons-material/Launch";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import ContrastIcon from "@mui/icons-material/Contrast";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DownloadIcon from "@mui/icons-material/Download";
 import { GlassCard, PageHeader } from "../components/common";
@@ -28,6 +29,12 @@ import {
     GetClickOverlayShowsApp,
     SetClickOverlayShowsApp,
 } from "../../wailsjs/go/app/OSKHelperBinding";
+
+const THEME_OPTIONS = [
+    { id: "dark", label: "Dark", Icon: DarkModeIcon },
+    { id: "dark-modern", label: "Dark modern", Icon: ContrastIcon },
+    { id: "light", label: "Light", Icon: LightModeIcon },
+];
 
 function SettingsPage({
     audioDevice,
@@ -135,111 +142,68 @@ function SettingsPage({
                         Choose the appearance of the application
                     </Typography>
 
-                    {/* Theme Toggle Buttons */}
-                    <Box sx={{ display: "flex", gap: "12px" }}>
-                        <Box
-                            onClick={() => setTheme("dark")}
-                            sx={{
-                                flex: 1,
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                gap: "8px",
-                                padding: "16px",
-                                borderRadius: "12px",
-                                cursor: "pointer",
-                                backgroundColor:
-                                    theme === "dark"
-                                        ? "var(--accent-bg)"
-                                        : "var(--input-bg)",
-                                border:
-                                    theme === "dark"
-                                        ? "2px solid var(--accent-primary)"
-                                        : "2px solid var(--input-border)",
-                                transition: "all 0.2s ease",
-                                "&:hover": {
-                                    backgroundColor:
-                                        theme === "dark"
-                                            ? "var(--accent-bg-hover)"
-                                            : "var(--hover-bg)",
-                                    transform: "translateY(-2px)",
-                                },
-                            }}
-                        >
-                            <DarkModeIcon
-                                sx={{
-                                    fontSize: "28px",
-                                    color:
-                                        theme === "dark"
-                                            ? "var(--accent-primary)"
-                                            : "var(--text-secondary)",
-                                }}
-                            />
-                            <Typography
-                                sx={{
-                                    color:
-                                        theme === "dark"
-                                            ? "var(--accent-primary)"
-                                            : "var(--text-secondary)",
-                                    fontSize: "14px",
-                                    fontWeight: theme === "dark" ? 600 : 500,
-                                }}
-                            >
-                                Dark
-                            </Typography>
-                        </Box>
-
-                        <Box
-                            onClick={() => setTheme("light")}
-                            sx={{
-                                flex: 1,
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                gap: "8px",
-                                padding: "16px",
-                                borderRadius: "12px",
-                                cursor: "pointer",
-                                backgroundColor:
-                                    theme === "light"
-                                        ? "var(--accent-bg)"
-                                        : "var(--input-bg)",
-                                border:
-                                    theme === "light"
-                                        ? "2px solid var(--accent-primary)"
-                                        : "2px solid var(--input-border)",
-                                transition: "all 0.2s ease",
-                                "&:hover": {
-                                    backgroundColor:
-                                        theme === "light"
-                                            ? "var(--accent-bg-hover)"
-                                            : "var(--hover-bg)",
-                                    transform: "translateY(-2px)",
-                                },
-                            }}
-                        >
-                            <LightModeIcon
-                                sx={{
-                                    fontSize: "28px",
-                                    color:
-                                        theme === "light"
-                                            ? "var(--accent-primary)"
-                                            : "var(--text-secondary)",
-                                }}
-                            />
-                            <Typography
-                                sx={{
-                                    color:
-                                        theme === "light"
-                                            ? "var(--accent-primary)"
-                                            : "var(--text-secondary)",
-                                    fontSize: "14px",
-                                    fontWeight: theme === "light" ? 600 : 500,
-                                }}
-                            >
-                                Light
-                            </Typography>
-                        </Box>
+                    {/* Theme selection */}
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "12px",
+                        }}
+                    >
+                        {THEME_OPTIONS.map(({ id, label, Icon }) => {
+                            const selected = theme === id;
+                            return (
+                                <Box
+                                    key={id}
+                                    onClick={() => setTheme(id)}
+                                    sx={{
+                                        flex: "1 1 120px",
+                                        minWidth: "100px",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        padding: "16px",
+                                        borderRadius: "12px",
+                                        cursor: "pointer",
+                                        backgroundColor: selected
+                                            ? "var(--accent-bg)"
+                                            : "var(--input-bg)",
+                                        border: selected
+                                            ? "2px solid var(--accent-primary)"
+                                            : "2px solid var(--input-border)",
+                                        transition: "all 0.2s ease",
+                                        "&:hover": {
+                                            backgroundColor: selected
+                                                ? "var(--accent-bg-hover)"
+                                                : "var(--hover-bg)",
+                                            transform: "translateY(-2px)",
+                                        },
+                                    }}
+                                >
+                                    <Icon
+                                        sx={{
+                                            fontSize: "28px",
+                                            color: selected
+                                                ? "var(--accent-primary)"
+                                                : "var(--text-secondary)",
+                                        }}
+                                    />
+                                    <Typography
+                                        sx={{
+                                            color: selected
+                                                ? "var(--accent-primary)"
+                                                : "var(--text-secondary)",
+                                            fontSize: "14px",
+                                            fontWeight: selected ? 600 : 500,
+                                            textAlign: "center",
+                                        }}
+                                    >
+                                        {label}
+                                    </Typography>
+                                </Box>
+                            );
+                        })}
                     </Box>
                 </Box>
 
