@@ -2,10 +2,15 @@ package app
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/rules"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+
+	gort "runtime"
 )
 
 // AppRules is the Wails binding for the application rules UI
@@ -102,21 +107,49 @@ func (a *AppRules) UpdateRuleProfiles(appPath string, keyboardProfile *string, m
 
 // BrowseForExecutable opens a file dialog to select an executable file
 func (a *AppRules) BrowseForExecutable() (string, error) {
-	selection, err := runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
-		Title: "Select Application",
-		Filters: []runtime.FileFilter{
+	var filters []runtime.FileFilter
+
+	switch gort.GOOS {
+	case "darwin":
+		filters = []runtime.FileFilter{}
+	case "windows":
+		filters = []runtime.FileFilter{
 			{
 				DisplayName: "Executables (*.exe)",
 				Pattern:     "*.exe",
 			},
 			{
 				DisplayName: "All Files (*.*)",
+				Pattern:     "*",
+			},
+		}
+	default:
+		filters = []runtime.FileFilter{
+			{
+				DisplayName: "All Files (*.*)",
 				Pattern:     "*.*",
 			},
-		},
+		}
+	}
+
+	selection, err := runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
+		Title:   "Select Application",
+		Filters: filters,
 	})
 	if err != nil {
 		return "", err
+	}
+
+	if gort.GOOS == "darwin" {
+		// Check if the path is an app bundle, and if so find the executable binary for it
+		// If it is an app bundle, the executable binary is located in the Contents/MacOS directory
+		if strings.HasSuffix(selection, ".app") {
+			executablePath := filepath.Join(selection, "Contents", "MacOS", strings.TrimSuffix(filepath.Base(selection), ".app"))
+			slog.Info("executablePath", "path", executablePath)
+			if _, err := os.Stat(executablePath); err == nil {
+				selection = executablePath
+			}
+		}
 	}
 
 	return selection, nil
