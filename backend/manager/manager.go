@@ -354,9 +354,10 @@ func (m *Manager) GetRootDir() string {
 // the in memory values will be updated immediately. Otherwise, they will be updated the next time that the focus listener
 // is triggered by an app being focused.
 func (m *Manager) SetDefaultProfiles(profiles rules.Profiles) error {
-	// On linux, we do not support application rules, so there is no need to write them to the rules.json file.
+	// Linux has no application rules; defaults map straight onto the active profiles.
+	// Windows and macOS persist defaults to rules.json and respect focus + per-app rules like the Windows path.
 	switch runtime.GOOS {
-	case "windows":
+	case "windows", "darwin":
 		return m.setDefaultProfilesWindows(profiles)
 	case "linux":
 		return m.setDefaultProfilesLinux(profiles)

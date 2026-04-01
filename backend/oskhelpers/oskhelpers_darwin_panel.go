@@ -15,6 +15,7 @@ package oskhelpers
 #import <string.h>
 
 extern void oskForceDismissCallback(void);
+extern void oskClickShowAppCallback(void);
 extern size_t darwin_osk_get_next_show_text(char *buf, size_t bufSize);
 
 static NSPanel *g_panel = nil;
@@ -32,10 +33,26 @@ static int g_offset = 50;
 static int g_monitorIndex = 0;
 static int g_windowWidth = 400;
 static int g_windowHeight = 60;
+static int g_clickShowsApp = 0;
+
+void darwin_osk_set_click_shows_app(int v) {
+	g_clickShowsApp = v ? 1 : 0;
+}
 
 @interface OSKOverlayView : NSView
 @end
 @implementation OSKOverlayView
+- (BOOL)acceptsFirstMouse:(NSEvent *)event {
+	(void)event;
+	return YES;
+}
+- (void)mouseDown:(NSEvent *)event {
+	(void)event;
+	if (g_clickShowsApp) {
+		oskClickShowAppCallback();
+	}
+	[super mouseDown:event];
+}
 - (void)drawRect:(NSRect)dirtyRect {
 	NSRect bounds = [self bounds];
 	CGFloat radius = (CGFloat)g_cornerRadius;
@@ -60,6 +77,24 @@ static int g_windowHeight = 60;
 			[str drawAtPoint:pt withAttributes:attrs];
 		}
 	}
+}
+@end
+
+// Center text area: receives most clicks; forwards to show-app when enabled (close button is a separate subview).
+@interface OSKOverlayTextField : NSTextField
+@end
+@implementation OSKOverlayTextField
+- (BOOL)acceptsFirstMouse:(NSEvent *)event {
+	(void)event;
+	return YES;
+}
+- (void)mouseDown:(NSEvent *)event {
+	(void)event;
+	if (g_clickShowsApp) {
+		oskClickShowAppCallback();
+		return;
+	}
+	[super mouseDown:event];
 }
 @end
 
@@ -153,7 +188,7 @@ void darwin_osk_create(void) {
 	[g_contentView.layer setMasksToBounds:YES];
 	[g_panel setContentView:g_contentView];
 
-	g_textField = [[NSTextField alloc] initWithFrame:NSInsetRect(contentRect, 44, 12)];
+	g_textField = [[OSKOverlayTextField alloc] initWithFrame:NSInsetRect(contentRect, 44, 12)];
 	[g_textField setBezeled:NO];
 	[g_textField setDrawsBackground:NO];
 	[g_textField setEditable:NO];

@@ -312,3 +312,12 @@ func darwinOSKHide() {
 func darwinOSKForceDismiss() {
 	C.darwin_osk_force_dismiss()
 }
+
+// oskClickShowAppCallback is invoked from AppKit when the user clicks the overlay (not the close button).
+//
+//export oskClickShowAppCallback
+func oskClickShowAppCallback() {
+	if overlayClickHandler != nil {
+		overlayClickHandler()
+	}
+}

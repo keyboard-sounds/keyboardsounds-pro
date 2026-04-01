@@ -159,19 +159,20 @@ function App() {
     try {
       setLibraryLoading(true);
       const state = await GetLibraryState();
-      setLibraryKeyboardProfiles(state.keyboardProfiles || []);
-      setLibraryMouseProfiles(state.mouseProfiles || []);
+      const kb = state.keyboardProfiles || [];
+      const ms = state.mouseProfiles || [];
+      setLibraryKeyboardProfiles(kb);
+      setLibraryMouseProfiles(ms);
+      // Single source of truth for profile picker options (matches Library page). Avoids relying on
+      // GetState().keyboardProfiles, which hotkey refresh can overwrite with empty slices.
+      setKeyboardProfiles(kb.map((p) => p.name || p.id));
+      setMouseProfiles(ms.map((p) => p.name || p.id));
     } catch (error) {
       console.error("Failed to load library state:", error);
     } finally {
       setLibraryLoading(false);
     }
   }, []);
-
-  // Load library state on mount
-  useEffect(() => {
-    loadLibraryState();
-  }, [loadLibraryState]);
 
   // Function to load state from backend
   const loadState = useCallback(async () => {
@@ -187,8 +188,6 @@ function App() {
       setMouseMuted(msVol === 0);
       setKeyboardProfile(profileToDisplay(state.keyboardProfile));
       setMouseProfile(profileToDisplay(state.mouseProfile));
-      setKeyboardProfiles(state.keyboardProfiles || []);
-      setMouseProfiles(state.mouseProfiles || []);
     } catch (error) {
       console.error("Failed to load status panel state:", error);
     }
@@ -199,6 +198,7 @@ function App() {
     const loadInitialState = async () => {
       try {
         await loadState();
+        await loadLibraryState();
 
         // Load notify on minimize preference
         const notifyOnMinimizeValue = await GetNotifyOnMinimize();
@@ -248,7 +248,7 @@ function App() {
       }
     };
     loadInitialState();
-  }, [loadState]);
+  }, [loadState, loadLibraryState]);
 
   // Listen for hotkey state changes and refresh UI
   useEffect(() => {
@@ -733,37 +733,41 @@ function App() {
 
   const handleRuleProfileChange = useCallback(
     async (id, profileType, newValue) => {
-      // Optimistic update for UI
-      setRules((prevRules) =>
-        prevRules.map((rule) =>
+      let snapshot = null;
+      setRules((prevRules) => {
+        const currentRule = prevRules.find((r) => r.id === id);
+        if (!currentRule) {
+          return prevRules;
+        }
+        snapshot = { currentRule, profileType, newValue };
+        return prevRules.map((rule) =>
           rule.id === id ? { ...rule, [profileType]: newValue } : rule,
-        ),
-      );
+        );
+      });
 
-      // Find the current rule to get both profiles
-      const currentRule = rules.find((r) => r.id === id);
-      if (!currentRule) return;
+      if (!snapshot) {
+        return;
+      }
 
+      const { currentRule, profileType: pt, newValue: nv } = snapshot;
       const keyboardProfile =
-        profileType === "keyboardProfile"
-          ? displayToProfile(newValue)
+        pt === "keyboardProfile"
+          ? displayToProfile(nv)
           : displayToProfile(currentRule.keyboardProfile);
       const mouseProfile =
-        profileType === "mouseProfile"
-          ? displayToProfile(newValue)
+        pt === "mouseProfile"
+          ? displayToProfile(nv)
           : displayToProfile(currentRule.mouseProfile);
 
       try {
         await UpdateRuleProfiles(id, keyboardProfile, mouseProfile);
-        // Refresh library state to update inUse status
         await loadLibraryState();
       } catch (error) {
         console.error("Failed to update rule profile:", error);
-        // Reload rules to revert optimistic update on error
         await loadRules();
       }
     },
-    [rules, loadRules, loadLibraryState],
+    [loadRules, loadLibraryState],
   );
 
   const handleRuleToggle = useCallback(
@@ -827,28 +831,17 @@ function App() {
   // Refresh all profile lists (called after creating a new profile or changing defaults)
   const refreshProfiles = useCallback(async () => {
     try {
-      // Refresh status panel profiles
-      const statusState = await GetState();
-      setKeyboardProfiles(statusState.keyboardProfiles || []);
-      setMouseProfiles(statusState.mouseProfiles || []);
-
-      // Refresh library profiles
-      const libraryState = await GetLibraryState();
-      setLibraryKeyboardProfiles(libraryState.keyboardProfiles || []);
-      setLibraryMouseProfiles(libraryState.mouseProfiles || []);
+      await loadLibraryState();
     } catch (error) {
       console.error("Failed to refresh profiles:", error);
     }
-  }, []);
+  }, [loadLibraryState]);
 
   // Handler for removing library profiles
   const handleImportProfile = useCallback(async () => {
     await ImportProfile();
-    // Refresh library state after successful import
     await loadLibraryState();
-    // Also refresh the main profile lists
-    await refreshProfiles();
-  }, [loadLibraryState, refreshProfiles]);
+  }, [loadLibraryState]);
 
   const handleExportProfile = useCallback(async (profileId) => {
     await ExportProfile(profileId);

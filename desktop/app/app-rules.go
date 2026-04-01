@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/rules"
@@ -96,7 +97,7 @@ func (a *AppRules) UpdateRuleProfiles(appPath string, keyboardProfile *string, m
 		}
 	}
 
-	return nil
+	return fmt.Errorf("application rule not found for path: %s", appPath)
 }
 
 // BrowseForExecutable opens a file dialog to select an executable file

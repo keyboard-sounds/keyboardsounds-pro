@@ -116,7 +116,9 @@ export const greenSwitchStyle = {
   },
 };
 
+// z-index above the sidebar (e.g. macOS drag region uses ~1400) so MUI menus are not hidden behind it
 export const selectMenuProps = {
+  sx: { zIndex: 2000 },
   PaperProps: {
     sx: {
       backgroundColor: 'var(--dropdown-bg)',
