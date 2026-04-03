@@ -49,7 +49,7 @@ Please see OS specific information regarding running the application on your des
 
 - This allows you to do things like only enabling in your text editor or terminal, disabling it for specific games, or localizing the sound effects to a particular application.
 
-> Note: Application rules are currently only available for the **Windows** platform.
+> Note: Application rules are currently only available for the **Windows** and **macOS** platform.
 
 <br><br><br><br>
 
