@@ -1,17 +1,95 @@
-import { Box, Typography, Select, MenuItem, IconButton, Tooltip, Switch } from '@mui/material';
+import { useEffect, useMemo, useState } from "react";
+import { Box, Typography, Select, MenuItem, IconButton, Tooltip, Switch, Button } from '@mui/material';
 import { Card, CardContent } from '@mui/material';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import MouseIcon from '@mui/icons-material/Mouse';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AddIcon from '@mui/icons-material/Add';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import { glassCardStyle, selectMenuProps, greenSwitchStyle } from '../../constants';
 
-function RuleCard({ rule, onProfileChange, onRemove, onToggle, isNew, isExiting, keyboardProfiles = [], mouseProfiles = [] }) {
+const iconCache = new Map();
+
+function RuleCard({
+  rule,
+  onProfileChange,
+  onRemove,
+  onToggle,
+  isNew,
+  isExiting,
+  keyboardProfiles = [],
+  mouseProfiles = [],
+  platform = "",
+  mode = 'existing', // 'existing' | 'create'
+  onCreate,
+  createButtonLabel = 'Add rule',
+  createButtonVariant = 'button', // 'button' | 'icon'
+}) {
   const isEnabled = rule.enabled !== false; // Default to true if undefined
   
   // Determine animation class
   const animationClass = isExiting ? 'rule-card-exit' : isNew ? 'rule-card-enter' : '';
   
+  const getMacOSAppBundleNameFromPath = (path) => {
+    if (platform !== "darwin") return null;
+    if (typeof path !== "string") return null;
+    // Example:
+    // /Applications/Some App.app/Contents/MacOS/Some App
+    // /Users/me/Downloads/Some App.app/Contents/MacOS/Some App
+    const match = path.match(/\/([^/]+)\.app\/Contents\/MacOS\/[^/]+$/);
+    return match?.[1] ?? null;
+  };
+
+  const macosBundleName = useMemo(
+    () => getMacOSAppBundleNameFromPath(rule.path),
+    [platform, rule.path],
+  );
+
+  const displayTitle = macosBundleName ?? rule.executableName;
+
+  const bundlePath = useMemo(() => {
+    if (platform !== "darwin") return null;
+    if (!macosBundleName) return null;
+    const match = rule.path?.match(/^(.*\/[^/]+\.app)\/Contents\/MacOS\/[^/]+$/);
+    return match?.[1] ?? null;
+  }, [platform, macosBundleName, rule.path]);
+
+  const [iconDataUrl, setIconDataUrl] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (platform !== "darwin" || !bundlePath) {
+        setIconDataUrl(null);
+        return;
+      }
+
+      const cacheKey = bundlePath;
+      if (iconCache.has(cacheKey)) {
+        setIconDataUrl(iconCache.get(cacheKey));
+        return;
+      }
+
+      try {
+        const fn = window?.go?.app?.AppRules?.GetMacOSApplicationIcon;
+        if (typeof fn !== "function") return;
+        const dataUrl = await fn(rule.path);
+        if (cancelled) return;
+        const value = typeof dataUrl === "string" ? dataUrl : "";
+        iconCache.set(cacheKey, value);
+        setIconDataUrl(value || null);
+      } catch {
+        if (!cancelled) setIconDataUrl(null);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [platform, bundlePath, rule.path]);
+
   const getSelectSx = (value) => ({
     backgroundColor: value === 'None' 
       ? 'var(--danger-bg)' 
@@ -101,12 +179,27 @@ function RuleCard({ rule, onProfileChange, onRemove, onToggle, isNew, isExiting,
                   : '1px solid var(--accent-border)',
               }}
             >
-              <TerminalIcon 
-                sx={{ 
-                  fontSize: '22px', 
-                  color: isDisabled ? 'var(--text-muted)' : 'var(--accent-primary)',
-                }} 
-              />
+              {platform === "darwin" && iconDataUrl ? (
+                <Box
+                  component="img"
+                  alt=""
+                  src={iconDataUrl}
+                  sx={{
+                    width: "26px",
+                    height: "26px",
+                    objectFit: "contain",
+                    filter: isDisabled ? "grayscale(1)" : "none",
+                    opacity: isDisabled ? 0.8 : 1,
+                  }}
+                />
+              ) : (
+                <TerminalIcon 
+                  sx={{ 
+                    fontSize: '22px', 
+                    color: isDisabled ? 'var(--text-muted)' : 'var(--accent-primary)',
+                  }} 
+                />
+              )}
             </Box>
             
             {/* App Details */}
@@ -120,7 +213,7 @@ function RuleCard({ rule, onProfileChange, onRemove, onToggle, isNew, isExiting,
                   marginBottom: '4px',
                 }}
               >
-                {rule.executableName}
+                {displayTitle}
               </Typography>
               <Tooltip title={rule.path} arrow placement="bottom-start">
                 <Typography
@@ -169,61 +262,120 @@ function RuleCard({ rule, onProfileChange, onRemove, onToggle, isNew, isExiting,
               />
             </Box>
             
-            {/* Enable/Disable Toggle */}
-            <Tooltip title={isEnabled ? "Disable rule" : "Enable rule"} arrow>
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
-                marginLeft: '4px',
-              }}>
-                <Switch
-                  checked={isEnabled}
-                  onChange={onToggle}
-                  size="small"
+            {mode === 'create' ? (
+              createButtonVariant === 'icon' ? (
+                <Tooltip title={createButtonLabel} arrow>
+                  <span>
+                    <IconButton
+                      onClick={onCreate}
+                      aria-label={createButtonLabel}
+                      disabled={isDisabled}
+                      sx={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        marginLeft: '4px',
+                        color: 'white',
+                        boxShadow: 'none',
+                        background:
+                          'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+                        '&:hover': {
+                          background:
+                            'linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-light) 100%)',
+                        },
+                        '&.Mui-disabled': { opacity: 0.5 },
+                      }}
+                    >
+                      <AddIcon sx={{ fontSize: '20px' }} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  onClick={onCreate}
+                  startIcon={<AddIcon />}
+                  variant="contained"
                   sx={{
-                    ...greenSwitchStyle,
-                    '& .MuiSwitch-thumb': {
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    marginLeft: '4px',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    borderRadius: '10px',
+                    height: '36px',
+                    px: 2,
+                    boxShadow: 'none',
+                    whiteSpace: 'nowrap',
+                    background:
+                      'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
+                    '&:hover': {
+                      background:
+                        'linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-light) 100%)',
                     },
+                    '&.Mui-disabled': { opacity: 0.5 },
                   }}
-                />
-                <Typography
-                  sx={{
-                    color: isEnabled ? 'var(--accent-primary)' : 'var(--text-muted)',
-                    fontSize: '10px',
-                    fontWeight: 500,
-                    marginTop: '-2px',
-                  }}
+                  disabled={isDisabled}
                 >
-                  {isEnabled ? 'On' : 'Off'}
-                </Typography>
-              </Box>
-            </Tooltip>
-            
-            {/* Delete Button */}
-            <Tooltip title="Remove rule" arrow>
-              <IconButton
-                onClick={onRemove}
-                sx={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  backgroundColor: 'var(--danger-bg)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  color: 'rgba(239, 68, 68, 0.7)',
-                  marginLeft: '4px',
-                  '&:hover': {
-                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                    borderColor: 'rgba(239, 68, 68, 0.4)',
-                    color: '#ef4444',
-                  },
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <DeleteOutlineIcon sx={{ fontSize: '18px' }} />
-              </IconButton>
-            </Tooltip>
+                  {createButtonLabel}
+                </Button>
+              )
+            ) : (
+              <>
+                {/* Enable/Disable Toggle */}
+                <Tooltip title={isEnabled ? "Disable rule" : "Enable rule"} arrow>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center',
+                    marginLeft: '4px',
+                  }}>
+                    <Switch
+                      checked={isEnabled}
+                      onChange={onToggle}
+                      size="small"
+                      sx={{
+                        ...greenSwitchStyle,
+                        '& .MuiSwitch-thumb': {
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        },
+                      }}
+                    />
+                    <Typography
+                      sx={{
+                        color: isEnabled ? 'var(--accent-primary)' : 'var(--text-muted)',
+                        fontSize: '10px',
+                        fontWeight: 500,
+                        marginTop: '-2px',
+                      }}
+                    >
+                      {isEnabled ? 'On' : 'Off'}
+                    </Typography>
+                  </Box>
+                </Tooltip>
+                
+                {/* Delete Button */}
+                <Tooltip title="Remove rule" arrow>
+                  <IconButton
+                    onClick={onRemove}
+                    sx={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      backgroundColor: 'var(--danger-bg)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      color: 'rgba(239, 68, 68, 0.7)',
+                      marginLeft: '4px',
+                      '&:hover': {
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        borderColor: 'rgba(239, 68, 68, 0.4)',
+                        color: '#ef4444',
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <DeleteOutlineIcon sx={{ fontSize: '18px' }} />
+                  </IconButton>
+                </Tooltip>
+              </>
+            )}
           </Box>
         </Box>
       </CardContent>

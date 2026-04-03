@@ -17,9 +17,12 @@ import (
 
 	"fyne.io/systray"
 	"github.com/gen2brain/beeep"
+	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -62,7 +65,11 @@ func startSystray() {
 		default:
 			systray.SetIcon(sysTrayIcon)
 		}
-		systray.SetTitle("Keyboard Sounds Pro")
+		switch rt.GOOS {
+		case "darwin":
+		default:
+			systray.SetTitle("Keyboard Sounds Pro")
+		}
 		systray.SetTooltip("Keyboard Sounds Pro")
 		systray.SetOnTapped(func() {
 			ctx := getWailsContext()
@@ -91,9 +98,15 @@ func startSystray() {
 	}, func() {})
 
 	systrayOnExit = onExit
-	go func() {
+
+	switch rt.GOOS {
+	case "darwin":
 		onReady()
-	}()
+	default:
+		go func() {
+			onReady()
+		}()
+	}
 }
 
 type wailsConfig struct {
@@ -174,31 +187,33 @@ func (u *UpdateDetails) CheckForUpdateAndNotify() {
 		return
 	}
 
-	if u.IsUpdateAvailable() && app.GetNotifyOnUpdate() {
-		updateNotifiedAndIgnored := app.GetUpdateNotifiedAndIgnored()
-		if updateNotifiedAndIgnored == u.LatestVersion {
-			return
-		}
+	if rt.GOOS != "darwin" {
+		if u.IsUpdateAvailable() && app.GetNotifyOnUpdate() {
+			updateNotifiedAndIgnored := app.GetUpdateNotifiedAndIgnored()
+			if updateNotifiedAndIgnored == u.LatestVersion {
+				return
+			}
 
-		selectedButton, err := runtime.MessageDialog(wailsCtx, runtime.MessageDialogOptions{
-			Type:          runtime.QuestionDialog,
-			Title:         "Keyboard Sounds Pro - Update Available",
-			Message:       fmt.Sprintf("Version %v of Keyboard Sounds Pro is now available! Would you like to download it now?", u.LatestVersion),
-			DefaultButton: "No",
-			Buttons:       []string{"Yes", "No"},
-			Icon:          sysTrayIcon,
-		})
-		if err != nil {
-			slog.Error("failed to show dialog", "error", err)
-			return
-		}
+			selectedButton, err := runtime.MessageDialog(wailsCtx, runtime.MessageDialogOptions{
+				Type:          runtime.QuestionDialog,
+				Title:         "Keyboard Sounds Pro - Update Available",
+				Message:       fmt.Sprintf("Version %v of Keyboard Sounds Pro is now available! Would you like to download it now?", u.LatestVersion),
+				DefaultButton: "No",
+				Buttons:       []string{"Yes", "No"},
+				Icon:          sysTrayIcon,
+			})
+			if err != nil {
+				slog.Error("failed to show dialog", "error", err)
+				return
+			}
 
-		switch selectedButton {
-		case "Yes":
-			runtime.BrowserOpenURL(wailsCtx, u.DownloadURL)
-		case "No":
-			app.SetUpdateNotifiedAndIgnored(u.LatestVersion)
-			return
+			switch selectedButton {
+			case "Yes":
+				runtime.BrowserOpenURL(wailsCtx, u.DownloadURL)
+			case "No":
+				app.SetUpdateNotifiedAndIgnored(u.LatestVersion)
+				return
+			}
 		}
 	}
 }
@@ -277,8 +292,8 @@ func main() {
 		systemTrayEnabled bool
 	)
 
-	if !isFedora {
-		systemTrayEnabled := app.GetSystemTrayEnabled()
+	if !isFedora && rt.GOOS != "darwin" {
+		systemTrayEnabled = app.GetSystemTrayEnabled()
 
 		if systemTrayEnabled {
 			startSystray()
@@ -293,31 +308,63 @@ func main() {
 
 	// Custom title bar requires frameless window; system title bar uses native window chrome
 	enableCustomTitleBar := app.GetCustomTitleBarEnabled()
+	useFramelessWindow := enableCustomTitleBar && rt.GOOS != "darwin"
+	useMacNativeCustomTitleBar := enableCustomTitleBar && rt.GOOS == "darwin"
+	backgroundColor := &options.RGBA{R: 255, G: 255, B: 255, A: 255}
+	if useMacNativeCustomTitleBar {
+		backgroundColor = &options.RGBA{R: 0, G: 0, B: 0, A: 0}
+	}
 
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:       "Keyboard Sounds Pro",
 		Width:       1250,
 		Height:      768,
-		Frameless:   enableCustomTitleBar,
+		Frameless:   useFramelessWindow,
 		StartHidden: startHidden,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 1},
+		BackgroundColour: backgroundColor,
+		Windows: &windows.Options{
+			// Keep rounded corners and shadow even in frameless (custom title bar) mode.
+			DisableFramelessWindowDecorations: false,
+		},
+		Mac: &mac.Options{
+			Appearance:           mac.DefaultAppearance,
+			WindowIsTranslucent:  useMacNativeCustomTitleBar,
+			WebviewIsTransparent: useMacNativeCustomTitleBar,
+			TitleBar: func() *mac.TitleBar {
+				if useMacNativeCustomTitleBar {
+					titleBar := mac.TitleBarHiddenInset()
+					titleBar.TitlebarAppearsTransparent = true
+					return titleBar
+				}
+				return mac.TitleBarDefault()
+			}(),
+		},
 		OnStartup: func(ctx context.Context) {
+			if runtime.Environment(ctx).BuildType != "dev" {
+				kbs.InitLogging()
+			}
+
 			setWailsContext(ctx)
 			application.startup(ctx)
-			if startMinimized {
+			if startMinimized && !startHidden {
 				runtime.WindowMinimise(ctx)
-				if app.GetNotifyOnMinimize() {
-					beeep.AppName = "Keyboard Sounds Pro"
-					beeep.Notify("Keyboard Sounds Pro", "Keyboard Sounds Pro is running in the background", notifIcon)
+			}
+
+			if rt.GOOS != "darwin" {
+				if startMinimized || startHidden {
+					if app.GetNotifyOnMinimize() {
+						beeep.AppName = "Keyboard Sounds Pro"
+						beeep.Notify("Keyboard Sounds Pro", "Keyboard Sounds Pro is running in the background", notifIcon)
+					}
 				}
 			}
 		},
 		OnBeforeClose: func(ctx context.Context) (prevent bool) {
-			if isFedora {
+			if isFedora || rt.GOOS == "darwin" {
 				return false // Allow close: quit the application
 			}
 			if !app.GetSystemTrayEnabled() {
@@ -332,7 +379,7 @@ func main() {
 			}
 			return true // Prevent default close behavior
 		},
-		Bind: []interface{}{
+		Bind: []any{
 			application,
 			statusPanel,
 			appRules,
@@ -351,11 +398,6 @@ func main() {
 			OnSecondInstanceLaunch: app.OnSecondInstanceLaunched,
 		},
 	})
-
-	if startHidden && app.GetNotifyOnMinimize() {
-		beeep.AppName = "Keyboard Sounds Pro"
-		beeep.Notify("Keyboard Sounds Pro", "Keyboard Sounds Pro is running in the background", notifIcon)
-	}
 
 	// Cleanup systray on exit
 	if rt.GOOS != "linux" && systrayOnExit != nil {

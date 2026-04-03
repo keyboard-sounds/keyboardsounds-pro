@@ -1,4 +1,4 @@
-package manager
+package app
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 )
 
 // mouseEventWorker processes mouse button events and plays the corresponding audio.
-func (m *Manager) mouseEventWorker() {
+func (m *Application) mouseEventWorker() {
 	defer func() {
 		slog.Info("Mouse event worker stopped")
 		m.eventWorkerWg.Done()
@@ -35,8 +35,6 @@ func (m *Manager) mouseEventWorker() {
 				return
 			}
 
-			slog.Debug("Mouse event received", "event", event)
-
 			go func(e listenertypes.ButtonEvent) {
 				if m.shouldPlayMouse() {
 					go m.playAudioForButtonEvent(e)
@@ -50,7 +48,7 @@ func (m *Manager) mouseEventWorker() {
 //
 // It checks if a mouse profile is currently loaded into memory and if the currently
 // focused application has a mouse profile set.
-func (m *Manager) shouldPlayMouse() bool {
+func (m *Application) shouldPlayMouse() bool {
 	if m.mouseProfile != nil {
 		m.currentProfilesLock.RLock()
 		shouldPlay := m.currentProfiles.Mouse != nil
@@ -65,7 +63,7 @@ func (m *Manager) shouldPlayMouse() bool {
 // playAudioForButtonEvent plays audio for a mouse button event.
 //
 // Before playing the audio, this function applies any configured audio effects and volume to the audio.
-func (m *Manager) playAudioForButtonEvent(e listenertypes.ButtonEvent) {
+func (m *Application) playAudioForButtonEvent(e listenertypes.ButtonEvent) {
 	sound, err := m.getAudioForButtonEvent(e)
 	if err != nil {
 		slog.Error("failed to get audio for button event", "error", err)
@@ -124,7 +122,7 @@ func (m *Manager) playAudioForButtonEvent(e listenertypes.ButtonEvent) {
 // 1. If the button is in the m.mouseProfile.Buttons.Other map, the audio file is chosen from the map.
 // 2. If the button is not in the m.mouseProfile.Buttons.Other map, the default audio file is chosen.
 // 3. If there are no audio files in the m.mouseProfile.Buttons.Other map or m.mouseProfile.Buttons.Default is not set, an error is returned.
-func (m *Manager) getAudioForButtonEvent(event listenertypes.ButtonEvent) (*audio.Audio, error) {
+func (m *Application) getAudioForButtonEvent(event listenertypes.ButtonEvent) (*audio.Audio, error) {
 	m.mouseProfileLock.RLock()
 	defer m.mouseProfileLock.RUnlock()
 

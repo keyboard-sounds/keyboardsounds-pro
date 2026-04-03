@@ -1,4 +1,4 @@
-package manager
+package app
 
 import (
 	"log/slog"
@@ -6,6 +6,9 @@ import (
 
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
 )
+
+// maxPlaybackVolume is the maximum linear gain for keyboard/mouse volume (2.0 = 200%).
+const maxPlaybackVolume = 2.5
 
 // PanType represents the type of panning to apply to the audio.
 type PanType string
@@ -17,27 +20,27 @@ var (
 	PanTypeRandom PanType = "random"
 )
 
-type managerPitchShiftConfig struct {
+type appPitchShiftConfig struct {
 	Enabled bool
 	Lower   float64
 	Upper   float64
 	Lock    sync.RWMutex
 }
 
-type managerPanConfig struct {
+type appPanConfig struct {
 	Enabled bool
 	PanType PanType
 	MaxX    int
 	Lock    sync.RWMutex
 }
 
-type managerEqualizerConfig struct {
+type appEqualizerConfig struct {
 	Enabled bool
 	Config  audio.EqualizerConfig
 	Lock    sync.RWMutex
 }
 
-type managerDopplerConfig struct {
+type appDopplerConfig struct {
 	Enabled bool
 	Config  audio.DopplerConfig
 	Lock    sync.RWMutex
@@ -45,7 +48,7 @@ type managerDopplerConfig struct {
 
 // SetAudioPitchShift sets the pitch shift semi-tone value upper and lower bounds.
 // If either lower or upper is 0, pitch shift is disabled.
-func (m *Manager) SetKeyboardAudioPitchShift(enabled bool, lower, upper float64) {
+func (m *Application) SetKeyboardAudioPitchShift(enabled bool, lower, upper float64) {
 	m.keyboardPitchShiftConfig.Lock.Lock()
 	defer m.keyboardPitchShiftConfig.Lock.Unlock()
 
@@ -57,7 +60,7 @@ func (m *Manager) SetKeyboardAudioPitchShift(enabled bool, lower, upper float64)
 }
 
 // SetKeyboardAudioPan sets the audio pan type and maximum number of contiguous horizontal keys in the keyboard.
-func (m *Manager) SetKeyboardAudioPan(enabled bool, panType PanType, maxX int) {
+func (m *Application) SetKeyboardAudioPan(enabled bool, panType PanType, maxX int) {
 	m.keyboardPanConfig.Lock.Lock()
 	defer m.keyboardPanConfig.Lock.Unlock()
 
@@ -69,7 +72,7 @@ func (m *Manager) SetKeyboardAudioPan(enabled bool, panType PanType, maxX int) {
 }
 
 // SetKeyboardAudioEqualizer sets the equalizer configuration and target.
-func (m *Manager) SetKeyboardAudioEqualizer(enabled bool, config audio.EqualizerConfig) {
+func (m *Application) SetKeyboardAudioEqualizer(enabled bool, config audio.EqualizerConfig) {
 	m.keyboardEqualizerConfig.Lock.Lock()
 	defer m.keyboardEqualizerConfig.Lock.Unlock()
 
@@ -80,7 +83,7 @@ func (m *Manager) SetKeyboardAudioEqualizer(enabled bool, config audio.Equalizer
 }
 
 // SetKeyboardAudioDoppler sets the doppler configuration and target.
-func (m *Manager) SetKeyboardAudioDoppler(enabled bool, config audio.DopplerConfig) {
+func (m *Application) SetKeyboardAudioDoppler(enabled bool, config audio.DopplerConfig) {
 	m.keyboardDopplerConfig.Lock.Lock()
 	defer m.keyboardDopplerConfig.Lock.Unlock()
 
@@ -91,7 +94,7 @@ func (m *Manager) SetKeyboardAudioDoppler(enabled bool, config audio.DopplerConf
 }
 
 // SetMouseAudioPitchShift sets the pitch shift semi-tone value upper and lower bounds.
-func (m *Manager) SetMouseAudioPitchShift(enabled bool, lower, upper float64) {
+func (m *Application) SetMouseAudioPitchShift(enabled bool, lower, upper float64) {
 	m.mousePitchShiftConfig.Lock.Lock()
 	defer m.mousePitchShiftConfig.Lock.Unlock()
 
@@ -103,7 +106,7 @@ func (m *Manager) SetMouseAudioPitchShift(enabled bool, lower, upper float64) {
 }
 
 // SetMouseAudioPan sets the audio pan type and maximum number of contiguous horizontal keys in the keyboard.
-func (m *Manager) SetMouseAudioPan(enabled bool) {
+func (m *Application) SetMouseAudioPan(enabled bool) {
 	m.mousePanConfig.Lock.Lock()
 	defer m.mousePanConfig.Lock.Unlock()
 
@@ -114,7 +117,7 @@ func (m *Manager) SetMouseAudioPan(enabled bool) {
 }
 
 // SetMouseAudioEqualizer sets the equalizer configuration and target.
-func (m *Manager) SetMouseAudioEqualizer(enabled bool, config audio.EqualizerConfig) {
+func (m *Application) SetMouseAudioEqualizer(enabled bool, config audio.EqualizerConfig) {
 	m.mouseEqualizerConfig.Lock.Lock()
 	defer m.mouseEqualizerConfig.Lock.Unlock()
 
@@ -125,7 +128,7 @@ func (m *Manager) SetMouseAudioEqualizer(enabled bool, config audio.EqualizerCon
 }
 
 // SetMouseAudioDoppler sets the doppler configuration and target.
-func (m *Manager) SetMouseAudioDoppler(enabled bool, config audio.DopplerConfig) {
+func (m *Application) SetMouseAudioDoppler(enabled bool, config audio.DopplerConfig) {
 	m.mouseDopplerConfig.Lock.Lock()
 	defer m.mouseDopplerConfig.Lock.Unlock()
 
@@ -136,7 +139,7 @@ func (m *Manager) SetMouseAudioDoppler(enabled bool, config audio.DopplerConfig)
 }
 
 // GetKeyboardAudioPitchShift gets the pitch shift semi-tone value upper and lower bounds.
-func (m *Manager) GetKeyboardAudioPitchShift() (enabled bool, lower, upper float64) {
+func (m *Application) GetKeyboardAudioPitchShift() (enabled bool, lower, upper float64) {
 	m.keyboardPitchShiftConfig.Lock.RLock()
 	defer m.keyboardPitchShiftConfig.Lock.RUnlock()
 
@@ -144,7 +147,7 @@ func (m *Manager) GetKeyboardAudioPitchShift() (enabled bool, lower, upper float
 }
 
 // GetKeyboardAudioPan gets the audio pan type and maximum number of contiguous horizontal keys in the keyboard.
-func (m *Manager) GetKeyboardAudioPan() (enabled bool, panType PanType, maxX int) {
+func (m *Application) GetKeyboardAudioPan() (enabled bool, panType PanType, maxX int) {
 	m.keyboardPanConfig.Lock.RLock()
 	defer m.keyboardPanConfig.Lock.RUnlock()
 
@@ -152,7 +155,7 @@ func (m *Manager) GetKeyboardAudioPan() (enabled bool, panType PanType, maxX int
 }
 
 // GetKeyboardAudioEqualizer gets the equalizer configuration and target.
-func (m *Manager) GetKeyboardAudioEqualizer() (enabled bool, config *audio.EqualizerConfig) {
+func (m *Application) GetKeyboardAudioEqualizer() (enabled bool, config *audio.EqualizerConfig) {
 	m.keyboardEqualizerConfig.Lock.RLock()
 	defer m.keyboardEqualizerConfig.Lock.RUnlock()
 
@@ -160,7 +163,7 @@ func (m *Manager) GetKeyboardAudioEqualizer() (enabled bool, config *audio.Equal
 }
 
 // GetKeyboardAudioDoppler gets the doppler configuration and target.
-func (m *Manager) GetKeyboardAudioDoppler() (enabled bool, config *audio.DopplerConfig) {
+func (m *Application) GetKeyboardAudioDoppler() (enabled bool, config *audio.DopplerConfig) {
 	m.keyboardDopplerConfig.Lock.RLock()
 	defer m.keyboardDopplerConfig.Lock.RUnlock()
 
@@ -168,7 +171,7 @@ func (m *Manager) GetKeyboardAudioDoppler() (enabled bool, config *audio.Doppler
 }
 
 // GetMouseAudioPitchShift gets the pitch shift semi-tone value upper and lower bounds.
-func (m *Manager) GetMouseAudioPitchShift() (enabled bool, lower, upper float64) {
+func (m *Application) GetMouseAudioPitchShift() (enabled bool, lower, upper float64) {
 	m.mousePitchShiftConfig.Lock.RLock()
 	defer m.mousePitchShiftConfig.Lock.RUnlock()
 
@@ -176,7 +179,7 @@ func (m *Manager) GetMouseAudioPitchShift() (enabled bool, lower, upper float64)
 }
 
 // GetMouseAudioPan gets the audio pan type and maximum number of contiguous horizontal keys in the keyboard.
-func (m *Manager) GetMouseAudioPan() (enabled bool) {
+func (m *Application) GetMouseAudioPan() (enabled bool) {
 	m.mousePanConfig.Lock.RLock()
 	defer m.mousePanConfig.Lock.RUnlock()
 
@@ -184,7 +187,7 @@ func (m *Manager) GetMouseAudioPan() (enabled bool) {
 }
 
 // GetMouseAudioEqualizer gets the equalizer configuration and target.
-func (m *Manager) GetMouseAudioEqualizer() (enabled bool, config *audio.EqualizerConfig) {
+func (m *Application) GetMouseAudioEqualizer() (enabled bool, config *audio.EqualizerConfig) {
 	m.mouseEqualizerConfig.Lock.RLock()
 	defer m.mouseEqualizerConfig.Lock.RUnlock()
 
@@ -192,7 +195,7 @@ func (m *Manager) GetMouseAudioEqualizer() (enabled bool, config *audio.Equalize
 }
 
 // GetMouseAudioDoppler gets the doppler configuration and target.
-func (m *Manager) GetMouseAudioDoppler() (enabled bool, config *audio.DopplerConfig) {
+func (m *Application) GetMouseAudioDoppler() (enabled bool, config *audio.DopplerConfig) {
 	m.mouseDopplerConfig.Lock.RLock()
 	defer m.mouseDopplerConfig.Lock.RUnlock()
 
@@ -200,13 +203,13 @@ func (m *Manager) GetMouseAudioDoppler() (enabled bool, config *audio.DopplerCon
 }
 
 // SetKeyboardVolume sets the volume for the keyboard audio player.
-func (m *Manager) SetKeyboardVolume(volume float64) error {
+func (m *Application) SetKeyboardVolume(volume float64) error {
 	m.keyboardVolumeLock.Lock()
 	defer m.keyboardVolumeLock.Unlock()
 	if volume < 0.0 {
 		volume = 0.0
-	} else if volume > 1.0 {
-		volume = 1.0
+	} else if volume > maxPlaybackVolume {
+		volume = maxPlaybackVolume
 	}
 
 	m.keyboardVolume = volume
@@ -214,14 +217,14 @@ func (m *Manager) SetKeyboardVolume(volume float64) error {
 }
 
 // GetKeyboardVolume gets the volume for the keyboard audio player.
-func (m *Manager) GetKeyboardVolume() float64 {
+func (m *Application) GetKeyboardVolume() float64 {
 	m.keyboardVolumeLock.RLock()
 	defer m.keyboardVolumeLock.RUnlock()
 	return m.keyboardVolume
 }
 
 // MuteKeyboard mutes the keyboard audio player, saving the current volume to the last keyboard volume such that it can be restored later using UnmuteKeyboard.
-func (m *Manager) MuteKeyboard() {
+func (m *Application) MuteKeyboard() {
 	lastKeyboardVolume := m.GetKeyboardVolume()
 	m.lastKeyboardVolumeLock.Lock()
 	m.lastKeyboardVolume = lastKeyboardVolume
@@ -230,7 +233,7 @@ func (m *Manager) MuteKeyboard() {
 }
 
 // UnmuteKeyboard unmutes the keyboard audio player, restoring the last keyboard volume.
-func (m *Manager) UnmuteKeyboard() {
+func (m *Application) UnmuteKeyboard() {
 	m.lastKeyboardVolumeLock.RLock()
 	lastKeyboardVolume := m.lastKeyboardVolume
 	m.lastKeyboardVolumeLock.RUnlock()
@@ -251,7 +254,7 @@ func (m *Manager) UnmuteKeyboard() {
 }
 
 // ToggleMuteKeyboard toggles the mute state of the keyboard audio player.
-func (m *Manager) ToggleMuteKeyboard() {
+func (m *Application) ToggleMuteKeyboard() {
 	currentVolume := m.GetKeyboardVolume()
 	if currentVolume == 0.0 {
 		m.UnmuteKeyboard()
@@ -261,13 +264,13 @@ func (m *Manager) ToggleMuteKeyboard() {
 }
 
 // SetMouseVolume sets the volume for the mouse audio player.
-func (m *Manager) SetMouseVolume(volume float64) error {
+func (m *Application) SetMouseVolume(volume float64) error {
 	m.mouseVolumeLock.Lock()
 	defer m.mouseVolumeLock.Unlock()
 	if volume < 0.0 {
 		volume = 0.0
-	} else if volume > 1.0 {
-		volume = 1.0
+	} else if volume > maxPlaybackVolume {
+		volume = maxPlaybackVolume
 	}
 
 	m.mouseVolume = volume
@@ -275,14 +278,14 @@ func (m *Manager) SetMouseVolume(volume float64) error {
 }
 
 // GetMouseVolume gets the volume for the mouse audio player.
-func (m *Manager) GetMouseVolume() float64 {
+func (m *Application) GetMouseVolume() float64 {
 	m.mouseVolumeLock.RLock()
 	defer m.mouseVolumeLock.RUnlock()
 	return m.mouseVolume
 }
 
 // MuteMouse mutes the mouse audio player, saving the current volume to the last mouse volume such that it can be restored later using UnmuteMouse.
-func (m *Manager) MuteMouse() {
+func (m *Application) MuteMouse() {
 	lastMouseVolume := m.GetMouseVolume()
 	m.lastMouseVolumeLock.Lock()
 	m.lastMouseVolume = lastMouseVolume
@@ -291,7 +294,7 @@ func (m *Manager) MuteMouse() {
 }
 
 // UnmuteMouse unmutes the mouse audio player, restoring the last mouse volume.
-func (m *Manager) UnmuteMouse() {
+func (m *Application) UnmuteMouse() {
 	m.lastMouseVolumeLock.RLock()
 	lastMouseVolume := m.lastMouseVolume
 	m.lastMouseVolumeLock.RUnlock()
@@ -312,7 +315,7 @@ func (m *Manager) UnmuteMouse() {
 }
 
 // ToggleMuteMouse toggles the mute state of the mouse audio player.
-func (m *Manager) ToggleMuteMouse() {
+func (m *Application) ToggleMuteMouse() {
 	currentVolume := m.GetMouseVolume()
 	if currentVolume == 0.0 {
 		m.UnmuteMouse()

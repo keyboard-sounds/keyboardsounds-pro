@@ -1,4 +1,4 @@
-package manager
+package app
 
 import (
 	"context"
@@ -24,23 +24,23 @@ import (
 var (
 	// ErrNoProfileSet is returned when no profile is set.
 	ErrNoProfileSet = fmt.Errorf("no profile set")
-	// ErrAlreadyEnabled is returned when the manager is already enabled.
-	ErrAlreadyEnabled = fmt.Errorf("manager is already enabled")
-	// ErrNotEnabled is returned when the manager is not enabled.
-	ErrNotEnabled = fmt.Errorf("manager is not enabled")
+	// ErrAlreadyEnabled is returned when the app is already enabled.
+	ErrAlreadyEnabled = fmt.Errorf("app is already enabled")
+	// ErrNotEnabled is returned when the app is not enabled.
+	ErrNotEnabled = fmt.Errorf("app is not enabled")
 	// ErrListenerNotImplemented is returned when the listener is not implemented for the current platform.
 	ErrListenerNotImplemented = fmt.Errorf("listener not implemented for this platform")
 )
 
-// Manager is the main manager for the Keyboard Sounds backend.
-// When enabled, the manager will asynchronously listen for keyboard and mouse events.
-// When an event is received, the manager will play the corresponding audio
+// Application is the main application implementation for the Keyboard Sounds backend.
+// When enabled, the app will asynchronously listen for keyboard and mouse events.
+// When an event is received, the app will play the corresponding audio
 // file based on the current profile, configured application rules and effects.
-type Manager struct {
-	// The root directory for the manager
+type Application struct {
+	// The root directory for the app
 	rootDir string
 
-	// Whether the manager is enabled
+	// Whether the app is enabled
 	enabled bool
 	// Lock for the enabled state
 	enabledLock sync.RWMutex
@@ -71,14 +71,14 @@ type Manager struct {
 	lastMouseVolumeLock sync.RWMutex
 
 	// Effects Configs
-	keyboardPitchShiftConfig managerPitchShiftConfig
-	keyboardPanConfig        managerPanConfig
-	keyboardEqualizerConfig  managerEqualizerConfig
-	keyboardDopplerConfig    managerDopplerConfig
-	mousePitchShiftConfig    managerPitchShiftConfig
-	mousePanConfig           managerPanConfig
-	mouseEqualizerConfig     managerEqualizerConfig
-	mouseDopplerConfig       managerDopplerConfig
+	keyboardPitchShiftConfig appPitchShiftConfig
+	keyboardPanConfig        appPanConfig
+	keyboardEqualizerConfig  appEqualizerConfig
+	keyboardDopplerConfig    appDopplerConfig
+	mousePitchShiftConfig    appPitchShiftConfig
+	mousePanConfig           appPanConfig
+	mouseEqualizerConfig     appEqualizerConfig
+	mouseDopplerConfig       appDopplerConfig
 
 	// Keyboard Listener
 	keyboardListener listener.KeyboardListener
@@ -95,10 +95,13 @@ type Manager struct {
 	// Lock for the keyboard keys down
 	keyboardKeysDownLock sync.RWMutex
 
-	oskHelperLock    sync.RWMutex
-	oskHelperEnabled bool
-	oskHelper        oskhelpers.OSKHelper
-	oskHelperConfig  *oskhelpers.OSKHelperConfig
+	oskHelperLock           sync.RWMutex
+	oskHelperEnabled        bool
+	oskHelper               oskhelpers.OSKHelper
+	oskHelperConfig         *oskhelpers.OSKHelperConfig
+	lastOSKComboDisplay     string // last "modifier + key" string shown; kept visible until modifier state or combo changes
+	lastOSKShouldShow       bool   // true while overlay should be up (trigger modifier chord); avoids restarting ClearOnScreenText timer on every plain key
+	oskForceDismissedByUser bool   // user clicked X; keep overlay hidden until all keys released
 
 	// Mouse Listener
 	mouseListener listener.MouseListener
@@ -117,11 +120,21 @@ type Manager struct {
 	currentProfiles rules.Profiles
 	// Lock for the current profiles
 	currentProfilesLock sync.RWMutex
+
+	// Resolved path of this process (for matching focus events to the desktop app).
+	selfExecutablePath string
+	// Optional profiles when this app is focused and global defaults apply (no matching app rule).
+	inAppFocusProfileKeyboard    *string
+	inAppFocusProfileMouse       *string
+	inAppFocusProfilesLock       sync.RWMutex
+	lastFocusedExecutable        string
+	lastNonSelfFocusedExecutable string
+	lastFocusedExecutableLock    sync.Mutex
 }
 
-// NewManager creates a new manager. It initializes the audio player, keyboard listener, mouse listener, and focus detector.
+// NewApp creates a new app. It initializes the audio player, keyboard listener, mouse listener, and focus detector.
 // It also loads the profiles and rules from the configuration directory.
-func NewManager(cfgDir string) (*Manager, error) {
+func NewApp(cfgDir string) (*Application, error) {
 	profile.SetProfilesDir(filepath.Join(cfgDir, "profiles"))
 
 	err := profile.LoadProfiles()
@@ -195,7 +208,7 @@ func NewManager(cfgDir string) (*Manager, error) {
 		MonitorIndex:      0,
 	}
 
-	mgr := &Manager{
+	kbsApp := &Application{
 		rootDir:          cfgDir,
 		enabled:          false,
 		audioPlayer:      audio.GetAudioPlayer(),
@@ -209,42 +222,55 @@ func NewManager(cfgDir string) (*Manager, error) {
 		mouseVolume:      1.0,
 	}
 
-	// This callback is called after the OSK helper is dismissed forcibly
-	// by the user clicking the close button.
-	mgr.oskHelperConfig.OnForceDismiss = func() {
-		mgr.keyboardKeysDownLock.Lock()
-		defer mgr.keyboardKeysDownLock.Unlock()
-
-		mgr.keyboardKeysDown = nil
+	if exe, err := os.Executable(); err == nil {
+		resolved := exe
+		if r, err := filepath.EvalSymlinks(exe); err == nil {
+			resolved = r
+		}
+		kbsApp.selfExecutablePath = filepath.Clean(resolved)
 	}
 
-	mgr.setKeyboardProfile(keyboardProfile)
-	mgr.setMouseProfile(mouseProfile)
+	// This callback is called after the OSK helper is dismissed forcibly
+	// by the user clicking the close button.
+	kbsApp.oskHelperConfig.OnForceDismiss = func() {
+		kbsApp.keyboardKeysDownLock.Lock()
+		kbsApp.keyboardKeysDown = nil
+		kbsApp.keyboardKeysDownLock.Unlock()
+
+		kbsApp.oskHelperLock.Lock()
+		kbsApp.lastOSKComboDisplay = ""
+		kbsApp.lastOSKShouldShow = false
+		kbsApp.oskForceDismissedByUser = true
+		kbsApp.oskHelperLock.Unlock()
+	}
+
+	kbsApp.setKeyboardProfile(keyboardProfile)
+	kbsApp.setMouseProfile(mouseProfile)
 
 	registerHotKeyDelegate()
-	registerToggleMuteAllHotKeyHandler(mgr)
-	registerToggleMuteKeyboardHotKeyHandler(mgr)
-	registerToggleMuteMouseHotKeyHandler(mgr)
-	registerMuteAllHotKeyHandler(mgr)
-	registerUnmuteAllHotKeyHandler(mgr)
-	registerMuteKeyboardHotKeyHandler(mgr)
-	registerUnmuteKeyboardHotKeyHandler(mgr)
-	registerMuteMouseHotKeyHandler(mgr)
-	registerUnmuteMouseHotKeyHandler(mgr)
-	registerIncreaseVolumeAllHotKeyHandler(mgr)
-	registerDecreaseVolumeAllHotKeyHandler(mgr)
-	registerIncreaseVolumeKeyboardHotKeyHandler(mgr)
-	registerDecreaseVolumeKeyboardHotKeyHandler(mgr)
-	registerIncreaseVolumeMouseHotKeyHandler(mgr)
-	registerDecreaseVolumeMouseHotKeyHandler(mgr)
-	registerToggleOSKHelpersHandler(mgr)
+	registerToggleMuteAllHotKeyHandler(kbsApp)
+	registerToggleMuteKeyboardHotKeyHandler(kbsApp)
+	registerToggleMuteMouseHotKeyHandler(kbsApp)
+	registerMuteAllHotKeyHandler(kbsApp)
+	registerUnmuteAllHotKeyHandler(kbsApp)
+	registerMuteKeyboardHotKeyHandler(kbsApp)
+	registerUnmuteKeyboardHotKeyHandler(kbsApp)
+	registerMuteMouseHotKeyHandler(kbsApp)
+	registerUnmuteMouseHotKeyHandler(kbsApp)
+	registerIncreaseVolumeAllHotKeyHandler(kbsApp)
+	registerDecreaseVolumeAllHotKeyHandler(kbsApp)
+	registerIncreaseVolumeKeyboardHotKeyHandler(kbsApp)
+	registerDecreaseVolumeKeyboardHotKeyHandler(kbsApp)
+	registerIncreaseVolumeMouseHotKeyHandler(kbsApp)
+	registerDecreaseVolumeMouseHotKeyHandler(kbsApp)
+	registerToggleOSKHelpersHandler(kbsApp)
 
-	return mgr, nil
+	return kbsApp, nil
 }
 
-// Enable starts the manager. If the manager is already enabled, it will return
+// Enable starts the app. If the app is already enabled, it will return
 // an ErrAlreadyEnabled error.
-func (m *Manager) Enable() error {
+func (m *Application) Enable() error {
 	m.enabledLock.Lock()
 	defer m.enabledLock.Unlock()
 
@@ -287,7 +313,7 @@ func (m *Manager) Enable() error {
 		}
 	}
 
-	// Start the focus detector if available (Windows only)
+	// Start the focus detector if available (Windows and macOS)
 	if m.focusDetector != nil {
 		err = m.focusDetector.Listen(m.listenerCtx)
 		if err != nil {
@@ -304,9 +330,9 @@ func (m *Manager) Enable() error {
 	return nil
 }
 
-// Disable stops the manager if it is running. If the manager is not enabled, it
+// Disable stops the app if it is running. If the app is not enabled, it
 // will return an ErrNotEnabled error.
-func (m *Manager) Disable() error {
+func (m *Application) Disable() error {
 	m.enabledLock.Lock()
 	defer m.enabledLock.Unlock()
 
@@ -331,26 +357,27 @@ func (m *Manager) Disable() error {
 	return nil
 }
 
-// IsEnabled returns true if the manager is enabled.
-func (m *Manager) IsEnabled() bool {
+// IsEnabled returns true if the app is enabled.
+func (m *Application) IsEnabled() bool {
 	m.enabledLock.RLock()
 	defer m.enabledLock.RUnlock()
 
 	return m.enabled
 }
 
-// GetRootDir returns the root directory for the manager.
-func (m *Manager) GetRootDir() string {
+// GetRootDir returns the root directory for the app.
+func (m *Application) GetRootDir() string {
 	return m.rootDir
 }
 
-// SetDefaultProfiles sets the default profiles for the manager. If the manager is currently using the default profiles,
+// SetDefaultProfiles sets the default profiles for the app. If the app is currently using the default profiles,
 // the in memory values will be updated immediately. Otherwise, they will be updated the next time that the focus listener
 // is triggered by an app being focused.
-func (m *Manager) SetDefaultProfiles(profiles rules.Profiles) error {
-	// On linux, we do not support application rules, so there is no need to write them to the rules.json file.
+func (m *Application) SetDefaultProfiles(profiles rules.Profiles) error {
+	// Linux has no application rules; defaults map straight onto the active profiles.
+	// Windows and macOS persist defaults to rules.json and respect focus + per-app rules like the Windows path.
 	switch runtime.GOOS {
-	case "windows":
+	case "windows", "darwin":
 		return m.setDefaultProfilesWindows(profiles)
 	case "linux":
 		return m.setDefaultProfilesLinux(profiles)
@@ -359,35 +386,28 @@ func (m *Manager) SetDefaultProfiles(profiles rules.Profiles) error {
 	}
 }
 
-func (m *Manager) setDefaultProfilesWindows(profiles rules.Profiles) error {
+func (m *Application) setDefaultProfilesWindows(profiles rules.Profiles) error {
 	err := rules.SetDefaultProfiles(profiles)
 	if err != nil {
 		return fmt.Errorf("failed to set default profiles: %w", err)
 	}
 
-	m.currentProfilesLock.RLock()
-	isDefault := m.currentProfiles.IsDefault
-	m.currentProfilesLock.RUnlock()
-
-	// If we are currently using the default profiles, we should update their
-	// in memory values immediately. Otherwise, they will be updated the next
-	// time that the focus listener is triggered by an app being focused.
-	if isDefault {
-		m.updateProfiles(profiles)
-	}
+	// Re-evaluate for the currently focused app so default changes apply
+	// immediately without requiring a focus change.
+	m.reevaluateProfilesForCurrentFocus()
 
 	return nil
 }
 
-func (m *Manager) setDefaultProfilesLinux(profiles rules.Profiles) error {
+func (m *Application) setDefaultProfilesLinux(profiles rules.Profiles) error {
 	m.updateProfiles(profiles)
 
 	return nil
 }
 
-// setKeyboardProfile sets the keyboard profile for the manager.
+// setKeyboardProfile sets the keyboard profile for the app.
 // It loads the audio files for the profile into memory.
-func (m *Manager) setKeyboardProfile(p *profile.Profile) error {
+func (m *Application) setKeyboardProfile(p *profile.Profile) error {
 	m.keyboardProfileLock.Lock()
 	defer m.keyboardProfileLock.Unlock()
 
@@ -455,9 +475,9 @@ func (m *Manager) setKeyboardProfile(p *profile.Profile) error {
 	return nil
 }
 
-// setMouseProfile sets the mouse profile for the manager.
+// setMouseProfile sets the mouse profile for the app.
 // It loads the audio files for the profile into memory.
-func (m *Manager) setMouseProfile(p *profile.Profile) error {
+func (m *Application) setMouseProfile(p *profile.Profile) error {
 	m.mouseProfileLock.Lock()
 	defer m.mouseProfileLock.Unlock()
 
@@ -535,7 +555,7 @@ func RegisterOSKHelperStateChangedDelegate(delegate OSKHelperStateChangedDelegat
 	oskHelperStateChangedDelegates = append(oskHelperStateChangedDelegates, delegate)
 }
 
-func (m *Manager) SetOSKHelperEnabled(enabled bool) {
+func (m *Application) SetOSKHelperEnabled(enabled bool) {
 	m.oskHelperLock.Lock()
 	m.oskHelperEnabled = enabled
 	m.oskHelperLock.Unlock()
@@ -551,28 +571,33 @@ func (m *Manager) SetOSKHelperEnabled(enabled bool) {
 	}
 }
 
-func (m *Manager) GetOSKHelperEnabled() bool {
+func (m *Application) GetOSKHelperEnabled() bool {
 	m.oskHelperLock.RLock()
 	defer m.oskHelperLock.RUnlock()
 
 	return m.oskHelperEnabled
 }
 
-func (m *Manager) SetOSKHelperConfig(config oskhelpers.OSKHelperConfig) {
+func (m *Application) SetOSKHelperConfig(config oskhelpers.OSKHelperConfig) {
 	m.oskHelperLock.Lock()
 	defer m.oskHelperLock.Unlock()
 
 	config.OnForceDismiss = func() {
 		m.keyboardKeysDownLock.Lock()
-		defer m.keyboardKeysDownLock.Unlock()
-
 		m.keyboardKeysDown = nil
+		m.keyboardKeysDownLock.Unlock()
+
+		m.oskHelperLock.Lock()
+		m.lastOSKComboDisplay = ""
+		m.lastOSKShouldShow = false
+		m.oskForceDismissedByUser = true
+		m.oskHelperLock.Unlock()
 	}
 
 	m.oskHelperConfig = &config
 }
 
-func (m *Manager) GetOSKHelperConfig() oskhelpers.OSKHelperConfig {
+func (m *Application) GetOSKHelperConfig() oskhelpers.OSKHelperConfig {
 	m.oskHelperLock.RLock()
 	defer m.oskHelperLock.RUnlock()
 	return *m.oskHelperConfig

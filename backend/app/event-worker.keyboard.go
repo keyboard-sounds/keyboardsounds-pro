@@ -1,4 +1,4 @@
-package manager
+package app
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (m *Manager) keyboardEventWorker() {
+func (m *Application) keyboardEventWorker() {
 	defer func() {
 		slog.Info("Keyboard event worker stopped")
 		m.eventWorkerWg.Done()
@@ -32,32 +32,33 @@ func (m *Manager) keyboardEventWorker() {
 				return
 			}
 
-			slog.Debug("Keyboard event received", "event", event)
+			e := event
+			// Process keys-down + OSK on this goroutine so order matches the event channel.
+			// Spawning per-event goroutines allowed races where a key event saw stale keysDown
+			// (e.g. letter after modifier release) and kept calling SetOnScreenText, canceling
+			// the delayed hide from ClearOnScreenText.
+			if m.isKeyRepeat(e) {
+				continue
+			}
 
-			go func(e listenertypes.KeyEvent) {
-				if m.isKeyRepeat(e) {
-					return
-				}
+			if m.shouldPlayKeyboard() {
+				go m.playAudioForKeyEvent(e)
+			}
 
-				if m.shouldPlayKeyboard() {
-					go m.playAudioForKeyEvent(e)
-				}
-
-				m.updateKeyboardKeysDown(e)
-				m.processOSKHelper(e)
-				m.processHotKeys(e)
-			}(event)
+			m.updateKeyboardKeysDown(e)
+			m.processOSKHelper(e)
+			m.processHotKeys(e)
 		}
 	}
 }
 
 // isKeyRepeat checks if a given key event is a key repeat.
-func (m *Manager) isKeyRepeat(e listenertypes.KeyEvent) bool {
+func (m *Application) isKeyRepeat(e listenertypes.KeyEvent) bool {
 	return e.Action == listenertypes.ActionPress && m.isKeyDown(e.Key)
 }
 
 // isKeyDown checks if a given key is currently down.
-func (m *Manager) isKeyDown(k key.Key) bool {
+func (m *Application) isKeyDown(k key.Key) bool {
 	var keyDown bool
 
 	m.keyboardKeysDownLock.RLock()
@@ -73,7 +74,7 @@ func (m *Manager) isKeyDown(k key.Key) bool {
 //
 // It checks if a keyboard profile is currently loaded into memory and if the currently
 // focused application has a keyboard profile set.
-func (m *Manager) shouldPlayKeyboard() bool {
+func (m *Application) shouldPlayKeyboard() bool {
 	if m.keyboardProfile != nil {
 		m.currentProfilesLock.RLock()
 		shouldPlay := m.currentProfiles.Keyboard != nil
@@ -88,7 +89,7 @@ func (m *Manager) shouldPlayKeyboard() bool {
 // playAudioForKeyEvent plays the audio for a given key event.
 //
 // Before playing the audio, this function applies any configured audio effects and volume to the audio.
-func (m *Manager) playAudioForKeyEvent(e listenertypes.KeyEvent) {
+func (m *Application) playAudioForKeyEvent(e listenertypes.KeyEvent) {
 	sound, err := m.getAudioForKeyEvent(e)
 	if err != nil {
 		slog.Error("failed to get audio for key event", "error", err)
@@ -156,7 +157,7 @@ func (m *Manager) playAudioForKeyEvent(e listenertypes.KeyEvent) {
 // 1. If the key is in the m.keyboardProfile.Keys.Other map, the audio file is chosen from the map.
 // 2. If the key is not in the m.keyboardProfile.Keys.Other map, the audio file is chosen randomly from the m.keyboardProfile.Keys.Default slice.
 // 3. If there are no audio files in the m.keyboardProfile.Keys.Other map or m.keyboardProfile.Keys.Default slice, a random souce will be selected.
-func (m *Manager) getAudioForKeyEvent(event listenertypes.KeyEvent) (*audio.Audio, error) {
+func (m *Application) getAudioForKeyEvent(event listenertypes.KeyEvent) (*audio.Audio, error) {
 	m.keyboardProfileLock.RLock()
 	defer m.keyboardProfileLock.RUnlock()
 
@@ -228,7 +229,7 @@ func (m *Manager) getAudioForKeyEvent(event listenertypes.KeyEvent) (*audio.Audi
 }
 
 // updateKeyboardKeysDown updates the keys that are currently down.
-func (m *Manager) updateKeyboardKeysDown(e listenertypes.KeyEvent) {
+func (m *Application) updateKeyboardKeysDown(e listenertypes.KeyEvent) {
 	m.keyboardKeysDownLock.Lock()
 	if e.Action == listenertypes.ActionPress {
 		m.keyboardKeysDown = append(m.keyboardKeysDown, e.Key)
@@ -244,45 +245,157 @@ func (m *Manager) updateKeyboardKeysDown(e listenertypes.KeyEvent) {
 //
 // This function is called to update the OSK helper with the current keys down.
 // If the OSK helper is enabled and a modifier key is pressed, this function will set the on screen text to the current keys down.
-// If the OSK helper is disabled or the modifier keys have been released, this function will clear the on screen text.
-func (m *Manager) processOSKHelper(e listenertypes.KeyEvent) {
+// If the OSK helper is disabled or the modifier keys have been released, this function schedules clearing
+// the on screen text (once per chord, so repeated plain-key events do not restart the dismiss timer).
+//
+// Keys to display are merged from keyboardKeysDown (from key events) and e.ModifierKeys (from event flags).
+// This handles cases where the platform does not deliver separate key events for modifiers (e.g. Ctrl+A in a terminal only sends A).
+func (m *Application) processOSKHelper(e listenertypes.KeyEvent) {
 	m.keyboardKeysDownLock.RLock()
-	if m.GetOSKHelperEnabled() {
-		m.oskHelperLock.RLock()
+	enabled := m.GetOSKHelperEnabled()
+	// Merge keys from key events with modifiers from this event's flags (so Ctrl+A shows even when only A event is delivered).
+	// Put modifiers first so we show "LeftControl + A" not "A + LeftControl"; skip keys with no name.
+	displayKeys := make([]key.Key, 0, len(m.keyboardKeysDown)+len(e.ModifierKeys))
+	seen := make(map[uint32]bool)
+	for _, k := range e.ModifierKeys {
+		if k.Name != "" && !seen[k.Code] {
+			seen[k.Code] = true
+			displayKeys = append(displayKeys, k)
+		}
+	}
+	for _, k := range m.keyboardKeysDown {
+		if k.Name != "" && !seen[k.Code] {
+			seen[k.Code] = true
+			displayKeys = append(displayKeys, k)
+		}
+	}
+	// Trigger modifier = Ctrl/Alt/Cmd. Shift alone must not show the overlay; Shift is still shown in combos.
+	hasTriggerModifier := len(displayKeys) > 0 && lo.ContainsBy(displayKeys, key.IsTriggerModifierKey)
+	hasNonModifier := len(displayKeys) > 0 && lo.SomeBy(displayKeys, func(k key.Key) bool { return !key.IsModifierKey(k) })
+	m.keyboardKeysDownLock.RUnlock()
 
-		if e.Action == listenertypes.ActionPress {
-			if len(m.keyboardKeysDown) > 1 && key.IsModifierKey(m.keyboardKeysDown[0]) {
-				err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, strings.Join(
-					lo.Map(m.keyboardKeysDown, func(key key.Key, _ int) string {
-						return key.Name
-					}),
-					" + ",
-				))
-				if err != nil {
-					slog.Error("failed to set on screen text", "error", err)
-				}
+	if enabled {
+		m.oskHelperLock.Lock()
+
+		// User clicked X: keep overlay hidden until they release all keys or press a new chord.
+		if m.oskForceDismissedByUser {
+			if len(displayKeys) == 0 {
+				m.oskForceDismissedByUser = false
+			} else if len(displayKeys) > 0 && (hasTriggerModifier || lo.SomeBy(displayKeys, func(k key.Key) bool { return !key.IsModifierKey(k) })) {
+				// User is pressing a chord (modifier + key). Treat as new combo and show again.
+				m.oskForceDismissedByUser = false
 			} else {
-				m.oskHelper.ClearOnScreenText()
-			}
-		} else {
-			if len(m.keyboardKeysDown) == 0 || !key.IsModifierKey(m.keyboardKeysDown[0]) {
-				m.oskHelper.ClearOnScreenText()
+				// Only modifiers still down (or stale). Keep overlay hidden.
+				m.lastOSKShouldShow = false
+				_ = m.oskHelper.ClearOnScreenText()
+				m.oskHelperLock.Unlock()
+				return
 			}
 		}
 
-		m.oskHelperLock.RUnlock()
+		// Only include keys with non-empty name; trim result so we never show trailing " + ".
+		keyNames := strings.TrimSpace(strings.Join(
+			lo.FilterMap(displayKeys, func(k key.Key, _ int) (string, bool) {
+				name := strings.TrimSpace(k.Name)
+				return name, name != ""
+			}),
+			" + ",
+		))
+
+		if len(displayKeys) == 0 || !hasTriggerModifier {
+			m.lastOSKComboDisplay = ""
+			// ClearOnScreenText starts/restarts the delayed hide; only run when leaving a visible
+			// chord so plain-key typing does not reset the timer every stroke.
+			if m.lastOSKShouldShow {
+				m.lastOSKShouldShow = false
+				_ = m.oskHelper.ClearOnScreenText()
+			}
+			m.oskHelperLock.Unlock()
+			return
+		}
+		m.lastOSKShouldShow = true
+
+		keyCount := len(strings.Split(keyNames, " + "))
+		lastCount := 0
+		lastParts := []string{}
+		if m.lastOSKComboDisplay != "" {
+			lastParts = strings.Split(m.lastOSKComboDisplay, " + ")
+			lastCount = len(lastParts)
+		}
+
+		// If we have modifier(s) + at least one other key: upgrade stored combo when it's a new combo or has more keys.
+		if hasNonModifier && keyNames != "" {
+			currentParts := strings.Split(keyNames, " + ")
+			lastSet := make(map[string]bool)
+			for _, p := range lastParts {
+				lastSet[strings.TrimSpace(p)] = true
+			}
+			currentIsSubsetOfLast := m.lastOSKComboDisplay != "" && keyCount <= lastCount
+			if currentIsSubsetOfLast {
+				for _, p := range currentParts {
+					if !lastSet[strings.TrimSpace(p)] {
+						currentIsSubsetOfLast = false
+						break
+					}
+				}
+			}
+			// New combo (different keys): replace stored and show current.
+			if !currentIsSubsetOfLast || keyCount > lastCount {
+				m.lastOSKComboDisplay = keyNames
+			}
+			// Released a key from same combo (current is subset): keep showing the larger combo.
+			toShow := keyNames
+			if currentIsSubsetOfLast && keyCount < lastCount {
+				toShow = m.lastOSKComboDisplay
+			}
+			err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, toShow)
+			if err != nil {
+				slog.Error("failed to set on screen text", "error", err)
+			}
+			m.oskHelperLock.Unlock()
+			return
+		}
+
+		// Only modifiers down: keep showing last combo until modifier state or combo changes.
+		if m.lastOSKComboDisplay != "" {
+			err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, m.lastOSKComboDisplay)
+			if err != nil {
+				slog.Error("failed to set on screen text", "error", err)
+			}
+		} else {
+			err := m.oskHelper.SetOnScreenText(*m.oskHelperConfig, keyNames)
+			if err != nil {
+				slog.Error("failed to set on screen text", "error", err)
+			}
+		}
+		m.oskHelperLock.Unlock()
 	}
-	m.keyboardKeysDownLock.RUnlock()
 }
 
 // processHotKeys processes the hot keys for a given key event.
-func (m *Manager) processHotKeys(e listenertypes.KeyEvent) {
+func (m *Application) processHotKeys(e listenertypes.KeyEvent) {
 	if e.Action == listenertypes.ActionRelease {
 		// Make a copy of the keys down to avoid race conditions.
 		m.keyboardKeysDownLock.RLock()
 		keysDown := make([]key.Key, len(m.keyboardKeysDown))
 		copy(keysDown, m.keyboardKeysDown)
 		m.keyboardKeysDownLock.RUnlock()
+
+		// On macOS, modifier key events are delivered via kCGEventFlagsChanged and may
+		// lose the race against the trigger key release goroutine. Merge e.ModifierKeys
+		// (populated from CGEventFlags on every darwin event) into keysDown so that
+		// modifier state is always accurate. On other platforms ModifierKeys is empty.
+		if len(e.ModifierKeys) > 0 {
+			seen := make(map[uint32]bool, len(keysDown))
+			for _, k := range keysDown {
+				seen[k.Code] = true
+			}
+			for _, mk := range e.ModifierKeys {
+				if !seen[mk.Code] {
+					keysDown = append(keysDown, mk)
+				}
+			}
+		}
 
 		// TODO: Also copy hot key configs to avoid race conditions.
 

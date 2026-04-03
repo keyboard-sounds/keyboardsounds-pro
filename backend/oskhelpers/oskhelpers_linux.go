@@ -1,6 +1,3 @@
-//go:build !windows
-// +build !windows
-
 package oskhelpers
 
 // unsupportedOSKHelper is a stub implementation for unsupported platforms

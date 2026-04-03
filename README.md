@@ -3,22 +3,18 @@
 [![Discord](https://img.shields.io/badge/-Join%20the%20Community-gray?logo=discord&logoColor=%23ffffff&labelColor=%235865f2)](https://discord.gg/gysskqts6z)
 [![Sponsor Me](https://img.shields.io/badge/%F0%9F%92%B8-Sponsor%20Me!-blue)](https://github.com/sponsors/nathan-fiscaletti)
 
-Keyboard Sounds Pro is a **free** desktop application that will play customizable keyboard and mouse sounds while you work.
+Keyboard Sounds Pro is a desktop application that will play customizable keyboard and mouse sounds while you work.
 
 ![Keyboard Sounds Pro](./images/preview.png)
 
 ## Download
 
-Download the latest release from the [releases page](https://github.com/keyboard-sounds/keyboardsounds-pro/releases/latest).
-
-> [!IMPORTANT]
-> On Linux, in order for the application to detect your input devices your user must be added to the `input` group through `usermod`.
-> 
-> ```
-> sudo usermod -aG input $USER
-> ```
-> 
-> After adding your user to the `input` group, you may need to reboot your system for the changes to take effect.
+|Platform|Download|Information|
+|---|:---:|---|
+|macOS|[![Download on Apple App Store](/images/mac_app_store.svg)](https://apps.apple.com/us/app/keyboard-sounds-pro/id6761599489)|The App Store version is a paid download which helps support development.|
+|Windows|[Download on GitHub](https://github.com/keyboard-sounds/keyboardsounds-pro/releases/latest)|There are no special requirements to install on Windows.|
+|Linux|[Download on GitHub](https://github.com/keyboard-sounds/keyboardsounds-pro/releases/latest)|On Linux, you need to grant permissions for the tool to work. See [./docs/linux.md](./docs/linux.md).|
+|Other|[Build from Source](./docs/development.md)|This project is open source and can be built from source for free on all platforms.|
 
 ## Features
 
@@ -53,8 +49,6 @@ Download the latest release from the [releases page](https://github.com/keyboard
 
 - This allows you to do things like only enabling in your text editor or terminal, disabling it for specific games, or localizing the sound effects to a particular application.
 
-> Note: Application rules are currently only available for the **Windows** platform.
-
 <br><br><br><br>
 
 ## Audio Effects
@@ -85,42 +79,36 @@ Keyboard Sounds Pro supports building your own profiles using audio files you pr
 
 <br>
 
-## Use the Keyboard Sounds Backend
+## Hot Keys
 
-Keyboard Sounds Pro uses the Keyboard Sounds backend to manage profiles, audio, keyboard and mouse events, and application rules. This backend is made entirely public and is free to use to develop your own applications.
+<img src="./images/hot-keys-rounded-shadow.png" width="450" align="right">
 
-For detailed documentation, see the [API documentation](https://pkg.go.dev/github.com/keyboard-sounds/keyboardsounds-pro/backend) and [examples](https://github.com/keyboard-sounds/keyboardsounds-pro/tree/main/backend/internal/cmd/example).
+<br>
 
-```sh
-$ go get github.com/keyboard-sounds/keyboardsounds-pro/backend
-```
+Keyboard Sounds Pro supports customizable hot keys for controlling the application quickly and easily without the need to open it and make changes.
 
-```go
-package main
+- Hot key groups based on modifier key list
+- Map actions to hot keys
+- Customize values (i.e. volume steps)
 
-import (
-	"os"
-	"log"
+<br><br><br><br>
 
-	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
-	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
-)
+## On-screen modifiers
 
-func main() {
-	mgr, err := manager.NewManager(kbs.GetHomeDirectory())
-	if err != nil{
-		log.Fatalf("Failed to create manager: %v", err)
-	}
+<img src="./images/on-screen-modifiers-rounded-shadow.png" width="450" align="right">
 
-	err = mgr.Enable()
-	if err != nil{
-		log.Fatalf("Failed to enable manager: %v", err)
-	}
+<br>
 
-	// Wait indefinitely.
-	select {}
-}
-```
+Keyboard Sounds Pro supports a special feature for screen sharing that will display a brief pop-up each time you use a modifier-key combination.
+
+- Perfect for tutorials, livestreams and learning keyboard shortcuts.
+- Fully customizable display (color, opacity, size, offset, etc.)
+
+<br>
+
+## Development
+
+You can easily build Keyboard Sounds Pro from source locally or use the Keyboard Sounds Backend in your own application. See [Development](./docs/development.md) for more information.
 
 ## Stargazers over time
 

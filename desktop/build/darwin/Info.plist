@@ -1,6 +1,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
     <dict>
+        <key>NSAppTransportSecurity</key>
+        <dict>
+            <key>NSAllowsLocalNetworking</key>
+            <true/>
+        </dict>
         <key>CFBundlePackageType</key>
         <string>APPL</string>
         <key>CFBundleName</key>
@@ -8,9 +13,11 @@
         <key>CFBundleExecutable</key>
         <string>{{.OutputFilename}}</string>
         <key>CFBundleIdentifier</key>
-        <string>com.wails.{{.Name}}</string>
+        <string>pro.keyboardsounds</string>
         <key>CFBundleVersion</key>
         <string>{{.Info.ProductVersion}}</string>
+        <key>NSAppleEventsUsageDescription</key>
+        <string>Used to detect the focused application for properly triggering application rules.</string>
         <key>CFBundleGetInfoString</key>
         <string>{{.Info.Comments}}</string>
         <key>CFBundleShortVersionString</key>
@@ -19,6 +26,8 @@
         <string>iconfile</string>
         <key>LSMinimumSystemVersion</key>
         <string>10.13.0</string>
+        <key>LSApplicationCategoryType</key>
+        <string>public.app-category.utilities</string>
         <key>NSHighResolutionCapable</key>
         <string>true</string>
         <key>NSHumanReadableCopyright</key>

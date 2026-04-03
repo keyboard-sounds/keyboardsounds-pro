@@ -1,4 +1,4 @@
-package manager
+package app
 
 import (
 	"log/slog"
@@ -8,7 +8,7 @@ import (
 )
 
 // focusEventWorker processes focus events and updates the currentFocusAction.
-func (m *Manager) focusEventWorker() {
+func (m *Application) focusEventWorker() {
 	defer func() {
 		slog.Info("Focus event worker stopped")
 		m.eventWorkerWg.Done()
@@ -30,21 +30,22 @@ func (m *Manager) focusEventWorker() {
 				return
 			}
 
-			slog.Info("Focus event received", "executable", event.Executable)
+			m.lastFocusedExecutableLock.Lock()
+			m.lastFocusedExecutable = event.Executable
+			if !m.executablePathsMatch(event.Executable) {
+				m.lastNonSelfFocusedExecutable = event.Executable
+			}
+			m.lastFocusedExecutableLock.Unlock()
 
-			// Update the current focus action based on the app path
-			newProfiles := rules.GetProfilesForPath(event.Executable)
+			newProfiles := m.resolveProfilesForExecutable(event.Executable)
 			m.updateProfiles(newProfiles)
-
-			slog.Debug("Updated focus action", "executable", event.Executable, "profiles", newProfiles)
 		}
 	}
 }
 
-func (m *Manager) updateProfiles(newProfiles rules.Profiles) {
+func (m *Application) updateProfiles(newProfiles rules.Profiles) {
 	m.currentProfilesLock.RLock()
 	diff := m.currentProfiles.Diff(newProfiles)
-	slog.Info("Diff", "diff", diff)
 	m.currentProfilesLock.RUnlock()
 
 	var (
@@ -91,9 +92,9 @@ func (m *Manager) updateProfiles(newProfiles rules.Profiles) {
 
 	if diff.ShouldUpdateKeyboard {
 		if newKeyboardProfile != nil {
-			slog.Info("Setting keyboard profile", "profile", *newKeyboardProfile)
+			slog.Info("Setting keyboard", "profile", newKeyboardProfile.Details.Name)
 		} else {
-			slog.Info("Setting keyboard profile", "profile", "nil")
+			slog.Info("Setting keyboard", "profile", "nil")
 		}
 		err := m.setKeyboardProfile(newKeyboardProfile)
 		if err != nil {
@@ -104,9 +105,9 @@ func (m *Manager) updateProfiles(newProfiles rules.Profiles) {
 
 	if diff.ShouldUpdateMouse {
 		if newMouseProfile != nil {
-			slog.Info("Setting mouse profile", "profile", *newMouseProfile)
+			slog.Info("Setting mouse", "profile", newMouseProfile.Details.Name)
 		} else {
-			slog.Info("Setting mouse profile", "profile", "nil")
+			slog.Info("Setting mouse", "profile", "nil")
 		}
 		err := m.setMouseProfile(newMouseProfile)
 		if err != nil {

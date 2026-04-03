@@ -12,12 +12,14 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	gort "runtime"
+
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
-	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/app"
 )
 
 var (
-	mgr          *manager.Manager
+	kbsApp       *app.Application
 	ctx          context.Context
 	kbsDir       string
 	autoStartApp *autostart.App
@@ -40,7 +42,7 @@ func Init(c context.Context) error {
 		slog.Info("Dev mode, skipping profile seeding")
 	}
 
-	mgr, err = manager.NewManager(kbsDir)
+	kbsApp, err = app.NewApp(kbsDir)
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +51,7 @@ func Init(c context.Context) error {
 	RegisterHotKeyEventDelegate()
 
 	// Register delegate for OSK helper state changes
-	manager.RegisterOSKHelperStateChangedDelegate(EmitOSKHelperStateChanged)
+	app.RegisterOSKHelperStateChangedDelegate(EmitOSKHelperStateChanged)
 
 	// Apply saved audio effects preferences
 	ApplyAudioEffectsFromPreferences()
@@ -57,9 +59,11 @@ func Init(c context.Context) error {
 	ApplyVolumeFromPreferences()
 	// Apply saved OSK Helper preferences
 	ApplyOSKHelperFromPreferences()
-	// Enable manager if start playing on launch is set
+	ApplyInAppFocusProfilesFromPreferences()
+	registerOSKOverlayClickHandler()
+	// Enable application if start playing on launch is set
 	if GetStartPlayingOnLaunch() {
-		// Get the status panel to enable the manager
+		// Get the status panel to enable the application
 		statusPanel := NewStatusPanel()
 		statusPanel.Enable()
 	}
@@ -100,8 +104,14 @@ func seedProfiles() error {
 
 	installDir := filepath.Dir(exePath)
 
-	bundledProfilesDir := filepath.Join(installDir, "bundled-profiles")
-	kbsProfilesDir := filepath.Join(kbsDir, "profiles")
+	var (
+		bundledProfilesDir string = filepath.Join(installDir, "bundled-profiles")
+		kbsProfilesDir     string = filepath.Join(kbsDir, "profiles")
+	)
+
+	if gort.GOOS == "darwin" {
+		bundledProfilesDir = filepath.Join(installDir, "..", "Resources", "bundled-profiles")
+	}
 
 	slog.Info("Seeding profiles", "bundledProfilesDir", bundledProfilesDir, "kbsProfilesDir", kbsProfilesDir)
 

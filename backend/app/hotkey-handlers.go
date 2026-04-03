@@ -1,4 +1,4 @@
-package manager
+package app
 
 import (
 	"log/slog"
@@ -22,34 +22,34 @@ func registerHotKeyDelegate() {
 // Mute Handlers
 // =============================================================================
 
-func registerMuteAllHotKeyHandler(mgr *Manager) {
+func registerMuteAllHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionMute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.MuteKeyboard()
-		mgr.MuteMouse()
+		kbsApp.MuteKeyboard()
+		kbsApp.MuteMouse()
 
 		return nil
 	})
 }
 
-func registerMuteKeyboardHotKeyHandler(mgr *Manager) {
+func registerMuteKeyboardHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionMute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.MuteKeyboard()
+		kbsApp.MuteKeyboard()
 		return nil
 	})
 }
 
-func registerMuteMouseHotKeyHandler(mgr *Manager) {
+func registerMuteMouseHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionMute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.MuteMouse()
+		kbsApp.MuteMouse()
 		return nil
 	})
 }
@@ -58,34 +58,34 @@ func registerMuteMouseHotKeyHandler(mgr *Manager) {
 // Unmute Handlers
 // =============================================================================
 
-func registerUnmuteAllHotKeyHandler(mgr *Manager) {
+func registerUnmuteAllHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionUnmute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.UnmuteKeyboard()
-		mgr.UnmuteMouse()
+		kbsApp.UnmuteKeyboard()
+		kbsApp.UnmuteMouse()
 
 		return nil
 	})
 }
 
-func registerUnmuteKeyboardHotKeyHandler(mgr *Manager) {
+func registerUnmuteKeyboardHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionUnmute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.UnmuteKeyboard()
+		kbsApp.UnmuteKeyboard()
 		return nil
 	})
 }
 
-func registerUnmuteMouseHotKeyHandler(mgr *Manager) {
+func registerUnmuteMouseHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionUnmute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.UnmuteMouse()
+		kbsApp.UnmuteMouse()
 		return nil
 	})
 }
@@ -94,33 +94,33 @@ func registerUnmuteMouseHotKeyHandler(mgr *Manager) {
 // Toggle Mute Handlers
 // =============================================================================
 
-func registerToggleMuteAllHotKeyHandler(mgr *Manager) {
+func registerToggleMuteAllHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionToggleMute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.ToggleMuteKeyboard()
-		mgr.ToggleMuteMouse()
+		kbsApp.ToggleMuteKeyboard()
+		kbsApp.ToggleMuteMouse()
 		return nil
 	})
 }
 
-func registerToggleMuteKeyboardHotKeyHandler(mgr *Manager) {
+func registerToggleMuteKeyboardHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionToggleMute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.ToggleMuteKeyboard()
+		kbsApp.ToggleMuteKeyboard()
 		return nil
 	})
 }
 
-func registerToggleMuteMouseHotKeyHandler(mgr *Manager) {
+func registerToggleMuteMouseHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionToggleMute,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		mgr.ToggleMuteMouse()
+		kbsApp.ToggleMuteMouse()
 		return nil
 	})
 }
@@ -129,7 +129,7 @@ func registerToggleMuteMouseHotKeyHandler(mgr *Manager) {
 // Volume Handlers
 // =============================================================================
 
-func registerIncreaseVolumeAllHotKeyHandler(mgr *Manager) {
+func registerIncreaseVolumeAllHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionIncreaseVolume,
@@ -139,20 +139,20 @@ func registerIncreaseVolumeAllHotKeyHandler(mgr *Manager) {
 			return err
 		}
 
-		kbv := mgr.GetKeyboardVolume()
-		mv := mgr.GetMouseVolume()
+		kbv := kbsApp.GetKeyboardVolume()
+		mv := kbsApp.GetMouseVolume()
 
-		newKbv := math.Min(1.0, kbv+value)
-		newMv := math.Min(1.0, mv+value)
+		newKbv := math.Min(maxPlaybackVolume, kbv+value)
+		newMv := math.Min(maxPlaybackVolume, mv+value)
 
-		mgr.SetKeyboardVolume(newKbv)
-		mgr.SetMouseVolume(newMv)
+		kbsApp.SetKeyboardVolume(newKbv)
+		kbsApp.SetMouseVolume(newMv)
 
 		return nil
 	})
 }
 
-func registerDecreaseVolumeAllHotKeyHandler(mgr *Manager) {
+func registerDecreaseVolumeAllHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceAll,
 		Action: hotkeys.HotKeyActionDecreaseVolume,
@@ -162,20 +162,20 @@ func registerDecreaseVolumeAllHotKeyHandler(mgr *Manager) {
 			return err
 		}
 
-		kbv := mgr.GetKeyboardVolume()
-		mv := mgr.GetMouseVolume()
+		kbv := kbsApp.GetKeyboardVolume()
+		mv := kbsApp.GetMouseVolume()
 
 		newKbv := math.Max(0.0, kbv-value)
 		newMv := math.Max(0.0, mv-value)
 
-		mgr.SetKeyboardVolume(newKbv)
-		mgr.SetMouseVolume(newMv)
+		kbsApp.SetKeyboardVolume(newKbv)
+		kbsApp.SetMouseVolume(newMv)
 
 		return nil
 	})
 }
 
-func registerIncreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
+func registerIncreaseVolumeKeyboardHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionIncreaseVolume,
@@ -185,15 +185,15 @@ func registerIncreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
 			return err
 		}
 
-		kbv := mgr.GetKeyboardVolume()
-		newKbv := math.Min(1.0, kbv+value)
-		mgr.SetKeyboardVolume(newKbv)
+		kbv := kbsApp.GetKeyboardVolume()
+		newKbv := math.Min(maxPlaybackVolume, kbv+value)
+		kbsApp.SetKeyboardVolume(newKbv)
 
 		return nil
 	})
 }
 
-func registerDecreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
+func registerDecreaseVolumeKeyboardHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceKeyboard,
 		Action: hotkeys.HotKeyActionDecreaseVolume,
@@ -203,15 +203,15 @@ func registerDecreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
 			return err
 		}
 
-		kbv := mgr.GetKeyboardVolume()
+		kbv := kbsApp.GetKeyboardVolume()
 		newKbv := math.Max(0.0, kbv-value)
-		mgr.SetKeyboardVolume(newKbv)
+		kbsApp.SetKeyboardVolume(newKbv)
 
 		return nil
 	})
 }
 
-func registerIncreaseVolumeMouseHotKeyHandler(mgr *Manager) {
+func registerIncreaseVolumeMouseHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionIncreaseVolume,
@@ -221,15 +221,15 @@ func registerIncreaseVolumeMouseHotKeyHandler(mgr *Manager) {
 			return err
 		}
 
-		mv := mgr.GetMouseVolume()
-		newMv := math.Min(1.0, mv+value)
-		mgr.SetMouseVolume(newMv)
+		mv := kbsApp.GetMouseVolume()
+		newMv := math.Min(maxPlaybackVolume, mv+value)
+		kbsApp.SetMouseVolume(newMv)
 
 		return nil
 	})
 }
 
-func registerDecreaseVolumeMouseHotKeyHandler(mgr *Manager) {
+func registerDecreaseVolumeMouseHotKeyHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceMouse,
 		Action: hotkeys.HotKeyActionDecreaseVolume,
@@ -239,9 +239,9 @@ func registerDecreaseVolumeMouseHotKeyHandler(mgr *Manager) {
 			return err
 		}
 
-		mv := mgr.GetMouseVolume()
+		mv := kbsApp.GetMouseVolume()
 		newMv := math.Max(0.0, mv-value)
-		mgr.SetMouseVolume(newMv)
+		kbsApp.SetMouseVolume(newMv)
 
 		return nil
 	})
@@ -251,13 +251,13 @@ func registerDecreaseVolumeMouseHotKeyHandler(mgr *Manager) {
 // Other Handlers
 // =============================================================================
 
-func registerToggleOSKHelpersHandler(mgr *Manager) {
+func registerToggleOSKHelpersHandler(kbsApp *Application) {
 	hotkeys.RegisterHandler(hotkeys.HotKeyDeviceAction{
 		Device: hotkeys.HotKeyTargetDeviceNone,
 		Action: hotkeys.HotKeyActionToggleOSKHelpers,
 	}, func(action hotkeys.HotKeyDeviceAction) error {
-		enabled := mgr.GetOSKHelperEnabled()
-		mgr.SetOSKHelperEnabled(!enabled)
+		enabled := kbsApp.GetOSKHelperEnabled()
+		kbsApp.SetOSKHelperEnabled(!enabled)
 
 		return nil
 	})

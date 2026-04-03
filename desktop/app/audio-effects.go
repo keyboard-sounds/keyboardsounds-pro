@@ -2,7 +2,7 @@ package app
 
 import (
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
-	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/app"
 )
 
 // AudioEffects is the Wails binding for audio effects settings
@@ -53,25 +53,25 @@ type AudioEffectsState struct {
 // GetState returns the complete audio effects state
 func (a *AudioEffects) GetState() AudioEffectsState {
 	// Keyboard pitch shift
-	kbPitchEnabled, kbPitchLower, kbPitchUpper := mgr.GetKeyboardAudioPitchShift()
+	kbPitchEnabled, kbPitchLower, kbPitchUpper := kbsApp.GetKeyboardAudioPitchShift()
 
 	// Keyboard pan
-	kbPanEnabled, kbPanType, kbPanMaxX := mgr.GetKeyboardAudioPan()
+	kbPanEnabled, kbPanType, kbPanMaxX := kbsApp.GetKeyboardAudioPan()
 
 	// Keyboard equalizer
-	kbEqEnabled, kbEqConfig := mgr.GetKeyboardAudioEqualizer()
+	kbEqEnabled, kbEqConfig := kbsApp.GetKeyboardAudioEqualizer()
 	if kbEqConfig == nil {
 		kbEqConfig = &audio.EqualizerConfig{}
 	}
 
 	// Mouse pitch shift
-	msPitchEnabled, msPitchLower, msPitchUpper := mgr.GetMouseAudioPitchShift()
+	msPitchEnabled, msPitchLower, msPitchUpper := kbsApp.GetMouseAudioPitchShift()
 
 	// Mouse pan
-	msPanEnabled := mgr.GetMouseAudioPan()
+	msPanEnabled := kbsApp.GetMouseAudioPan()
 
 	// Mouse equalizer
-	msEqEnabled, msEqConfig := mgr.GetMouseAudioEqualizer()
+	msEqEnabled, msEqConfig := kbsApp.GetMouseAudioEqualizer()
 	if msEqConfig == nil {
 		msEqConfig = &audio.EqualizerConfig{}
 	}
@@ -108,36 +108,36 @@ func (a *AudioEffects) GetState() AudioEffectsState {
 
 // SetKeyboardPitchShift sets the keyboard pitch shift settings
 func (a *AudioEffects) SetKeyboardPitchShift(enabled bool, lower, upper float64) error {
-	mgr.SetKeyboardAudioPitchShift(enabled, lower, upper)
+	kbsApp.SetKeyboardAudioPitchShift(enabled, lower, upper)
 	return SaveAudioEffectsToPreferences()
 }
 
 // SetKeyboardPan sets the keyboard pan settings
 func (a *AudioEffects) SetKeyboardPan(enabled bool, panType string, maxX int) error {
-	mgr.SetKeyboardAudioPan(enabled, manager.PanType(panType), maxX)
+	kbsApp.SetKeyboardAudioPan(enabled, app.PanType(panType), maxX)
 	return SaveAudioEffectsToPreferences()
 }
 
 // SetKeyboardEqualizer sets the keyboard equalizer settings
 func (a *AudioEffects) SetKeyboardEqualizer(enabled bool, config audio.EqualizerConfig) error {
-	mgr.SetKeyboardAudioEqualizer(enabled, config)
+	kbsApp.SetKeyboardAudioEqualizer(enabled, config)
 	return SaveAudioEffectsToPreferences()
 }
 
 // SetMousePitchShift sets the mouse pitch shift settings
 func (a *AudioEffects) SetMousePitchShift(enabled bool, lower, upper float64) error {
-	mgr.SetMouseAudioPitchShift(enabled, lower, upper)
+	kbsApp.SetMouseAudioPitchShift(enabled, lower, upper)
 	return SaveAudioEffectsToPreferences()
 }
 
 // SetMousePan sets the mouse pan settings (mouse only has enabled/disabled, always random mode)
 func (a *AudioEffects) SetMousePan(enabled bool) error {
-	mgr.SetMouseAudioPan(enabled)
+	kbsApp.SetMouseAudioPan(enabled)
 	return SaveAudioEffectsToPreferences()
 }
 
 // SetMouseEqualizer sets the mouse equalizer settings
 func (a *AudioEffects) SetMouseEqualizer(enabled bool, config audio.EqualizerConfig) error {
-	mgr.SetMouseAudioEqualizer(enabled, config)
+	kbsApp.SetMouseAudioEqualizer(enabled, config)
 	return SaveAudioEffectsToPreferences()
 }

@@ -5,26 +5,26 @@ import (
 	"time"
 
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
-	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/app"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/rules"
 	"github.com/samber/lo"
 )
 
 func main() {
-	mgr, err := manager.NewManager(kbs.GetHomeDirectory())
+	kbsApp, err := app.NewApp(kbs.GetHomeDirectory())
 	if err != nil {
 		panic(err)
 	}
 
-	err = mgr.Enable()
+	err = kbsApp.Enable()
 	if err != nil {
 		panic(err)
 	}
 
-	slog.Info("Manager enabled")
+	slog.Info("Application enabled")
 
 	time.Sleep(5 * time.Second)
-	err = mgr.SetDefaultProfiles(rules.Profiles{
+	err = kbsApp.SetDefaultProfiles(rules.Profiles{
 		Keyboard: lo.ToPtr("logitech-g915-tkl-brown"),
 		Mouse:    lo.ToPtr("g502x-wireless"),
 	})
