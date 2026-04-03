@@ -42,30 +42,59 @@ type OSKHelperState struct {
 	Offset            int    `json:"offset"`
 	DismissAfter      int64  `json:"dismissAfter"` // milliseconds
 	MonitorIndex      int    `json:"monitorIndex"`
+	ClickOverlayShowsApp bool `json:"clickOverlayShowsApp"`
 }
 
 // GetState returns the current OSK Helper configuration
 func (b *OSKHelperBinding) GetState() OSKHelperState {
-	enabled := mgr.GetOSKHelperEnabled()
-	config := mgr.GetOSKHelperConfig()
+	enabled := kbsApp.GetOSKHelperEnabled()
+	config := kbsApp.GetOSKHelperConfig()
+	clickShows := false
+	uiPrefsLock.RLock()
+	if uiPrefs != nil {
+		clickShows = uiPrefs.OSKHelper.ClickOverlayShowsApp
+	}
+	uiPrefsLock.RUnlock()
 
 	return OSKHelperState{
-		Enabled:           enabled,
-		FontSize:          config.FontSize,
-		FontColor:         config.FontColor,
-		BackgroundColor:   config.BackgroundColor,
-		BackgroundOpacity: config.BackgroundOpacity,
-		CornerRadius:      config.CornerRadius,
-		Position:          string(config.Position),
-		Offset:            config.Offset,
-		DismissAfter:      config.DismissAfter.Milliseconds(),
-		MonitorIndex:      config.MonitorIndex,
+		Enabled:              enabled,
+		FontSize:             config.FontSize,
+		FontColor:            config.FontColor,
+		BackgroundColor:      config.BackgroundColor,
+		BackgroundOpacity:    config.BackgroundOpacity,
+		CornerRadius:         config.CornerRadius,
+		Position:             string(config.Position),
+		Offset:               config.Offset,
+		DismissAfter:         config.DismissAfter.Milliseconds(),
+		MonitorIndex:         config.MonitorIndex,
+		ClickOverlayShowsApp: clickShows,
 	}
+}
+
+// GetClickOverlayShowsApp returns whether clicking the OSK overlay shows the main window (macOS).
+func (b *OSKHelperBinding) GetClickOverlayShowsApp() bool {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+	if uiPrefs == nil {
+		return true
+	}
+	return uiPrefs.OSKHelper.ClickOverlayShowsApp
+}
+
+// SetClickOverlayShowsApp persists the preference and applies it to the native overlay (macOS).
+func (b *OSKHelperBinding) SetClickOverlayShowsApp(enabled bool) {
+	uiPrefsLock.Lock()
+	if uiPrefs != nil {
+		uiPrefs.OSKHelper.ClickOverlayShowsApp = enabled
+	}
+	uiPrefsLock.Unlock()
+	oskhelpers.SetClickOverlayShowsApp(enabled)
+	_ = saveUIPreferences()
 }
 
 // SetEnabled enables or disables the OSK Helper
 func (b *OSKHelperBinding) SetEnabled(enabled bool) {
-	mgr.SetOSKHelperEnabled(enabled)
+	kbsApp.SetOSKHelperEnabled(enabled)
 	SaveOSKHelperToPreferences()
 }
 
@@ -83,7 +112,7 @@ func (b *OSKHelperBinding) SetConfig(fontSize int, fontColor string, backgroundC
 		MonitorIndex:      monitorIndex,
 	}
 
-	mgr.SetOSKHelperConfig(config)
+	kbsApp.SetOSKHelperConfig(config)
 	SaveOSKHelperToPreferences()
 }
 

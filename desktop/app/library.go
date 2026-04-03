@@ -85,6 +85,13 @@ func (l *Library) checkProfileInUse(profileName string, profileType string) (boo
 		reasons = append(reasons, "default mouse profile")
 	}
 
+	if kb := GetInAppKeyboardProfile(); kb != nil && profileType == "keyboard" && strings.EqualFold(*kb, profileName) {
+		reasons = append(reasons, "in-app keyboard profile (Settings)")
+	}
+	if ms := GetInAppMouseProfile(); ms != nil && profileType == "mouse" && strings.EqualFold(*ms, profileName) {
+		reasons = append(reasons, "in-app mouse profile (Settings)")
+	}
+
 	// Check if it's used by any app rules
 	rulesList, err := rules.ListRules()
 	if err == nil {

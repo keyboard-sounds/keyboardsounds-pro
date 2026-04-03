@@ -6,23 +6,23 @@ import (
 
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
-	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/app"
 )
 
 func main() {
-	mgr, err := manager.NewManager(kbs.GetHomeDirectory())
+	kbsApp, err := app.NewApp(kbs.GetHomeDirectory())
 	if err != nil {
 		panic(err)
 	}
 
-	slog.Info("Enabling manager")
-	err = mgr.Enable()
+	slog.Info("Enabling application")
+	err = kbsApp.Enable()
 	if err != nil {
 		panic(err)
 	}
 
 	slog.Info("Setting EQ to Bass Boost")
-	mgr.SetKeyboardAudioEqualizer(true, audio.EqualizerConfig{
+	kbsApp.SetKeyboardAudioEqualizer(true, audio.EqualizerConfig{
 		Hz60:  6,
 		Hz170: 4,
 		Hz310: 2,
@@ -38,7 +38,7 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	slog.Info("Setting EQ to Treble Boost")
-	mgr.SetKeyboardAudioEqualizer(true, audio.EqualizerConfig{
+	kbsApp.SetKeyboardAudioEqualizer(true, audio.EqualizerConfig{
 		Hz60:  -2,
 		Hz170: -1,
 		Hz310: 0,
@@ -52,7 +52,7 @@ func main() {
 	})
 
 	time.Sleep(5 * time.Second)
-	mgr.SetKeyboardAudioEqualizer(false, audio.EqualizerConfig{})
+	kbsApp.SetKeyboardAudioEqualizer(false, audio.EqualizerConfig{})
 
 	slog.Info("Waiting for terminate...")
 	select {}

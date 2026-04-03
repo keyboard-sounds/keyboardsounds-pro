@@ -171,6 +171,9 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
+      - name: Clean / Update apt cache
+        run: sudo rm -rf /var/lib/apt/lists/* ; sudo apt-get clean ; sudo apt-get update -o Acquire::Retries=3
+
       - name: Install libwebkit2gtk-4.1-dev
         run: sudo apt install libwebkit2gtk-4.1-dev
 
@@ -230,6 +233,9 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
+      - name: Clean / Update apt cache
+        run: sudo rm -rf /var/lib/apt/lists/* ; sudo apt-get clean ; sudo apt-get update -o Acquire::Retries=3
+
       - name: Install libwebkit2gtk-4.1-dev
         run: sudo apt install libwebkit2gtk-4.1-dev
 
@@ -270,6 +276,92 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: desktop/build/Keyboard-Sounds-Pro-Installer-Linux-x86_64.rpm
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.4"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: desktop/frontend/package-lock.json
+
+      - name: Install Wails CLI
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install frontend dependencies
+        working-directory: desktop/frontend
+        run: npm ci
+
+      - name: Extract version from release tag
+        id: get_version
+        shell: bash
+        run: |
+          tag="${{ github.ref_name }}"
+          version="${tag#desktop/v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: $version"
+
+      - name: Import code signing certificate
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "${MACOS_CERTIFICATE_P12_BASE64:-}" ] || [ -z "${MACOS_CERTIFICATE_PASSWORD:-}" ]; then
+            echo "Missing secrets: set MACOS_CERTIFICATE_P12_BASE64 and MACOS_CERTIFICATE_PASSWORD for release builds."
+            exit 1
+          fi
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          echo -n "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Build and notarize macOS DMG
+        working-directory: desktop
+        env:
+          NOTARIZE_APPLE_ID: ${{ secrets.NOTARIZE_APPLE_ID }}
+          NOTARIZE_APP_SPECIFIC_PASSWORD: ${{ secrets.NOTARIZE_APP_SPECIFIC_PASSWORD }}
+          NOTARIZE_TEAM_ID: ${{ secrets.NOTARIZE_TEAM_ID }}
+          DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+        run: |
+          if [ -z "${DEVELOPER_ID_APPLICATION:-}" ]; then
+            unset DEVELOPER_ID_APPLICATION
+          fi
+          ./build-macos-direct.sh "${{ steps.get_version.outputs.version }}"
+
+      - name: Rename DMG for release
+        run: |
+          mv "desktop/build/bin/Keyboard-Sounds-Pro-${{ steps.get_version.outputs.version }}.dmg" \
+            "desktop/build/bin/Keyboard-Sounds-Pro-Installer-macOS-universal.dmg"
+
+      - name: Upload DMG to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: desktop/build/bin/Keyboard-Sounds-Pro-Installer-macOS-universal.dmg
           tag_name: ${{ github.ref_name }}
           draft: false
           prerelease: false

@@ -3,10 +3,14 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
-  // Load theme from localStorage, default to 'dark'
+  // Load theme from localStorage, default to 'dark-modern'
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('app-theme');
-    return savedTheme || 'dark';
+    const allowed = ['dark', 'dark-modern', 'light'];
+    if (savedTheme && allowed.includes(savedTheme)) {
+      return savedTheme;
+    }
+    return 'dark-modern';
   });
 
   // Apply theme class to document root
@@ -16,14 +20,14 @@ export function ThemeProvider({ children }) {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   const value = {
     theme,
     setTheme,
     toggleTheme,
-    isDark: theme === 'dark',
+    isDark: theme === 'dark' || theme === 'dark-modern',
   };
 
   return (

@@ -71,6 +71,7 @@ function ProfileSelect({
           ...sx,
         }}
         MenuProps={{
+          sx: { zIndex: 2000 },
           PaperProps: {
             sx: {
               backgroundColor: 'rgba(15, 23, 42, 0.95)',

@@ -10,9 +10,25 @@ import (
 	"github.com/google/uuid"
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
-	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/app"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/oskhelpers"
 )
+
+// Persisted values for UIPreferences.EnabledSoundOnStart (start-button confirmation sound).
+const (
+	EnabledSoundSoft  = "soft"
+	EnabledSoundBasic = "basic"
+	EnabledSoundNone  = "none"
+)
+
+func normalizeEnabledSoundVariant(s string) string {
+	switch s {
+	case EnabledSoundSoft, EnabledSoundBasic, EnabledSoundNone:
+		return s
+	default:
+		return EnabledSoundSoft
+	}
+}
 
 type Analytics struct {
 	AnalyticsID  uuid.UUID `json:"analyticsID"`
@@ -49,18 +65,24 @@ type OSKHelperPreferences struct {
 	Offset            int    `json:"offset"`
 	DismissAfter      int64  `json:"dismissAfter"` // milliseconds
 	MonitorIndex      int    `json:"monitorIndex"`
+	// ClickOverlayShowsApp (macOS): clicking the on-screen modifier overlay shows the main window (except the close button).
+	ClickOverlayShowsApp bool `json:"clickOverlayShowsApp"`
 }
 
 // UIPreferences stores persistent UI state
 type UIPreferences struct {
 	InfoBannerDismissed         bool                    `json:"infoBannerDismissed"`
 	StartPlayingOnLaunch        bool                    `json:"startPlayingOnLaunch"`
+	EnabledSoundOnStart         string                  `json:"enabledSoundOnStart"`
 	StartHidden                 bool                    `json:"startHidden"`
 	NotifyOnUpdate              bool                    `json:"notifyOnUpdate"`
 	NotifyOnMinimize            bool                    `json:"notifyOnMinimize"`
 	SystemTrayEnabled           bool                    `json:"systemTrayEnabled"`
 	CustomTitleBarEnabled       bool                    `json:"customTitleBarEnabled"`
 	HideStatusBoxDefaultProfile bool                    `json:"hideStatusBoxDefaultProfile"`
+	// In-app profile overrides when the desktop app is focused and global defaults apply (Windows/macOS).
+	InAppKeyboardProfile *string `json:"inAppKeyboardProfile,omitempty"`
+	InAppMouseProfile    *string `json:"inAppMouseProfile,omitempty"`
 	AudioEffects                AudioEffectsPreferences `json:"audioEffects"`
 	Volume                      VolumePreferences       `json:"volume"`
 	OSKHelper                   OSKHelperPreferences    `json:"oskHelper"`
@@ -86,8 +108,9 @@ func loadUIPreferences() {
 	// Initialize with defaults
 	uiPrefs = &UIPreferences{
 		InfoBannerDismissed:   false,
-		StartPlayingOnLaunch:  false,
-		StartHidden:           false,
+		StartPlayingOnLaunch:   false,
+		EnabledSoundOnStart:    EnabledSoundSoft,
+		StartHidden:            false,
 		NotifyOnUpdate:        true,
 		NotifyOnMinimize:      true,
 		SystemTrayEnabled:     true,
@@ -115,6 +138,7 @@ func loadUIPreferences() {
 			Offset:            100,
 			DismissAfter:      1000,
 			MonitorIndex:      0,
+			ClickOverlayShowsApp: true,
 		},
 		Analytics: Analytics{
 			AnalyticsID:  uuid.New(),
@@ -127,7 +151,27 @@ func loadUIPreferences() {
 		return // File doesn't exist yet, use defaults
 	}
 
-	json.Unmarshal(data, uiPrefs)
+	if err := json.Unmarshal(data, uiPrefs); err != nil {
+		return
+	}
+
+	// Migrate legacy playEnabledSoundOnStart (bool) → enabledSoundOnStart (string).
+	if uiPrefs.EnabledSoundOnStart == "" {
+		var legacy map[string]json.RawMessage
+		if json.Unmarshal(data, &legacy) == nil {
+			if raw, ok := legacy["playEnabledSoundOnStart"]; ok {
+				var b bool
+				if json.Unmarshal(raw, &b) == nil {
+					if b {
+						uiPrefs.EnabledSoundOnStart = EnabledSoundBasic
+					} else {
+						uiPrefs.EnabledSoundOnStart = EnabledSoundNone
+					}
+				}
+			}
+		}
+	}
+	uiPrefs.EnabledSoundOnStart = normalizeEnabledSoundVariant(uiPrefs.EnabledSoundOnStart)
 }
 
 func saveUIPreferences() error {
@@ -148,8 +192,8 @@ func saveUIPreferences() error {
 	return os.WriteFile(uiPrefsPath, data, 0644)
 }
 
-// ApplyAudioEffectsFromPreferences applies the saved audio effects to the manager
-// This should be called after the manager is initialized
+// ApplyAudioEffectsFromPreferences applies the saved audio effects to the application
+// This should be called after the application is initialized
 func ApplyAudioEffectsFromPreferences() {
 	uiPrefsLock.RLock()
 	defer uiPrefsLock.RUnlock()
@@ -161,18 +205,18 @@ func ApplyAudioEffectsFromPreferences() {
 	effects := uiPrefs.AudioEffects
 
 	// Apply keyboard settings
-	mgr.SetKeyboardAudioPitchShift(effects.KeyboardPitchShift.Enabled, effects.KeyboardPitchShift.Lower, effects.KeyboardPitchShift.Upper)
-	mgr.SetKeyboardAudioPan(effects.KeyboardPan.Enabled, manager.PanType(effects.KeyboardPan.PanType), effects.KeyboardPan.MaxX)
-	mgr.SetKeyboardAudioEqualizer(effects.KeyboardEqualizer.Enabled, effects.KeyboardEqualizer.Config)
+	kbsApp.SetKeyboardAudioPitchShift(effects.KeyboardPitchShift.Enabled, effects.KeyboardPitchShift.Lower, effects.KeyboardPitchShift.Upper)
+	kbsApp.SetKeyboardAudioPan(effects.KeyboardPan.Enabled, app.PanType(effects.KeyboardPan.PanType), effects.KeyboardPan.MaxX)
+	kbsApp.SetKeyboardAudioEqualizer(effects.KeyboardEqualizer.Enabled, effects.KeyboardEqualizer.Config)
 
 	// Apply mouse settings
-	mgr.SetMouseAudioPitchShift(effects.MousePitchShift.Enabled, effects.MousePitchShift.Lower, effects.MousePitchShift.Upper)
-	mgr.SetMouseAudioPan(effects.MousePan.Enabled)
-	mgr.SetMouseAudioEqualizer(effects.MouseEqualizer.Enabled, effects.MouseEqualizer.Config)
+	kbsApp.SetMouseAudioPitchShift(effects.MousePitchShift.Enabled, effects.MousePitchShift.Lower, effects.MousePitchShift.Upper)
+	kbsApp.SetMouseAudioPan(effects.MousePan.Enabled)
+	kbsApp.SetMouseAudioEqualizer(effects.MouseEqualizer.Enabled, effects.MouseEqualizer.Config)
 }
 
-// ApplyVolumeFromPreferences applies the saved volume settings to the manager
-// This should be called after the manager is initialized
+// ApplyVolumeFromPreferences applies the saved volume settings to the application
+// This should be called after the application is initialized
 func ApplyVolumeFromPreferences() {
 	uiPrefsLock.RLock()
 	defer uiPrefsLock.RUnlock()
@@ -184,15 +228,15 @@ func ApplyVolumeFromPreferences() {
 	volume := uiPrefs.Volume
 
 	// Apply volume settings
-	mgr.SetKeyboardVolume(volume.KeyboardVolume)
-	mgr.SetMouseVolume(volume.MouseVolume)
+	kbsApp.SetKeyboardVolume(volume.KeyboardVolume)
+	kbsApp.SetMouseVolume(volume.MouseVolume)
 }
 
 // SaveVolumeToPreferences saves the current volume settings to preferences
 func SaveVolumeToPreferences() error {
-	// Get current state from manager
-	keyboardVolume := mgr.GetKeyboardVolume()
-	mouseVolume := mgr.GetMouseVolume()
+	// Get current state from application
+	keyboardVolume := kbsApp.GetKeyboardVolume()
+	mouseVolume := kbsApp.GetMouseVolume()
 
 	// Update preferences (need write lock for this part)
 	uiPrefsLock.Lock()
@@ -207,17 +251,17 @@ func SaveVolumeToPreferences() error {
 
 // SaveAudioEffectsToPreferences saves the current audio effects state to preferences
 func SaveAudioEffectsToPreferences() error {
-	// Get current state from manager
-	kbPitchEnabled, kbPitchLower, kbPitchUpper := mgr.GetKeyboardAudioPitchShift()
-	kbPanEnabled, kbPanType, kbPanMaxX := mgr.GetKeyboardAudioPan()
-	kbEqEnabled, kbEqConfig := mgr.GetKeyboardAudioEqualizer()
+	// Get current state from application
+	kbPitchEnabled, kbPitchLower, kbPitchUpper := kbsApp.GetKeyboardAudioPitchShift()
+	kbPanEnabled, kbPanType, kbPanMaxX := kbsApp.GetKeyboardAudioPan()
+	kbEqEnabled, kbEqConfig := kbsApp.GetKeyboardAudioEqualizer()
 	if kbEqConfig == nil {
 		kbEqConfig = &audio.EqualizerConfig{}
 	}
 
-	msPitchEnabled, msPitchLower, msPitchUpper := mgr.GetMouseAudioPitchShift()
-	msPanEnabled := mgr.GetMouseAudioPan()
-	msEqEnabled, msEqConfig := mgr.GetMouseAudioEqualizer()
+	msPitchEnabled, msPitchLower, msPitchUpper := kbsApp.GetMouseAudioPitchShift()
+	msPanEnabled := kbsApp.GetMouseAudioPan()
+	msEqEnabled, msEqConfig := kbsApp.GetMouseAudioEqualizer()
 	if msEqConfig == nil {
 		msEqConfig = &audio.EqualizerConfig{}
 	}
@@ -337,6 +381,72 @@ func SetHideStatusBoxDefaultProfile(hide bool) error {
 	return saveUIPreferences()
 }
 
+func cloneOptionalStringPtr(p *string) *string {
+	if p == nil {
+		return nil
+	}
+	s := *p
+	return &s
+}
+
+// GetInAppKeyboardProfile returns the keyboard profile name used when this app is focused, or nil for "Use Default".
+func GetInAppKeyboardProfile() *string {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+	if uiPrefs == nil {
+		return nil
+	}
+	return cloneOptionalStringPtr(uiPrefs.InAppKeyboardProfile)
+}
+
+// GetInAppMouseProfile returns the mouse profile name used when this app is focused, or nil for "Use Default".
+func GetInAppMouseProfile() *string {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+	if uiPrefs == nil {
+		return nil
+	}
+	return cloneOptionalStringPtr(uiPrefs.InAppMouseProfile)
+}
+
+// SetInAppKeyboardProfile sets the in-focus keyboard profile override (nil = follow application rules / defaults).
+func SetInAppKeyboardProfile(name *string) error {
+	uiPrefsLock.Lock()
+	uiPrefs.InAppKeyboardProfile = cloneOptionalStringPtr(name)
+	kb := uiPrefs.InAppKeyboardProfile
+	ms := uiPrefs.InAppMouseProfile
+	uiPrefsLock.Unlock()
+	if err := saveUIPreferences(); err != nil {
+		return err
+	}
+	kbsApp.SetInAppFocusProfiles(kb, ms)
+	return nil
+}
+
+// SetInAppMouseProfile sets the in-focus mouse profile override (nil = follow application rules / defaults).
+func SetInAppMouseProfile(name *string) error {
+	uiPrefsLock.Lock()
+	uiPrefs.InAppMouseProfile = cloneOptionalStringPtr(name)
+	kb := uiPrefs.InAppKeyboardProfile
+	ms := uiPrefs.InAppMouseProfile
+	uiPrefsLock.Unlock()
+	if err := saveUIPreferences(); err != nil {
+		return err
+	}
+	kbsApp.SetInAppFocusProfiles(kb, ms)
+	return nil
+}
+
+// ApplyInAppFocusProfilesFromPreferences applies saved in-app focus profile overrides to the backend.
+func ApplyInAppFocusProfilesFromPreferences() {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+	if uiPrefs == nil {
+		return
+	}
+	kbsApp.SetInAppFocusProfiles(uiPrefs.InAppKeyboardProfile, uiPrefs.InAppMouseProfile)
+}
+
 // GetNotifyOnUpdate returns whether notifications should be shown when an update is available
 func GetNotifyOnUpdate() bool {
 	uiPrefsLock.RLock()
@@ -372,6 +482,26 @@ func GetStartPlayingOnLaunch() bool {
 func SetStartPlayingOnLaunch(startPlaying bool) error {
 	uiPrefsLock.Lock()
 	uiPrefs.StartPlayingOnLaunch = startPlaying
+	uiPrefsLock.Unlock()
+
+	return saveUIPreferences()
+}
+
+// GetEnabledSoundOnStart returns which start-button sound to play: EnabledSoundSoft, EnabledSoundBasic, or EnabledSoundNone.
+func GetEnabledSoundOnStart() string {
+	uiPrefsLock.RLock()
+	defer uiPrefsLock.RUnlock()
+
+	if uiPrefs == nil {
+		return EnabledSoundSoft
+	}
+	return normalizeEnabledSoundVariant(uiPrefs.EnabledSoundOnStart)
+}
+
+// SetEnabledSoundOnStart persists the start-button sound variant (soft, basic, or none).
+func SetEnabledSoundOnStart(variant string) error {
+	uiPrefsLock.Lock()
+	uiPrefs.EnabledSoundOnStart = normalizeEnabledSoundVariant(variant)
 	uiPrefsLock.Unlock()
 
 	return saveUIPreferences()
@@ -443,8 +573,8 @@ func GetAnalyticsLastPingTimeMS() int64 {
 	return uiPrefs.Analytics.LastPingTime.Unix() * 1000 // Convert to milliseconds
 }
 
-// ApplyOSKHelperFromPreferences applies the saved OSK Helper settings to the manager
-// This should be called after the manager is initialized
+// ApplyOSKHelperFromPreferences applies the saved OSK Helper settings to the application
+// This should be called after the application is initialized
 func ApplyOSKHelperFromPreferences() {
 	uiPrefsLock.RLock()
 	defer uiPrefsLock.RUnlock()
@@ -456,8 +586,8 @@ func ApplyOSKHelperFromPreferences() {
 	oskPrefs := uiPrefs.OSKHelper
 
 	// Apply OSK Helper settings
-	mgr.SetOSKHelperEnabled(oskPrefs.Enabled)
-	mgr.SetOSKHelperConfig(oskhelpers.OSKHelperConfig{
+	kbsApp.SetOSKHelperEnabled(oskPrefs.Enabled)
+	kbsApp.SetOSKHelperConfig(oskhelpers.OSKHelperConfig{
 		FontSize:          oskPrefs.FontSize,
 		FontColor:         oskPrefs.FontColor,
 		BackgroundColor:   oskPrefs.BackgroundColor,
@@ -468,27 +598,33 @@ func ApplyOSKHelperFromPreferences() {
 		DismissAfter:      time.Duration(oskPrefs.DismissAfter) * time.Millisecond,
 		MonitorIndex:      oskPrefs.MonitorIndex,
 	})
+	oskhelpers.SetClickOverlayShowsApp(oskPrefs.ClickOverlayShowsApp)
 }
 
 // SaveOSKHelperToPreferences saves the current OSK Helper settings to preferences
 func SaveOSKHelperToPreferences() error {
-	// Get current state from manager
-	enabled := mgr.GetOSKHelperEnabled()
-	config := mgr.GetOSKHelperConfig()
+	// Get current state from application
+	enabled := kbsApp.GetOSKHelperEnabled()
+	config := kbsApp.GetOSKHelperConfig()
 
 	// Update preferences (need write lock for this part)
 	uiPrefsLock.Lock()
+	preservedClickOverlay := false
+	if uiPrefs != nil {
+		preservedClickOverlay = uiPrefs.OSKHelper.ClickOverlayShowsApp
+	}
 	uiPrefs.OSKHelper = OSKHelperPreferences{
-		Enabled:           enabled,
-		FontSize:          config.FontSize,
-		FontColor:         config.FontColor,
-		BackgroundColor:   config.BackgroundColor,
-		BackgroundOpacity: config.BackgroundOpacity,
-		CornerRadius:      config.CornerRadius,
-		Position:          string(config.Position),
-		Offset:            config.Offset,
-		DismissAfter:      config.DismissAfter.Milliseconds(),
-		MonitorIndex:      config.MonitorIndex,
+		Enabled:              enabled,
+		FontSize:             config.FontSize,
+		FontColor:            config.FontColor,
+		BackgroundColor:      config.BackgroundColor,
+		BackgroundOpacity:    config.BackgroundOpacity,
+		CornerRadius:         config.CornerRadius,
+		Position:             string(config.Position),
+		Offset:               config.Offset,
+		DismissAfter:         config.DismissAfter.Milliseconds(),
+		MonitorIndex:         config.MonitorIndex,
+		ClickOverlayShowsApp: preservedClickOverlay,
 	}
 	uiPrefsLock.Unlock()
 

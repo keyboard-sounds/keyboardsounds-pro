@@ -75,6 +75,23 @@ func (a *App) ShouldShowInputGroupWarning() bool {
 	return err == nil && !inInputGroup
 }
 
+// HasMacOSInputMonitoringAccess is true when Input Monitoring is granted (non-macOS always true).
+func (a *App) HasMacOSInputMonitoringAccess() bool {
+	if runtime.GOOS != "darwin" {
+		return true
+	}
+	return app.InputMonitoringAccessGranted()
+}
+
+// OpenMacOSInputMonitoringSettings requests consent and opens the Input Monitoring pane in System Settings.
+func (a *App) OpenMacOSInputMonitoringSettings() error {
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+	app.RequestInputMonitoringAccess()
+	return app.OpenInputMonitoringSystemSettings()
+}
+
 func (a *App) GetAnalyticsID() string {
 	return app.GetAnalyticsID()
 }

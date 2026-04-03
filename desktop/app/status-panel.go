@@ -41,9 +41,9 @@ func (s *StatusPanel) GetState() StatusPanelState {
 	}
 
 	return StatusPanelState{
-		Enabled:          mgr.IsEnabled(),
-		KeyboardVolume:   mgr.GetKeyboardVolume(),
-		MouseVolume:      mgr.GetMouseVolume(),
+		Enabled:          kbsApp.IsEnabled(),
+		KeyboardVolume:   kbsApp.GetKeyboardVolume(),
+		MouseVolume:      kbsApp.GetMouseVolume(),
 		KeyboardProfile:  defaultProfiles.Keyboard,
 		MouseProfile:     defaultProfiles.Mouse,
 		KeyboardProfiles: keyboardProfiles,
@@ -51,24 +51,24 @@ func (s *StatusPanel) GetState() StatusPanelState {
 	}
 }
 
-// Enable enables the keyboard sounds manager
+// Enable enables the keyboard sounds application
 func (s *StatusPanel) Enable() error {
-	return mgr.Enable()
+	return kbsApp.Enable()
 }
 
-// Disable disables the keyboard sounds manager
+// Disable disables the keyboard sounds application
 func (s *StatusPanel) Disable() error {
-	return mgr.Disable()
+	return kbsApp.Disable()
 }
 
-// IsEnabled returns whether the manager is currently enabled
+// IsEnabled returns whether the application is currently enabled
 func (s *StatusPanel) IsEnabled() bool {
-	return mgr.IsEnabled()
+	return kbsApp.IsEnabled()
 }
 
 // SetKeyboardVolume sets the keyboard volume (0.0 to 1.0)
 func (s *StatusPanel) SetKeyboardVolume(volume float64) error {
-	err := mgr.SetKeyboardVolume(volume)
+	err := kbsApp.SetKeyboardVolume(volume)
 	if err != nil {
 		return err
 	}
@@ -77,12 +77,12 @@ func (s *StatusPanel) SetKeyboardVolume(volume float64) error {
 
 // GetKeyboardVolume returns the current keyboard volume
 func (s *StatusPanel) GetKeyboardVolume() float64 {
-	return mgr.GetKeyboardVolume()
+	return kbsApp.GetKeyboardVolume()
 }
 
 // SetMouseVolume sets the mouse volume (0.0 to 1.0)
 func (s *StatusPanel) SetMouseVolume(volume float64) error {
-	err := mgr.SetMouseVolume(volume)
+	err := kbsApp.SetMouseVolume(volume)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (s *StatusPanel) SetMouseVolume(volume float64) error {
 
 // GetMouseVolume returns the current mouse volume
 func (s *StatusPanel) GetMouseVolume() float64 {
-	return mgr.GetMouseVolume()
+	return kbsApp.GetMouseVolume()
 }
 
 // GetDefaultProfiles returns the default keyboard and mouse profiles
@@ -107,35 +107,35 @@ func (s *StatusPanel) SetDefaultProfiles(keyboard *string, mouse *string) error 
 		Keyboard: keyboard,
 		Mouse:    mouse,
 	}
-	return mgr.SetDefaultProfiles(profiles)
+	return kbsApp.SetDefaultProfiles(profiles)
 }
 
 // SetDefaultKeyboardProfile sets the default keyboard profile by name
 func (s *StatusPanel) SetDefaultKeyboardProfile(name string) error {
 	current := rules.GetDefaultProfiles()
 	current.Keyboard = &name
-	return mgr.SetDefaultProfiles(current)
+	return kbsApp.SetDefaultProfiles(current)
 }
 
 // ClearDefaultKeyboardProfile clears the default keyboard profile (sets to nil)
 func (s *StatusPanel) ClearDefaultKeyboardProfile() error {
 	current := rules.GetDefaultProfiles()
 	current.Keyboard = nil
-	return mgr.SetDefaultProfiles(current)
+	return kbsApp.SetDefaultProfiles(current)
 }
 
 // SetDefaultMouseProfile sets the default mouse profile by name
 func (s *StatusPanel) SetDefaultMouseProfile(name string) error {
 	current := rules.GetDefaultProfiles()
 	current.Mouse = &name
-	return mgr.SetDefaultProfiles(current)
+	return kbsApp.SetDefaultProfiles(current)
 }
 
 // ClearDefaultMouseProfile clears the default mouse profile (sets to nil)
 func (s *StatusPanel) ClearDefaultMouseProfile() error {
 	current := rules.GetDefaultProfiles()
 	current.Mouse = nil
-	return mgr.SetDefaultProfiles(current)
+	return kbsApp.SetDefaultProfiles(current)
 }
 
 // GetKeyboardProfiles returns a list of available keyboard profile names
@@ -160,36 +160,36 @@ func (s *StatusPanel) GetMouseProfiles() []string {
 
 // MuteKeyboard mutes the keyboard audio player
 func (s *StatusPanel) MuteKeyboard() error {
-	mgr.MuteKeyboard()
+	kbsApp.MuteKeyboard()
 	return SaveVolumeToPreferences()
 }
 
 // UnmuteKeyboard unmutes the keyboard audio player
 func (s *StatusPanel) UnmuteKeyboard() error {
-	mgr.UnmuteKeyboard()
+	kbsApp.UnmuteKeyboard()
 	return SaveVolumeToPreferences()
 }
 
 // ToggleMuteKeyboard toggles the mute state of the keyboard audio player
 func (s *StatusPanel) ToggleMuteKeyboard() error {
-	mgr.ToggleMuteKeyboard()
+	kbsApp.ToggleMuteKeyboard()
 	return SaveVolumeToPreferences()
 }
 
 // MuteMouse mutes the mouse audio player
 func (s *StatusPanel) MuteMouse() error {
-	mgr.MuteMouse()
+	kbsApp.MuteMouse()
 	return SaveVolumeToPreferences()
 }
 
 // UnmuteMouse unmutes the mouse audio player
 func (s *StatusPanel) UnmuteMouse() error {
-	mgr.UnmuteMouse()
+	kbsApp.UnmuteMouse()
 	return SaveVolumeToPreferences()
 }
 
 // ToggleMuteMouse toggles the mute state of the mouse audio player
 func (s *StatusPanel) ToggleMuteMouse() error {
-	mgr.ToggleMuteMouse()
+	kbsApp.ToggleMuteMouse()
 	return SaveVolumeToPreferences()
 }

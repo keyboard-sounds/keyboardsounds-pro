@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { AppBar, Toolbar, Typography, IconButton, Box } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MinimizeIcon from '@mui/icons-material/Remove';
@@ -6,8 +6,9 @@ import CropFreeIcon from '@mui/icons-material/CropFree';
 import { WindowMinimise, WindowToggleMaximise, Quit } from '../../../wailsjs/runtime/runtime';
 import appIcon from '../../assets/images/app-icon.png';
 
-function TitleBar() {
+function TitleBar({ platform }) {
   const titleBarRef = useRef(null);
+  const isMac = platform === 'darwin';
 
   useEffect(() => {
     if (titleBarRef.current) {
@@ -41,6 +42,15 @@ function TitleBar() {
     },
   };
 
+  const macControlButtons = useMemo(
+    () => [
+      { key: 'close', color: '#ff5f57', onClick: Quit },
+      { key: 'minimize', color: '#febc2e', onClick: WindowMinimise },
+      { key: 'maximize', color: '#28c840', onClick: WindowToggleMaximise },
+    ],
+    []
+  );
+
   return (
     <AppBar 
       ref={titleBarRef}
@@ -56,84 +66,132 @@ function TitleBar() {
         zIndex: 1300,
       }}
     >
-      <Toolbar 
-        sx={{ minHeight: '40px !important', padding: '0 16px !important', justifyContent: 'space-between' }}
+      <Toolbar
+        sx={{
+          minHeight: '40px !important',
+          padding: isMac ? '0 12px !important' : '0 16px !important',
+          justifyContent: isMac ? 'flex-start' : 'space-between',
+          position: 'relative',
+        }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <img 
-            src={appIcon} 
-            alt="Keyboard Sounds Pro" 
-            style={{ 
-              width: '20px', 
-              height: '20px',
-              objectFit: 'contain',
-            }} 
-          />
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              background: 'var(--text-gradient)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              fontSize: '13px',
-              fontWeight: 600,
-              letterSpacing: '0.3px',
-            }}
-          >
-            Keyboard Sounds Pro
-          </Typography>
-        </Box>
-        <Box 
-          className="title-bar-controls"
-          sx={{ 
-            display: 'flex', 
-            gap: '4px',
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            const element = e.currentTarget;
-            element.style.webkitAppRegion = 'no-drag';
-            const children = element.querySelectorAll('*');
-            children.forEach((child) => {
-              child.style.webkitAppRegion = 'no-drag';
-            });
-          }}
-        >
-          <IconButton
-            className="title-bar-controls"
-            size="small"
-            sx={controlButtonStyle}
-            onClick={WindowMinimise}
-          >
-            <MinimizeIcon sx={{ fontSize: '14px' }} />
-          </IconButton>
-          <IconButton
-            className="title-bar-controls"
-            size="small"
-            sx={controlButtonStyle}
-            onClick={WindowToggleMaximise}
-          >
-            <CropFreeIcon sx={{ fontSize: '14px' }} />
-          </IconButton>
-          <IconButton
-            className="title-bar-controls"
-            size="small"
-            sx={{
-              ...controlButtonStyle,
-              '&:hover': {
-                backgroundColor: 'var(--danger-bg)',
-                backdropFilter: 'blur(10px)',
-                color: 'var(--danger)',
-                transform: 'scale(1.05)',
-                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3), inset 0 1px 0 var(--card-highlight)',
-              },
-            }}
-            onClick={Quit}
-          >
-            <CloseIcon sx={{ fontSize: '14px' }} />
-          </IconButton>
-        </Box>
+        {isMac ? (
+          <>
+            <Box
+              className="title-bar-controls"
+              sx={{ display: 'flex', alignItems: 'center', gap: '8px', width: '70px' }}
+            >
+              {macControlButtons.map((button) => (
+                <Box
+                  key={button.key}
+                  className="title-bar-controls"
+                  onClick={button.onClick}
+                  sx={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: button.color,
+                    border: '1px solid rgba(0, 0, 0, 0.15)',
+                    cursor: 'pointer',
+                    '&:hover': { filter: 'brightness(0.92)' },
+                  }}
+                />
+              ))}
+            </Box>
+            <Typography
+              variant="caption"
+              sx={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                color: 'var(--text-secondary)',
+                fontSize: '12px',
+                fontWeight: 600,
+                letterSpacing: '0.3px',
+                pointerEvents: 'none',
+              }}
+            >
+              Keyboard Sounds Pro
+            </Typography>
+          </>
+        ) : (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <img
+                src={appIcon}
+                alt="Keyboard Sounds Pro"
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  objectFit: 'contain',
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  background: 'var(--text-gradient)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  letterSpacing: '0.3px',
+                }}
+              >
+                Keyboard Sounds Pro
+              </Typography>
+            </Box>
+            <Box
+              className="title-bar-controls"
+              sx={{
+                display: 'flex',
+                gap: '4px',
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                const element = e.currentTarget;
+                element.style.webkitAppRegion = 'no-drag';
+                const children = element.querySelectorAll('*');
+                children.forEach((child) => {
+                  child.style.webkitAppRegion = 'no-drag';
+                });
+              }}
+            >
+              <IconButton
+                className="title-bar-controls"
+                size="small"
+                sx={controlButtonStyle}
+                onClick={WindowMinimise}
+              >
+                <MinimizeIcon sx={{ fontSize: '14px' }} />
+              </IconButton>
+              <IconButton
+                className="title-bar-controls"
+                size="small"
+                sx={controlButtonStyle}
+                onClick={WindowToggleMaximise}
+              >
+                <CropFreeIcon sx={{ fontSize: '14px' }} />
+              </IconButton>
+              <IconButton
+                className="title-bar-controls"
+                size="small"
+                sx={{
+                  ...controlButtonStyle,
+                  '&:hover': {
+                    backgroundColor: 'var(--danger-bg)',
+                    backdropFilter: 'blur(10px)',
+                    color: 'var(--danger)',
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3), inset 0 1px 0 var(--card-highlight)',
+                  },
+                }}
+                onClick={Quit}
+              >
+                <CloseIcon sx={{ fontSize: '14px' }} />
+              </IconButton>
+            </Box>
+          </>
+        )}
       </Toolbar>
     </AppBar>
   );

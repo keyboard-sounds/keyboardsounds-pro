@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"time"
 
@@ -216,8 +217,17 @@ func (pb *ProfileBuilder) BuildKeyboardProfile(request KeyboardBuildRequest) err
 		}
 	}
 
-	// Create a temporary directory
-	tempDir, err := os.MkdirTemp("", "keyboard-profile-*")
+	profilesDir := filepath.Join(kbsApp.GetRootDir(), "profiles")
+	tempParent := ""
+	if goruntime.GOOS == "darwin" {
+		// App Sandbox does not allow writing to the system temp directory; the
+		// profiles directory is inside the container and must exist first.
+		if err := os.MkdirAll(profilesDir, 0755); err != nil {
+			return fmt.Errorf("failed to create profiles directory: %w", err)
+		}
+		tempParent = profilesDir
+	}
+	tempDir, err := os.MkdirTemp(tempParent, "keyboard-profile-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
@@ -255,12 +265,10 @@ func (pb *ProfileBuilder) BuildKeyboardProfile(request KeyboardBuildRequest) err
 	// Generate UUID for the profile directory name
 	profileUUID := uuid.New().String()
 
-	// Get the profiles directory
-	profilesDir := filepath.Join(mgr.GetRootDir(), "profiles")
-
-	// Ensure profiles directory exists
-	if err = os.MkdirAll(profilesDir, 0755); err != nil {
-		return fmt.Errorf("failed to create profiles directory: %w", err)
+	if goruntime.GOOS != "darwin" {
+		if err = os.MkdirAll(profilesDir, 0755); err != nil {
+			return fmt.Errorf("failed to create profiles directory: %w", err)
+		}
 	}
 
 	// Move temp directory to profiles directory
@@ -296,8 +304,17 @@ func (pb *ProfileBuilder) BuildMouseProfile(request MouseBuildRequest) error {
 		}
 	}
 
-	// Create a temporary directory
-	tempDir, err := os.MkdirTemp("", "mouse-profile-*")
+	profilesDir := filepath.Join(kbsApp.GetRootDir(), "profiles")
+	tempParent := ""
+	if goruntime.GOOS == "darwin" {
+		// App Sandbox does not allow writing to the system temp directory; the
+		// profiles directory is inside the container and must exist first.
+		if err := os.MkdirAll(profilesDir, 0755); err != nil {
+			return fmt.Errorf("failed to create profiles directory: %w", err)
+		}
+		tempParent = profilesDir
+	}
+	tempDir, err := os.MkdirTemp(tempParent, "mouse-profile-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
@@ -335,12 +352,10 @@ func (pb *ProfileBuilder) BuildMouseProfile(request MouseBuildRequest) error {
 	// Generate UUID for the profile directory name
 	profileUUID := uuid.New().String()
 
-	// Get the profiles directory
-	profilesDir := filepath.Join(mgr.GetRootDir(), "profiles")
-
-	// Ensure profiles directory exists
-	if err = os.MkdirAll(profilesDir, 0755); err != nil {
-		return fmt.Errorf("failed to create profiles directory: %w", err)
+	if goruntime.GOOS != "darwin" {
+		if err = os.MkdirAll(profilesDir, 0755); err != nil {
+			return fmt.Errorf("failed to create profiles directory: %w", err)
+		}
 	}
 
 	// Move temp directory to profiles directory

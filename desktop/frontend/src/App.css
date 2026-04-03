@@ -16,6 +16,23 @@ body {
   overflow: hidden;
 }
 
+/* Labels and static UI text are not selectable; real text fields keep selection/copy */
+html,
+body,
+#root {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"],
+[contenteditable="plaintext-only"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Smooth transitions for theme changes */
 * {
   transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
