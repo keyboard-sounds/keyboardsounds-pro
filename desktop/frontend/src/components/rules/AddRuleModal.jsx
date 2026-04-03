@@ -35,6 +35,7 @@ function AddRuleModal({
   onBrowse,
   keyboardProfiles,
   mouseProfiles,
+  platform,
   customTitleBarEnabled = true,
 }) {
   const [appPath, setAppPath] = useState('');
@@ -405,7 +406,7 @@ function AddRuleModal({
               </Box>
 
               {/* Warning about path accuracy - only show for installed apps */}
-              {inputMode === 'installed' && (
+              {inputMode === 'installed' && platform !== 'darwin' && (
                 <Box
                   sx={{
                     display: 'flex',

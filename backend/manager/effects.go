@@ -7,6 +7,9 @@ import (
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/audio"
 )
 
+// maxPlaybackVolume is the maximum linear gain for keyboard/mouse volume (2.0 = 200%).
+const maxPlaybackVolume = 2.5
+
 // PanType represents the type of panning to apply to the audio.
 type PanType string
 
@@ -205,8 +208,8 @@ func (m *Manager) SetKeyboardVolume(volume float64) error {
 	defer m.keyboardVolumeLock.Unlock()
 	if volume < 0.0 {
 		volume = 0.0
-	} else if volume > 1.0 {
-		volume = 1.0
+	} else if volume > maxPlaybackVolume {
+		volume = maxPlaybackVolume
 	}
 
 	m.keyboardVolume = volume
@@ -266,8 +269,8 @@ func (m *Manager) SetMouseVolume(volume float64) error {
 	defer m.mouseVolumeLock.Unlock()
 	if volume < 0.0 {
 		volume = 0.0
-	} else if volume > 1.0 {
-		volume = 1.0
+	} else if volume > maxPlaybackVolume {
+		volume = maxPlaybackVolume
 	}
 
 	m.mouseVolume = volume

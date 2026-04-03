@@ -95,10 +95,13 @@ type Manager struct {
 	// Lock for the keyboard keys down
 	keyboardKeysDownLock sync.RWMutex
 
-	oskHelperLock    sync.RWMutex
-	oskHelperEnabled bool
-	oskHelper        oskhelpers.OSKHelper
-	oskHelperConfig  *oskhelpers.OSKHelperConfig
+	oskHelperLock           sync.RWMutex
+	oskHelperEnabled        bool
+	oskHelper               oskhelpers.OSKHelper
+	oskHelperConfig         *oskhelpers.OSKHelperConfig
+	lastOSKComboDisplay     string // last "modifier + key" string shown; kept visible until modifier state or combo changes
+	lastOSKShouldShow       bool   // true while overlay should be up (trigger modifier chord); avoids restarting ClearOnScreenText timer on every plain key
+	oskForceDismissedByUser bool   // user clicked X; keep overlay hidden until all keys released
 
 	// Mouse Listener
 	mouseListener listener.MouseListener
@@ -213,9 +216,14 @@ func NewManager(cfgDir string) (*Manager, error) {
 	// by the user clicking the close button.
 	mgr.oskHelperConfig.OnForceDismiss = func() {
 		mgr.keyboardKeysDownLock.Lock()
-		defer mgr.keyboardKeysDownLock.Unlock()
-
 		mgr.keyboardKeysDown = nil
+		mgr.keyboardKeysDownLock.Unlock()
+
+		mgr.oskHelperLock.Lock()
+		mgr.lastOSKComboDisplay = ""
+		mgr.lastOSKShouldShow = false
+		mgr.oskForceDismissedByUser = true
+		mgr.oskHelperLock.Unlock()
 	}
 
 	mgr.setKeyboardProfile(keyboardProfile)
@@ -287,7 +295,7 @@ func (m *Manager) Enable() error {
 		}
 	}
 
-	// Start the focus detector if available (Windows only)
+	// Start the focus detector if available (Windows and macOS)
 	if m.focusDetector != nil {
 		err = m.focusDetector.Listen(m.listenerCtx)
 		if err != nil {
@@ -348,9 +356,10 @@ func (m *Manager) GetRootDir() string {
 // the in memory values will be updated immediately. Otherwise, they will be updated the next time that the focus listener
 // is triggered by an app being focused.
 func (m *Manager) SetDefaultProfiles(profiles rules.Profiles) error {
-	// On linux, we do not support application rules, so there is no need to write them to the rules.json file.
+	// Linux has no application rules; defaults map straight onto the active profiles.
+	// Windows and macOS persist defaults to rules.json and respect focus + per-app rules like the Windows path.
 	switch runtime.GOOS {
-	case "windows":
+	case "windows", "darwin":
 		return m.setDefaultProfilesWindows(profiles)
 	case "linux":
 		return m.setDefaultProfilesLinux(profiles)
@@ -564,9 +573,14 @@ func (m *Manager) SetOSKHelperConfig(config oskhelpers.OSKHelperConfig) {
 
 	config.OnForceDismiss = func() {
 		m.keyboardKeysDownLock.Lock()
-		defer m.keyboardKeysDownLock.Unlock()
-
 		m.keyboardKeysDown = nil
+		m.keyboardKeysDownLock.Unlock()
+
+		m.oskHelperLock.Lock()
+		m.lastOSKComboDisplay = ""
+		m.lastOSKShouldShow = false
+		m.oskForceDismissedByUser = true
+		m.oskHelperLock.Unlock()
 	}
 
 	m.oskHelperConfig = &config

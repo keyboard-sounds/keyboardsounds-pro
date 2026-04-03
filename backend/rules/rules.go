@@ -15,6 +15,11 @@ import (
 var (
 	// ErrPlatformNotSupported is returned when the platform is not supported.
 	ErrPlatformNotSupported = errors.New("platform not supported")
+
+	// List of platforms that support application rules
+	supportedPlatforms = []string{
+		"windows", "darwin",
+	}
 )
 
 // Rule is a rule for a given app path.
@@ -91,7 +96,7 @@ var (
 	rulesCacheLock sync.RWMutex
 
 	defaultProfiles = Profiles{
-		Keyboard:  lo.ToPtr("mx-brown"),
+		Keyboard:  lo.Ternary(runtime.GOOS == "darwin", lo.ToPtr("ios"), lo.ToPtr("mx-brown")),
 		Mouse:     lo.ToPtr("g502x-wireless"),
 		IsDefault: true,
 	}
@@ -99,8 +104,8 @@ var (
 
 // LoadRules loads the rules.json file from the given directory. On Linux, this returns ErrPlatformNotSupported.
 func LoadRules(dir string) error {
-	// Application rules are currently only supported on Windows.
-	if runtime.GOOS != "windows" {
+	// Application rules are currently only supported on Windows and Darwin.
+	if !lo.Contains(supportedPlatforms, runtime.GOOS) {
 		return ErrPlatformNotSupported
 	}
 

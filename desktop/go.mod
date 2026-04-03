@@ -7,14 +7,15 @@ require (
 	github.com/emersion/go-autostart v0.0.0-20250403115856-34830d6457d2
 	github.com/gen2brain/beeep v0.11.2
 	github.com/google/uuid v1.6.0
-	github.com/keyboard-sounds/keyboardsounds-pro/backend v0.2.1
+	github.com/keyboard-sounds/keyboardsounds-pro/backend v0.3.0
 	github.com/otiai10/copy v1.14.1
-	github.com/wailsapp/wails/v2 v2.11.0
+	github.com/wailsapp/wails/v2 v2.12.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
 	git.sr.ht/~jackmordaunt/go-toast v1.1.2 // indirect
+	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/ebitengine/oto/v3 v3.3.2 // indirect
 	github.com/ebitengine/purego v0.8.0 // indirect
@@ -53,4 +54,7 @@ require (
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
+	howett.net/plist v1.0.2-0.20250314012144-ee69052608d9 // indirect
 )
+
+replace github.com/keyboard-sounds/keyboardsounds-pro/backend => ../backend

@@ -12,6 +12,8 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	gort "runtime"
+
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
 )
@@ -57,6 +59,7 @@ func Init(c context.Context) error {
 	ApplyVolumeFromPreferences()
 	// Apply saved OSK Helper preferences
 	ApplyOSKHelperFromPreferences()
+	registerOSKOverlayClickHandler()
 	// Enable manager if start playing on launch is set
 	if GetStartPlayingOnLaunch() {
 		// Get the status panel to enable the manager
@@ -100,8 +103,14 @@ func seedProfiles() error {
 
 	installDir := filepath.Dir(exePath)
 
-	bundledProfilesDir := filepath.Join(installDir, "bundled-profiles")
-	kbsProfilesDir := filepath.Join(kbsDir, "profiles")
+	var (
+		bundledProfilesDir string = filepath.Join(installDir, "bundled-profiles")
+		kbsProfilesDir     string = filepath.Join(kbsDir, "profiles")
+	)
+
+	if gort.GOOS == "darwin" {
+		bundledProfilesDir = filepath.Join(installDir, "..", "Resources", "bundled-profiles")
+	}
 
 	slog.Info("Seeding profiles", "bundledProfilesDir", bundledProfilesDir, "kbsProfilesDir", kbsProfilesDir)
 

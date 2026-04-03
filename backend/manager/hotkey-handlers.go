@@ -142,8 +142,8 @@ func registerIncreaseVolumeAllHotKeyHandler(mgr *Manager) {
 		kbv := mgr.GetKeyboardVolume()
 		mv := mgr.GetMouseVolume()
 
-		newKbv := math.Min(1.0, kbv+value)
-		newMv := math.Min(1.0, mv+value)
+		newKbv := math.Min(maxPlaybackVolume, kbv+value)
+		newMv := math.Min(maxPlaybackVolume, mv+value)
 
 		mgr.SetKeyboardVolume(newKbv)
 		mgr.SetMouseVolume(newMv)
@@ -186,7 +186,7 @@ func registerIncreaseVolumeKeyboardHotKeyHandler(mgr *Manager) {
 		}
 
 		kbv := mgr.GetKeyboardVolume()
-		newKbv := math.Min(1.0, kbv+value)
+		newKbv := math.Min(maxPlaybackVolume, kbv+value)
 		mgr.SetKeyboardVolume(newKbv)
 
 		return nil
@@ -222,7 +222,7 @@ func registerIncreaseVolumeMouseHotKeyHandler(mgr *Manager) {
 		}
 
 		mv := mgr.GetMouseVolume()
-		newMv := math.Min(1.0, mv+value)
+		newMv := math.Min(maxPlaybackVolume, mv+value)
 		mgr.SetMouseVolume(newMv)
 
 		return nil

@@ -49,6 +49,8 @@ type OSKHelperPreferences struct {
 	Offset            int    `json:"offset"`
 	DismissAfter      int64  `json:"dismissAfter"` // milliseconds
 	MonitorIndex      int    `json:"monitorIndex"`
+	// ClickOverlayShowsApp (macOS): clicking the on-screen modifier overlay shows the main window (except the close button).
+	ClickOverlayShowsApp bool `json:"clickOverlayShowsApp"`
 }
 
 // UIPreferences stores persistent UI state
@@ -115,6 +117,7 @@ func loadUIPreferences() {
 			Offset:            100,
 			DismissAfter:      1000,
 			MonitorIndex:      0,
+			ClickOverlayShowsApp: true,
 		},
 		Analytics: Analytics{
 			AnalyticsID:  uuid.New(),
@@ -468,6 +471,7 @@ func ApplyOSKHelperFromPreferences() {
 		DismissAfter:      time.Duration(oskPrefs.DismissAfter) * time.Millisecond,
 		MonitorIndex:      oskPrefs.MonitorIndex,
 	})
+	oskhelpers.SetClickOverlayShowsApp(oskPrefs.ClickOverlayShowsApp)
 }
 
 // SaveOSKHelperToPreferences saves the current OSK Helper settings to preferences
@@ -478,17 +482,22 @@ func SaveOSKHelperToPreferences() error {
 
 	// Update preferences (need write lock for this part)
 	uiPrefsLock.Lock()
+	preservedClickOverlay := false
+	if uiPrefs != nil {
+		preservedClickOverlay = uiPrefs.OSKHelper.ClickOverlayShowsApp
+	}
 	uiPrefs.OSKHelper = OSKHelperPreferences{
-		Enabled:           enabled,
-		FontSize:          config.FontSize,
-		FontColor:         config.FontColor,
-		BackgroundColor:   config.BackgroundColor,
-		BackgroundOpacity: config.BackgroundOpacity,
-		CornerRadius:      config.CornerRadius,
-		Position:          string(config.Position),
-		Offset:            config.Offset,
-		DismissAfter:      config.DismissAfter.Milliseconds(),
-		MonitorIndex:      config.MonitorIndex,
+		Enabled:              enabled,
+		FontSize:             config.FontSize,
+		FontColor:            config.FontColor,
+		BackgroundColor:      config.BackgroundColor,
+		BackgroundOpacity:    config.BackgroundOpacity,
+		CornerRadius:         config.CornerRadius,
+		Position:             string(config.Position),
+		Offset:               config.Offset,
+		DismissAfter:         config.DismissAfter.Milliseconds(),
+		MonitorIndex:         config.MonitorIndex,
+		ClickOverlayShowsApp: preservedClickOverlay,
 	}
 	uiPrefsLock.Unlock()
 

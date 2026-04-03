@@ -171,6 +171,9 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
+      - name: Clean / Update apt cache
+        run: sudo rm -rf /var/lib/apt/lists/* ; sudo apt-get clean ; sudo apt-get update -o Acquire::Retries=3
+
       - name: Install libwebkit2gtk-4.1-dev
         run: sudo apt install libwebkit2gtk-4.1-dev
 
@@ -229,6 +232,9 @@ jobs:
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Clean / Update apt cache
+        run: sudo rm -rf /var/lib/apt/lists/* ; sudo apt-get clean ; sudo apt-get update -o Acquire::Retries=3
 
       - name: Install libwebkit2gtk-4.1-dev
         run: sudo apt install libwebkit2gtk-4.1-dev

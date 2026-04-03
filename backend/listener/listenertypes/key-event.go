@@ -16,4 +16,8 @@ type KeyEvent struct {
 	Action Action
 	// The timestamp of the event.
 	Timestamp time.Time
+	// ModifierKeys are modifier keys that were held when this event occurred (from event flags).
+	// Used when the platform does not deliver separate key events for modifiers (e.g. Ctrl+A only sends A).
+	// If nil, only key-events-derived state is used.
+	ModifierKeys []key.Key
 }
