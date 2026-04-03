@@ -4,15 +4,21 @@
 
 ## Installing
 
-After downloading the DMG file for MacOS, you may be presented with an error such as "File is corrupted". This is because MacOS applies a "quarantine" flag to the DMG file. This is added to the file because the Keyboard Sounds Pro installer is not signed using an Apple certificate.
+After installing the application and attempting to run it for the first time, you may be presented with the following screen.
 
-> Since I cannot afford the $100/year for an Apple Developer License, I have chose to not sign this application. If you would like to see this application properly signed and you're interested in supporting the project, you can [sponsor me on GitHub](https://github.com/sponsors/nathan-fiscaletti).
+![Not opened](../images/not-opened.png)
 
-With this being the case, in order to actually run the DMG file you will need to remove the quarantine flag manually from the downloaded DMG file.
+This is due to the application not being code signed with an official apple certificate.
 
-```sh
-xattr -c /path/to/Keyboard-Sounds-Pro.dmg
-```
+Since I cannot afford the $100/year for an Apple Developer License, I have decided not to sign this application.
+
+> If you would like to see this application properly signed and you're interested in supporting the project, you can [sponsor the project on GitHub](https://github.com/sponsors/nathan-fiscaletti).
+
+In order to get around this, open your **System Settings** application, navigate to **"Privacy & Security"** and scroll to the very bottom of the page.
+
+You should see the following. Click on the **Open Anyway** button to open the application and bypass the warning.
+
+![Open Anyway](../images/open-anyway.png)
 
 ## Permissions
 
