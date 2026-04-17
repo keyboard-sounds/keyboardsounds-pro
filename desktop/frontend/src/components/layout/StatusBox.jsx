@@ -730,6 +730,12 @@ function StatusBox({
                                     "& .MuiSvgIcon-root": {
                                         color: "var(--text-secondary)",
                                     },
+                                    "& .MuiInputBase-input.Mui-disabled": {
+                                        color: "var(--text-secondary)",
+                                        WebkitTextFillColor:
+                                            "var(--text-secondary)",
+                                        opacity: 0.9,
+                                    },
                                 }}
                                 MenuProps={selectMenuProps}
                             >
@@ -806,6 +812,12 @@ function StatusBox({
                                         },
                                     "& .MuiSvgIcon-root": {
                                         color: "var(--text-secondary)",
+                                    },
+                                    "& .MuiInputBase-input.Mui-disabled": {
+                                        color: "var(--text-secondary)",
+                                        WebkitTextFillColor:
+                                            "var(--text-secondary)",
+                                        opacity: 0.9,
                                     },
                                 }}
                                 MenuProps={selectMenuProps}
