@@ -4,12 +4,6 @@
 <dict>
     <key>com.apple.security.app-sandbox</key>
     <true/>
-    <key>com.apple.security.automation.apple-events</key>
-    <true/>
-    <key>com.apple.security.network.client</key>
-    <true/>
-    <key>com.apple.security.network.server</key>
-    <true/>
     <key>com.apple.application-identifier</key>
     <string>CW6RB36J5X.pro.keyboardsounds</string>
     <key>com.apple.developer.team-identifier</key>

@@ -113,3 +113,8 @@ codesign --timestamp --options=runtime -s "$APP_CERTIFICATE" -v --entitlements .
 
 # Build PKG
 productbuild --sign "$PKG_CERTIFICATE" --component "$APP" /Applications "./build/bin/Keyboard Sounds Pro.pkg"
+
+# Restore wails.json
+VERSION="dev"
+tmp=$(mktemp)
+jq --arg version "$VERSION" '.info.productVersion = $version' wails.json > "$tmp" && mv "$tmp" wails.json
