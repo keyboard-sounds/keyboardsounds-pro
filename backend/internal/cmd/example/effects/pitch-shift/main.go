@@ -4,23 +4,23 @@ import (
 	"log/slog"
 
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
-	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/app"
 )
 
 func main() {
-	mgr, err := manager.NewManager(kbs.GetHomeDirectory())
+	kbsApp, err := app.NewApp(kbs.GetHomeDirectory())
 	if err != nil {
 		panic(err)
 	}
 
-	slog.Info("Enabling manager")
-	err = mgr.Enable()
+	slog.Info("Enabling application")
+	err = kbsApp.Enable()
 	if err != nil {
 		panic(err)
 	}
 
 	slog.Info("Setting pitch shift to -2,2")
-	mgr.SetKeyboardAudioPitchShift(true, -2, 2)
+	kbsApp.SetKeyboardAudioPitchShift(true, -2, 2)
 
 	slog.Info("Waiting for terminate...")
 	select {}

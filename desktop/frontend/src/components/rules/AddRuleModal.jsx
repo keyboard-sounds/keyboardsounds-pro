@@ -35,7 +35,10 @@ function AddRuleModal({
   onBrowse,
   keyboardProfiles,
   mouseProfiles,
+  platform,
   customTitleBarEnabled = true,
+  /** When set while opening, pre-fills path and profiles (e.g. from Application Rules hero). */
+  prefill = null,
 }) {
   const [appPath, setAppPath] = useState('');
   const [keyboardProfile, setKeyboardProfile] = useState('None');
@@ -51,14 +54,24 @@ function AddRuleModal({
   // Reset form when modal opens and fetch installed applications
   useEffect(() => {
     if (open) {
-      setAppPath('');
-      setKeyboardProfile('None');
-      setMouseProfile('None');
-      setError('');
-      setSelectedApp(null);
-      setInputMode('installed');
-      setGlobPattern('');
-      
+      if (prefill?.appPath) {
+        setAppPath(prefill.appPath);
+        setKeyboardProfile(prefill.keyboardProfile ?? 'None');
+        setMouseProfile(prefill.mouseProfile ?? 'None');
+        setError('');
+        setSelectedApp(null);
+        setInputMode('browse');
+        setGlobPattern('');
+      } else {
+        setAppPath('');
+        setKeyboardProfile('None');
+        setMouseProfile('None');
+        setError('');
+        setSelectedApp(null);
+        setInputMode('installed');
+        setGlobPattern('');
+      }
+
       // Fetch installed applications
       const fetchInstalledApps = async () => {
         setLoadingApps(true);
@@ -78,7 +91,7 @@ function AddRuleModal({
       };
       fetchInstalledApps();
     }
-  }, [open]);
+  }, [open, prefill]);
 
   // Update appPath when selected app changes
   useEffect(() => {
@@ -405,7 +418,7 @@ function AddRuleModal({
               </Box>
 
               {/* Warning about path accuracy - only show for installed apps */}
-              {inputMode === 'installed' && (
+              {inputMode === 'installed' && platform !== 'darwin' && (
                 <Box
                   sx={{
                     display: 'flex',

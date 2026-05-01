@@ -25,16 +25,20 @@ func (v *VolumeEffect) Apply(cfg EffectsConfig, streamer beep.Streamer) beep.Str
 		return streamer
 	}
 
-	// Apply volume control using effects.Volume
-	playbackVolume := 1.0
-	if cfg.Volume.Volume < 1 && cfg.Volume.Volume > 0 {
-		playbackVolume = math.Log2(cfg.Volume.Volume)
+	vol := cfg.Volume.Volume
+	if vol <= 0 {
+		return &effects.Volume{
+			Streamer: streamer,
+			Base:     2,
+			Volume:   0,
+			Silent:   true,
+		}
 	}
 
 	return &effects.Volume{
 		Streamer: streamer,
 		Base:     2,
-		Volume:   playbackVolume,
-		Silent:   cfg.Volume.Volume == 0,
+		Volume:   math.Log2(vol),
+		Silent:   false,
 	}
 }

@@ -11,6 +11,19 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const LINUX_HIDDEN_PAGES = ['Application Rules', 'On-Screen Modifiers'];
 
+/** Persisted values for start-button sound (matches desktop/app/ui-preferences.go). */
+export const ENABLED_SOUND_SOFT = 'soft';
+export const ENABLED_SOUND_BASIC = 'basic';
+export const ENABLED_SOUND_NONE = 'none';
+
+export const enabledSoundOptions = [
+  { value: ENABLED_SOUND_SOFT, label: 'Soft' },
+  { value: ENABLED_SOUND_BASIC, label: 'Basic' },
+  { value: ENABLED_SOUND_NONE, label: 'None' },
+];
+
+export const DEFAULT_ENABLED_SOUND = ENABLED_SOUND_SOFT;
+
 export const menuItems = [
   { name: 'Application Rules', icon: GavelIcon },
   { name: 'Audio Effects', icon: GraphicEqIcon },
@@ -116,7 +129,9 @@ export const greenSwitchStyle = {
   },
 };
 
+// z-index above the sidebar (e.g. macOS drag region uses ~1400) so MUI menus are not hidden behind it
 export const selectMenuProps = {
+  sx: { zIndex: 2000 },
   PaperProps: {
     sx: {
       backgroundColor: 'var(--dropdown-bg)',

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -231,8 +232,13 @@ func ImportProfile(zipPath string) error {
 	}
 	defer zipReader.Close()
 
-	// Create a temporary directory for extraction
-	tempDir, err := os.MkdirTemp("", "profile-import-*")
+	// Create a temporary directory for extraction. On macOS App Sandbox, the
+	// system temp directory is not writable; use the profiles directory instead.
+	tempParent := ""
+	if runtime.GOOS == "darwin" {
+		tempParent = *profilesDir
+	}
+	tempDir, err := os.MkdirTemp(tempParent, "profile-import-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temporary directory: %w", err)
 	}

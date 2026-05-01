@@ -1,14 +1,27 @@
 package app
 
 import (
+	"fmt"
+	"log/slog"
+	"os"
 	"path/filepath"
+	"strings"
 
+	kbsapp "github.com/keyboard-sounds/keyboardsounds-pro/backend/app"
 	"github.com/keyboard-sounds/keyboardsounds-pro/backend/rules"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+
+	gort "runtime"
 )
 
 // AppRules is the Wails binding for the application rules UI
 type AppRules struct{}
+
+// InAppFocusProfileSettings is returned to the frontend for Settings → Application Settings.
+type InAppFocusProfileSettings struct {
+	KeyboardProfile *string `json:"keyboardProfile"`
+	MouseProfile    *string `json:"mouseProfile"`
+}
 
 // NewAppRules creates a new AppRules instance
 func NewAppRules() *AppRules {
@@ -96,26 +109,54 @@ func (a *AppRules) UpdateRuleProfiles(appPath string, keyboardProfile *string, m
 		}
 	}
 
-	return nil
+	return fmt.Errorf("application rule not found for path: %s", appPath)
 }
 
 // BrowseForExecutable opens a file dialog to select an executable file
 func (a *AppRules) BrowseForExecutable() (string, error) {
-	selection, err := runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
-		Title: "Select Application",
-		Filters: []runtime.FileFilter{
+	var filters []runtime.FileFilter
+
+	switch gort.GOOS {
+	case "darwin":
+		filters = []runtime.FileFilter{}
+	case "windows":
+		filters = []runtime.FileFilter{
 			{
 				DisplayName: "Executables (*.exe)",
 				Pattern:     "*.exe",
 			},
 			{
 				DisplayName: "All Files (*.*)",
+				Pattern:     "*",
+			},
+		}
+	default:
+		filters = []runtime.FileFilter{
+			{
+				DisplayName: "All Files (*.*)",
 				Pattern:     "*.*",
 			},
-		},
+		}
+	}
+
+	selection, err := runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
+		Title:   "Select Application",
+		Filters: filters,
 	})
 	if err != nil {
 		return "", err
+	}
+
+	if gort.GOOS == "darwin" {
+		// Check if the path is an app bundle, and if so find the executable binary for it
+		// If it is an app bundle, the executable binary is located in the Contents/MacOS directory
+		if strings.HasSuffix(selection, ".app") {
+			executablePath := filepath.Join(selection, "Contents", "MacOS", strings.TrimSuffix(filepath.Base(selection), ".app"))
+			slog.Info("executablePath", "path", executablePath)
+			if _, err := os.Stat(executablePath); err == nil {
+				selection = executablePath
+			}
+		}
 	}
 
 	return selection, nil
@@ -133,7 +174,7 @@ func (a *AppRules) SetDefaultProfiles(keyboard *string, mouse *string) error {
 		Keyboard: keyboard,
 		Mouse:    mouse,
 	}
-	return mgr.SetDefaultProfiles(profiles)
+	return kbsApp.SetDefaultProfiles(profiles)
 }
 
 // GetInfoBannerDismissed returns whether the info banner has been dismissed
@@ -186,6 +227,16 @@ func (a *AppRules) SetStartPlayingOnLaunch(startPlaying bool) error {
 	return SetStartPlayingOnLaunch(startPlaying)
 }
 
+// GetEnabledSoundOnStart returns which start-button confirmation sound to use (soft, basic, or none).
+func (a *AppRules) GetEnabledSoundOnStart() string {
+	return GetEnabledSoundOnStart()
+}
+
+// SetEnabledSoundOnStart persists the start-button sound variant.
+func (a *AppRules) SetEnabledSoundOnStart(variant string) error {
+	return SetEnabledSoundOnStart(variant)
+}
+
 // GetStartHidden returns whether the window should be hidden when launched
 func (a *AppRules) GetStartHidden() bool {
 	return GetStartHidden()
@@ -224,4 +275,30 @@ func (a *AppRules) GetInstalledApplications() []rules.InstalledApplication {
 // IsValidGlobPattern checks if a given pattern is a valid glob pattern
 func (a *AppRules) IsValidGlobPattern(pattern string) bool {
 	return rules.IsValidGlobPattern(pattern)
+}
+
+// GetApplicationRulesHeroContext returns the focused or last-focused app and resolved profiles for the Application Rules hero.
+func (a *AppRules) GetApplicationRulesHeroContext() kbsapp.ApplicationRulesHeroContext {
+	if kbsApp == nil {
+		return kbsapp.ApplicationRulesHeroContext{Supported: false}
+	}
+	return kbsApp.GetApplicationRulesHeroContext()
+}
+
+// GetInAppFocusProfiles returns persisted in-app (self-focused) profile overrides.
+func (a *AppRules) GetInAppFocusProfiles() InAppFocusProfileSettings {
+	return InAppFocusProfileSettings{
+		KeyboardProfile: GetInAppKeyboardProfile(),
+		MouseProfile:    GetInAppMouseProfile(),
+	}
+}
+
+// SetInAppKeyboardProfile sets the keyboard profile when this app is focused (nil = use default rules).
+func (a *AppRules) SetInAppKeyboardProfile(name *string) error {
+	return SetInAppKeyboardProfile(name)
+}
+
+// SetInAppMouseProfile sets the mouse profile when this app is focused (nil = use default rules).
+func (a *AppRules) SetInAppMouseProfile(name *string) error {
+	return SetInAppMouseProfile(name)
 }

@@ -5,7 +5,12 @@ import MouseIcon from '@mui/icons-material/Mouse';
 import PublicIcon from '@mui/icons-material/Public';
 import { glassCardStyle, selectMenuProps } from '../../constants';
 
-function DefaultRuleCard({ defaultSettings, onProfileChange, keyboardProfiles = [], mouseProfiles = [] }) {
+function DefaultRuleCard({
+  defaultSettings,
+  onProfileChange,
+  keyboardProfiles = [],
+  mouseProfiles = [],
+}) {
   const getSelectSx = (value) => ({
     backgroundColor: value === 'None' 
       ? 'var(--danger-bg)' 
@@ -54,16 +59,8 @@ function DefaultRuleCard({ defaultSettings, onProfileChange, keyboardProfiles = 
     },
   });
 
-  return (
-    <Card
-      sx={{
-        ...glassCardStyle,
-        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, var(--card-bg))',
-        border: '1px solid rgba(139, 92, 246, 0.25)',
-        position: 'relative',
-        overflow: 'visible',
-      }}
-    >
+  const content = (
+    <Box sx={{ position: 'relative', overflow: 'visible' }}>
       {/* Decorative corner accent */}
       <Box
         sx={{
@@ -77,89 +74,109 @@ function DefaultRuleCard({ defaultSettings, onProfileChange, keyboardProfiles = 
           pointerEvents: 'none',
         }}
       />
-      
-      <CardContent sx={{ padding: '24px !important' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '16px', flexGrow: 1 }}>
-            {/* Icon */}
-            <Box
-              sx={{
-                width: '52px',
-                height: '52px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.2)',
-                flexShrink: 0,
-              }}
-            >
-              <PublicIcon sx={{ fontSize: '26px', color: '#a78bfa' }} />
-            </Box>
-            
-            {/* Text */}
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: 'var(--text-primary)',
-                    fontSize: '17px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Global Default
-                </Typography>
-                <Chip
-                  label="Fallback"
-                  size="small"
-                  sx={{
-                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                    color: '#a78bfa',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    height: '20px',
-                    border: '1px solid rgba(139, 92, 246, 0.3)',
-                    '& .MuiChip-label': {
-                      padding: '0 8px',
-                    },
-                  }}
-                />
-              </Box>
+
+      <Box
+        sx={{
+          padding: '24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '16px',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '16px', flexGrow: 1 }}>
+          {/* Icon */}
+          <Box
+            sx={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(139, 92, 246, 0.2)',
+              flexShrink: 0,
+            }}
+          >
+            <PublicIcon sx={{ fontSize: '26px', color: '#a78bfa' }} />
+          </Box>
+
+          {/* Text */}
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
               <Typography
-                variant="body2"
+                variant="h6"
                 sx={{
-                  color: 'var(--text-tertiary)',
-                  fontSize: '13px',
+                  color: 'var(--text-primary)',
+                  fontSize: '17px',
+                  fontWeight: 600,
                 }}
               >
-                These profiles are used when no specific rule matches the active application
+                Global Default
               </Typography>
+              <Chip
+                label="Fallback"
+                size="small"
+                sx={{
+                  backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                  color: '#a78bfa',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  height: '20px',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  '& .MuiChip-label': {
+                    padding: '0 8px',
+                  },
+                }}
+              />
             </Box>
-          </Box>
-          
-          {/* Profile Selectors */}
-          <Box sx={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <ProfileSelector
-              icon={<KeyboardIcon />}
-              label="Keyboard"
-              value={defaultSettings.keyboardProfile}
-              onChange={(e) => onProfileChange('keyboardProfile', e.target.value)}
-              selectSx={getSelectSx(defaultSettings.keyboardProfile)}
-              profiles={keyboardProfiles}
-            />
-            <ProfileSelector
-              icon={<MouseIcon />}
-              label="Mouse"
-              value={defaultSettings.mouseProfile}
-              onChange={(e) => onProfileChange('mouseProfile', e.target.value)}
-              selectSx={getSelectSx(defaultSettings.mouseProfile)}
-              profiles={mouseProfiles}
-            />
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'var(--text-tertiary)',
+                fontSize: '13px',
+              }}
+            >
+              These profiles are used when no specific rule matches the active application
+            </Typography>
           </Box>
         </Box>
-      </CardContent>
+
+        {/* Profile Selectors */}
+        <Box sx={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <ProfileSelector
+            icon={<KeyboardIcon />}
+            label="Keyboard"
+            value={defaultSettings.keyboardProfile}
+            onChange={(e) => onProfileChange('keyboardProfile', e.target.value)}
+            selectSx={getSelectSx(defaultSettings.keyboardProfile)}
+            profiles={keyboardProfiles}
+          />
+          <ProfileSelector
+            icon={<MouseIcon />}
+            label="Mouse"
+            value={defaultSettings.mouseProfile}
+            onChange={(e) => onProfileChange('mouseProfile', e.target.value)}
+            selectSx={getSelectSx(defaultSettings.mouseProfile)}
+            profiles={mouseProfiles}
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+
+  return (
+    <Card
+      sx={{
+        ...glassCardStyle,
+        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, var(--card-bg))',
+        border: '1px solid rgba(139, 92, 246, 0.25)',
+        position: 'relative',
+        overflow: 'visible',
+      }}
+    >
+      <CardContent sx={{ padding: '0 !important' }}>{content}</CardContent>
     </Card>
   );
 }

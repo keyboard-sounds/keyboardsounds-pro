@@ -4,23 +4,23 @@ import (
 	"log/slog"
 
 	kbs "github.com/keyboard-sounds/keyboardsounds-pro/backend"
-	"github.com/keyboard-sounds/keyboardsounds-pro/backend/manager"
+	"github.com/keyboard-sounds/keyboardsounds-pro/backend/app"
 )
 
 func main() {
-	mgr, err := manager.NewManager(kbs.GetHomeDirectory())
+	kbsApp, err := app.NewApp(kbs.GetHomeDirectory())
 	if err != nil {
 		panic(err)
 	}
 
-	slog.Info("Enabling manager")
-	err = mgr.Enable()
+	slog.Info("Enabling application")
+	err = kbsApp.Enable()
 	if err != nil {
 		panic(err)
 	}
 
-	slog.Info("Setting audio pan", "panType", manager.PanTypeKeyPosition, "maxX", 18)
-	mgr.SetKeyboardAudioPan(true, manager.PanTypeKeyPosition, 18)
+	slog.Info("Setting audio pan", "panType", app.PanTypeKeyPosition, "maxX", 18)
+	kbsApp.SetKeyboardAudioPan(true, app.PanTypeKeyPosition, 18)
 
 	slog.Info("Waiting for terminate...")
 	select {}
