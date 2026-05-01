@@ -8,7 +8,7 @@ require (
 	github.com/gen2brain/beeep v0.11.2
 	github.com/google/uuid v1.6.0
 	github.com/jackmordaunt/icns/v3 v3.0.1
-	github.com/keyboard-sounds/keyboardsounds-pro/backend v0.3.0
+	github.com/keyboard-sounds/keyboardsounds-pro/backend v0.3.2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/otiai10/copy v1.14.1
 	github.com/wailsapp/wails/v2 v2.12.0
@@ -56,5 +56,3 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 )
-
-replace github.com/keyboard-sounds/keyboardsounds-pro/backend => ../backend
